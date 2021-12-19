@@ -1,0 +1,319 @@
+/*
+Copyright 2021.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
+
+package controllers
+
+import (
+	"context"
+	"fmt"
+
+	appsv1 "k8s.io/api/apps/v1"
+
+	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/api/resource"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
+
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/util/intstr"
+	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+	ctrllog "sigs.k8s.io/controller-runtime/pkg/log"
+
+	vpnv1alpha1 "github.com/jodevsa/wireguard-operator/api/v1alpha1"
+)
+
+// WireguardReconciler reconciles a Wireguard object
+type WireguardReconciler struct {
+	client.Client
+	Scheme *runtime.Scheme
+}
+
+const port = 51820
+
+//+kubebuilder:rbac:groups=vpn.example.com,resources=wireguards,verbs=get;list;watch;create;update;patch;delete
+//+kubebuilder:rbac:groups=vpn.example.com,resources=wireguards/status,verbs=get;update;patch
+//+kubebuilder:rbac:groups=vpn.example.com,resources=wireguards/finalizers,verbs=update
+
+// Reconcile is part of the main kubernetes reconciliation loop which aims to
+// move the current state of the cluster closer to the desired state.
+// TODO(user): Modify the Reconcile function to compare the state specified by
+// the Wireguard object against the actual cluster state, and then
+// perform operations to make the cluster state reflect the state specified by
+// the user.
+//
+// For more details, check Reconcile and its Result here:
+// - https://pkg.go.dev/sigs.k8s.io/controller-runtime@v0.10.0/pkg/reconcile
+func (r *WireguardReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
+	log := ctrllog.FromContext(ctx)
+	// Fetch the Nodered instance
+	wireguard := &vpnv1alpha1.Wireguard{}
+	err := r.Get(ctx, req.NamespacedName, wireguard)
+	if err != nil {
+		if errors.IsNotFound(err) {
+			// Request object not found, could have been deleted after reconcile request.
+			// Owned objects are automatically garbage collected. For additional cleanup logic use finalizers.
+			// Return and don't requeue
+			log.Info("Nodered resource not found. Ignoring since object must be deleted")
+			return ctrl.Result{}, nil
+		}
+		// Error reading the object - requeue the request.
+		log.Error(err, "Failed to get Nodered")
+		return ctrl.Result{}, err
+	}
+
+	// svc
+	println(wireguard.Name)
+
+	svcFound := &corev1.Service{}
+	err = r.Get(ctx, types.NamespacedName{Name: wireguard.Name + "-svc", Namespace: wireguard.Namespace}, svcFound)
+	if err != nil && errors.IsNotFound(err) {
+
+		svc := r.serviceForNodered(wireguard)
+		log.Info("Creating a new service", "service.Namespace", svc.Namespace, "service.Name", svc.Name)
+		err = r.Create(ctx, svc)
+		if err != nil {
+			log.Error(err, "Failed to create new service", "service.Namespace", svc.Namespace, "service.Name", svc.Name)
+			return ctrl.Result{}, err
+		}
+		// svc created successfully - return and requeue
+		return ctrl.Result{Requeue: true}, nil
+	} else if err != nil {
+		log.Error(err, "Failed to get service")
+		return ctrl.Result{}, err
+	}
+
+	ingressList := svcFound.Status.LoadBalancer.Ingress
+
+	if len(ingressList) == 0 {
+		return ctrl.Result{Requeue: true}, nil
+	}
+
+	hostname := svcFound.Status.LoadBalancer.Ingress[0].Hostname
+
+	// pvc
+
+	pvcFound := &corev1.PersistentVolumeClaim{}
+	err = r.Get(ctx, types.NamespacedName{Name: wireguard.Name + "-pvc", Namespace: wireguard.Namespace}, pvcFound)
+	if err != nil && errors.IsNotFound(err) {
+
+		pvc := r.pvcForWireguard(wireguard)
+		log.Info("Creating a new pvc", "pvc.Namespace", pvc.Namespace, "pvc.Name", pvc.Name)
+		err = r.Create(ctx, pvc)
+		if err != nil {
+			log.Error(err, "Failed to create new pvc", "pvc.Namespace", pvc.Namespace, "pvc.Name", pvc.Name)
+			return ctrl.Result{}, err
+		}
+		// pvc created successfully - return and requeue
+		return ctrl.Result{Requeue: true}, nil
+	} else if err != nil {
+		log.Error(err, "Failed to get pvc")
+		return ctrl.Result{}, err
+	}
+
+	// configmap
+
+	configFound := &corev1.ConfigMap{}
+	err = r.Get(ctx, types.NamespacedName{Name: wireguard.Name + "-config", Namespace: wireguard.Namespace}, configFound)
+	if err != nil && errors.IsNotFound(err) {
+		config := r.configmapForWireguard(wireguard, hostname)
+		log.Info("Creating a new config", "config.Namespace", config.Namespace, "config.Name", config.Name)
+		err = r.Create(ctx, config)
+		if err != nil {
+			log.Error(err, "Failed to create new dep", "dep.Namespace", config.Namespace, "dep.Name", config.Name)
+			return ctrl.Result{}, err
+		}
+		// config created successfully - return and requeue
+		return ctrl.Result{Requeue: true}, nil
+	} else if err != nil {
+		log.Error(err, "Failed to get config")
+		return ctrl.Result{}, err
+	}
+
+	// deployment
+
+	deploymentFound := &appsv1.Deployment{}
+	err = r.Get(ctx, types.NamespacedName{Name: wireguard.Name + "-dep", Namespace: wireguard.Namespace}, deploymentFound)
+	if err != nil && errors.IsNotFound(err) {
+		dep := r.deploymentForWireguard(wireguard)
+		log.Info("Creating a new dep", "dep.Namespace", dep.Namespace, "dep.Name", dep.Name)
+		err = r.Create(ctx, dep)
+		if err != nil {
+			log.Error(err, "Failed to create new dep", "dep.Namespace", dep.Namespace, "dep.Name", dep.Name)
+			return ctrl.Result{}, err
+		}
+		// Deployment created successfully - return and requeue
+		return ctrl.Result{Requeue: true}, nil
+	} else if err != nil {
+		log.Error(err, "Failed to get dep")
+		return ctrl.Result{}, err
+	}
+
+	return ctrl.Result{}, nil
+}
+
+// SetupWithManager sets up the controller with the Manager.
+func (r *WireguardReconciler) SetupWithManager(mgr ctrl.Manager) error {
+	return ctrl.NewControllerManagedBy(mgr).
+		For(&vpnv1alpha1.Wireguard{}).
+		Complete(r)
+}
+
+func (r *WireguardReconciler) serviceForNodered(m *vpnv1alpha1.Wireguard) *corev1.Service {
+	labels := labelsForWireguard(m.Name)
+	//timeoutSeconds := int32(120)
+
+	dep := &corev1.Service{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      m.Name + "-svc",
+			Namespace: m.Namespace,
+			Annotations: map[string]string{
+				"service.beta.kubernetes.io/aws-load-balancer-type":            "external",
+				"service.beta.kubernetes.io/aws-load-balancer-nlb-target-type": "ip",
+				"service.beta.kubernetes.io/aws-load-balancer-scheme":          "internet-facing",
+			},
+		},
+		Spec: corev1.ServiceSpec{
+			Selector: labels,
+			Ports: []corev1.ServicePort{{
+				Protocol:   corev1.ProtocolUDP,
+				Port:       port,
+				TargetPort: intstr.FromInt(port),
+			}},
+			/*			SessionAffinityConfig: &corev1.SessionAffinityConfig{
+							ClientIP: &corev1.ClientIPConfig{
+								TimeoutSeconds: &timeoutSeconds,
+							},
+						},
+			*/
+			Type: corev1.ServiceTypeLoadBalancer,
+		},
+	}
+	// Set Nodered instance as the owner and controller
+	ctrl.SetControllerReference(m, dep, r.Scheme)
+	return dep
+}
+
+func labelsForWireguard(name string) map[string]string {
+	return map[string]string{"wireguard_cr": name}
+}
+
+func (r *WireguardReconciler) configmapForWireguard(m *vpnv1alpha1.Wireguard, hostname string) *corev1.ConfigMap {
+	ls := labelsForWireguard(m.Name)
+	dep := &corev1.ConfigMap{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      m.Name + "-config",
+			Namespace: m.Namespace,
+			Labels:    ls,
+		},
+		Data: map[string]string{
+			"SERVERURL":       hostname,
+			"PUID":            "1000",
+			"PGID":            "1000",
+			"TZ":              "America/Mexico_City",
+			"SERVERPORT":      fmt.Sprint(port),
+			"PEERS":           "2",
+			"PEERDNS":         "169.254.169.253",
+			"ALLOWEDIPS":      "0.0.0.0/0, ::/0",
+			"INTERNAL_SUBNET": "10.13.13.0",
+		}}
+	// Set Nodered instance as the owner and controller
+	ctrl.SetControllerReference(m, dep, r.Scheme)
+	return dep
+}
+
+// deploymentForNodered returns a nodered Deployment object
+func (r *WireguardReconciler) deploymentForWireguard(m *vpnv1alpha1.Wireguard) *appsv1.Deployment {
+	ls := labelsForWireguard(m.Name)
+	replicas := int32(1)
+	trueVal := true
+
+	dep := &appsv1.Deployment{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      m.Name + "-dep",
+			Namespace: m.Namespace,
+			Labels:    ls,
+		},
+		Spec: appsv1.DeploymentSpec{
+			Replicas: &replicas,
+			Selector: &metav1.LabelSelector{
+				MatchLabels: ls,
+			},
+			Template: corev1.PodTemplateSpec{
+				ObjectMeta: metav1.ObjectMeta{
+					Labels: ls,
+				},
+				Spec: corev1.PodSpec{
+					Volumes: []corev1.Volume{{
+						Name: "wp-config",
+						VolumeSource: corev1.VolumeSource{
+							PersistentVolumeClaim: &corev1.PersistentVolumeClaimVolumeSource{ClaimName: m.Name + "-pvc"},
+						},
+					},
+						{
+							Name: "host-volumes",
+							VolumeSource: corev1.VolumeSource{
+								HostPath: &corev1.HostPathVolumeSource{Path: "/lib/modules"},
+							},
+						}},
+					Containers: []corev1.Container{{
+						SecurityContext: &corev1.SecurityContext{
+							Capabilities: &corev1.Capabilities{Add: []corev1.Capability{"NET_ADMIN"}},
+							Privileged:   &trueVal,
+						},
+						Image: "ghcr.io/jodevsa/wireguard:subhi",
+						Name:  "wireguard",
+						Ports: []corev1.ContainerPort{{
+							ContainerPort: port,
+							Name:          "wireguard",
+							Protocol:      corev1.ProtocolUDP,
+						}},
+						EnvFrom: []corev1.EnvFromSource{{
+							ConfigMapRef: &corev1.ConfigMapEnvSource{
+								LocalObjectReference: corev1.LocalObjectReference{Name: m.Name + "-config"},
+							},
+						}},
+						Env: []corev1.EnvVar{},
+						VolumeMounts: []corev1.VolumeMount{
+							{
+								Name:      "wp-config",
+								MountPath: "/config",
+							},
+							{
+								Name:      "host-volumes",
+								MountPath: "/lib/modules",
+							},
+						},
+					}},
+				},
+			},
+		},
+	}
+	// Set Nodered instance as the owner and controller
+	ctrl.SetControllerReference(m, dep, r.Scheme)
+	return dep
+}
+
+func (r *WireguardReconciler) pvcForWireguard(m *vpnv1alpha1.Wireguard) *corev1.PersistentVolumeClaim {
+	dep := &corev1.PersistentVolumeClaim{
+		ObjectMeta: metav1.ObjectMeta{Name: m.Name + "-pvc", Namespace: m.Namespace},
+		Spec: corev1.PersistentVolumeClaimSpec{AccessModes: []corev1.PersistentVolumeAccessMode{corev1.ReadWriteOnce},
+			Resources: corev1.ResourceRequirements{Requests: corev1.ResourceList{corev1.ResourceStorage: resource.MustParse("1Gi")}}},
+	}
+	ctrl.SetControllerReference(m, dep, r.Scheme)
+	return dep
+}
