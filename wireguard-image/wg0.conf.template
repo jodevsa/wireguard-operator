@@ -1,0 +1,5 @@
+[Interface]
+PrivateKey = $PRIVATE_KEY
+Address = 10.8.0.1/24
+ListenPort = 51820
+SaveConfig = true

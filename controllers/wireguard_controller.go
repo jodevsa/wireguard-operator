@@ -35,6 +35,7 @@ import (
 	ctrllog "sigs.k8s.io/controller-runtime/pkg/log"
 
 	vpnv1alpha1 "github.com/jodevsa/wireguard-operator/api/v1alpha1"
+	wgtypes "golang.zx2c4.com/wireguard/wgctrl/wgtypes"
 )
 
 // WireguardReconciler reconciles a Wireguard object
@@ -79,11 +80,39 @@ func (r *WireguardReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 	// svc
 	println(wireguard.Name)
 
+	err = r.Get(ctx, types.NamespacedName{Name: wireguard.Name, Namespace: wireguard.Namespace}, &corev1.Secret{})
+	if err != nil && errors.IsNotFound(err) {
+
+		key, err := wgtypes.GeneratePrivateKey()
+
+		privateKey := key.String()
+		publicKey := key.PublicKey().String()
+
+		if err != nil {
+			log.Error(err, "Failed to generate private key")
+			return ctrl.Result{}, err
+		}
+
+		secret := r.secretForWireguard(wireguard, privateKey, publicKey)
+
+		log.Info("Creating a new secret", "secret.Namespace", secret.Namespace, "secret.Name", secret.Name)
+		err = r.Create(ctx, secret)
+		if err != nil {
+			log.Error(err, "Failed to create new secret", "secret.Namespace", secret.Namespace, "secret.Name", secret.Name)
+			return ctrl.Result{}, err
+		}
+		// svc created successfully - return and requeue
+		return ctrl.Result{Requeue: true}, nil
+	} else if err != nil {
+		log.Error(err, "Failed to get secret")
+		return ctrl.Result{}, err
+	}
+
 	svcFound := &corev1.Service{}
 	err = r.Get(ctx, types.NamespacedName{Name: wireguard.Name + "-svc", Namespace: wireguard.Namespace}, svcFound)
 	if err != nil && errors.IsNotFound(err) {
 
-		svc := r.serviceForNodered(wireguard)
+		svc := r.serviceForWireguard(wireguard)
 		log.Info("Creating a new service", "service.Namespace", svc.Namespace, "service.Name", svc.Name)
 		err = r.Create(ctx, svc)
 		if err != nil {
@@ -173,7 +202,7 @@ func (r *WireguardReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		Complete(r)
 }
 
-func (r *WireguardReconciler) serviceForNodered(m *vpnv1alpha1.Wireguard) *corev1.Service {
+func (r *WireguardReconciler) serviceForWireguard(m *vpnv1alpha1.Wireguard) *corev1.Service {
 	labels := labelsForWireguard(m.Name)
 	//timeoutSeconds := int32(120)
 
@@ -210,6 +239,23 @@ func (r *WireguardReconciler) serviceForNodered(m *vpnv1alpha1.Wireguard) *corev
 
 func labelsForWireguard(name string) map[string]string {
 	return map[string]string{"wireguard_cr": name}
+}
+
+func (r *WireguardReconciler) secretForWireguard(m *vpnv1alpha1.Wireguard, privateKey string, publicKey string) *corev1.Secret {
+	ls := labelsForWireguard(m.Name)
+	dep := &corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      m.Name,
+			Namespace: m.Namespace,
+			Labels:    ls,
+		},
+		Data: map[string][]byte{"privateKey": []byte(privateKey), "publicKey": []byte(publicKey)},
+	}
+	// Set Nodered instance as the owner and controller
+	ctrl.SetControllerReference(m, dep, r.Scheme)
+
+	return dep
+
 }
 
 func (r *WireguardReconciler) configmapForWireguard(m *vpnv1alpha1.Wireguard, hostname string) *corev1.ConfigMap {
@@ -258,18 +304,6 @@ func (r *WireguardReconciler) deploymentForWireguard(m *vpnv1alpha1.Wireguard) *
 					Labels: ls,
 				},
 				Spec: corev1.PodSpec{
-					Volumes: []corev1.Volume{{
-						Name: "wp-config",
-						VolumeSource: corev1.VolumeSource{
-							PersistentVolumeClaim: &corev1.PersistentVolumeClaimVolumeSource{ClaimName: m.Name + "-pvc"},
-						},
-					},
-						{
-							Name: "host-volumes",
-							VolumeSource: corev1.VolumeSource{
-								HostPath: &corev1.HostPathVolumeSource{Path: "/lib/modules"},
-							},
-						}},
 					Containers: []corev1.Container{{
 						SecurityContext: &corev1.SecurityContext{
 							Capabilities: &corev1.Capabilities{Add: []corev1.Capability{"NET_ADMIN"}},
@@ -287,16 +321,13 @@ func (r *WireguardReconciler) deploymentForWireguard(m *vpnv1alpha1.Wireguard) *
 								LocalObjectReference: corev1.LocalObjectReference{Name: m.Name + "-config"},
 							},
 						}},
-						Env: []corev1.EnvVar{},
-						VolumeMounts: []corev1.VolumeMount{
-							{
-								Name:      "wp-config",
-								MountPath: "/config",
-							},
-							{
-								Name:      "host-volumes",
-								MountPath: "/lib/modules",
-							},
+						Env: []corev1.EnvVar{
+							{Name: "PUBLIC_KEY", ValueFrom: &corev1.EnvVarSource{
+								SecretKeyRef: &corev1.SecretKeySelector{LocalObjectReference: corev1.LocalObjectReference{Name: m.Name}, Key: "publicKey"},
+							}},
+							{Name: "PRIVATE_KEY", ValueFrom: &corev1.EnvVarSource{
+								SecretKeyRef: &corev1.SecretKeySelector{LocalObjectReference: corev1.LocalObjectReference{Name: m.Name}, Key: "privateKey"},
+							}},
 						},
 					}},
 				},
