@@ -25,7 +25,7 @@ function start_wg() {
 }
 function setup_NAT() {
   echo "Setting up NAT"
-  iptables -t nat -I POSTROUTING 1 -s $SUB_NET -o eth0 -j MASQUERADE
+  /usr/sbin/iptables-legacy -t nat -I POSTROUTING 1 -s $SUB_NET -o eth0 -j MASQUERADE
 }
 function create_config() {
   cat /wg0.conf.template | envsubst > /etc/wireguard/wg0.conf
