@@ -34,4 +34,5 @@ function create_config() {
 
 create_config
 setup_NAT
+ls /usr/local/bin/boringtun
 start_wg wg0
