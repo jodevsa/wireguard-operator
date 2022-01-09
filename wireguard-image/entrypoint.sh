@@ -20,7 +20,7 @@ function shutdown_wg() {
 
 function start_wg() {
   echo "Starting up Wireguard (boringtun)"
- # wg-quick up "$1"
+  wg-quick up "$1"
   infinite_loop "$1"
 }
 function setup_NAT() {
