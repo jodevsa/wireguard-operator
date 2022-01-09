@@ -102,7 +102,14 @@ func (r *WireguardReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 			return ctrl.Result{}, err
 		}
 
-		clientSecret := r.secretForClient(wireguard, privateKey, publicKey)
+		clientKey, err := wgtypes.GeneratePrivateKey()
+
+		if err != nil {
+			log.Error(err, "Failed to generate private key")
+			return ctrl.Result{}, err
+		}
+
+		clientSecret := r.secretForClient(wireguard, clientKey.String(), clientKey.PublicKey().String())
 
 		log.Info("Creating a new secret", "secret.Namespace", clientSecret.Namespace, "secret.Name", clientSecret.Name)
 		err = r.Create(ctx, clientSecret)

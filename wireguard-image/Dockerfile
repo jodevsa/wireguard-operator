@@ -31,6 +31,6 @@ COPY wg0.conf.template /
 
 
 
-WORKDIR /etc/ireguard
+WORKDIR /etc/wireguard
 
 ENTRYPOINT [ "/entrypoint.sh"]
