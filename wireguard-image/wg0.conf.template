@@ -6,4 +6,4 @@ SaveConfig = true
 
 [Peer]
 PublicKey = $CLIENT_PUBLIC_KEY
-AllowedIPs = 10.0.0.2/24
+AllowedIPs = 10.8.0.2/24
