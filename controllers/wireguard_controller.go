@@ -101,6 +101,16 @@ func (r *WireguardReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 			log.Error(err, "Failed to create new secret", "secret.Namespace", secret.Namespace, "secret.Name", secret.Name)
 			return ctrl.Result{}, err
 		}
+
+		clientSecret := r.secretForClient(wireguard, privateKey, publicKey)
+
+		log.Info("Creating a new secret", "secret.Namespace", clientSecret.Namespace, "secret.Name", clientSecret.Name)
+		err = r.Create(ctx, clientSecret)
+		if err != nil {
+			log.Error(err, "Failed to create new secret", "secret.Namespace", clientSecret.Namespace, "secret.Name", clientSecret.Name)
+			return ctrl.Result{}, err
+		}
+
 		// svc created successfully - return and requeue
 		return ctrl.Result{Requeue: true}, nil
 	} else if err != nil {
@@ -135,24 +145,25 @@ func (r *WireguardReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 	hostname := svcFound.Status.LoadBalancer.Ingress[0].Hostname
 
 	// pvc
+	/*
+		pvcFound := &corev1.PersistentVolumeClaim{}
+		err = r.Get(ctx, types.NamespacedName{Name: wireguard.Name + "-pvc", Namespace: wireguard.Namespace}, pvcFound)
+		if err != nil && errors.IsNotFound(err) {
 
-	pvcFound := &corev1.PersistentVolumeClaim{}
-	err = r.Get(ctx, types.NamespacedName{Name: wireguard.Name + "-pvc", Namespace: wireguard.Namespace}, pvcFound)
-	if err != nil && errors.IsNotFound(err) {
-
-		pvc := r.pvcForWireguard(wireguard)
-		log.Info("Creating a new pvc", "pvc.Namespace", pvc.Namespace, "pvc.Name", pvc.Name)
-		err = r.Create(ctx, pvc)
-		if err != nil {
-			log.Error(err, "Failed to create new pvc", "pvc.Namespace", pvc.Namespace, "pvc.Name", pvc.Name)
+			pvc := r.pvcForWireguard(wireguard)
+			log.Info("Creating a new pvc", "pvc.Namespace", pvc.Namespace, "pvc.Name", pvc.Name)
+			err = r.Create(ctx, pvc)
+			if err != nil {
+				log.Error(err, "Failed to create new pvc", "pvc.Namespace", pvc.Namespace, "pvc.Name", pvc.Name)
+				return ctrl.Result{}, err
+			}
+			// pvc created successfully - return and requeue
+			return ctrl.Result{Requeue: true}, nil
+		} else if err != nil {
+			log.Error(err, "Failed to get pvc")
 			return ctrl.Result{}, err
 		}
-		// pvc created successfully - return and requeue
-		return ctrl.Result{Requeue: true}, nil
-	} else if err != nil {
-		log.Error(err, "Failed to get pvc")
-		return ctrl.Result{}, err
-	}
+	*/
 
 	// configmap
 
@@ -258,6 +269,23 @@ func (r *WireguardReconciler) secretForWireguard(m *vpnv1alpha1.Wireguard, priva
 
 }
 
+func (r *WireguardReconciler) secretForClient(m *vpnv1alpha1.Wireguard, privateKey string, publicKey string) *corev1.Secret {
+	ls := labelsForWireguard(m.Name)
+	dep := &corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      m.Name + "-client",
+			Namespace: m.Namespace,
+			Labels:    ls,
+		},
+		Data: map[string][]byte{"privateKey": []byte(privateKey), "publicKey": []byte(publicKey)},
+	}
+	// Set Nodered instance as the owner and controller
+	ctrl.SetControllerReference(m, dep, r.Scheme)
+
+	return dep
+
+}
+
 func (r *WireguardReconciler) configmapForWireguard(m *vpnv1alpha1.Wireguard, hostname string) *corev1.ConfigMap {
 	ls := labelsForWireguard(m.Name)
 	dep := &corev1.ConfigMap{
@@ -309,8 +337,9 @@ func (r *WireguardReconciler) deploymentForWireguard(m *vpnv1alpha1.Wireguard) *
 							Capabilities: &corev1.Capabilities{Add: []corev1.Capability{"NET_ADMIN"}},
 							Privileged:   &trueVal,
 						},
-						Image: "ghcr.io/jodevsa/wireguard-operator:main",
-						Name:  "wireguard",
+						Image:           "ghcr.io/jodevsa/wireguard-operator:main",
+						ImagePullPolicy: "Always",
+						Name:            "wireguard",
 						Ports: []corev1.ContainerPort{{
 							ContainerPort: port,
 							Name:          "wireguard",
@@ -322,6 +351,9 @@ func (r *WireguardReconciler) deploymentForWireguard(m *vpnv1alpha1.Wireguard) *
 							},
 						}},
 						Env: []corev1.EnvVar{
+							{Name: "CLIENT_PUBLIC_KEY", ValueFrom: &corev1.EnvVarSource{
+								SecretKeyRef: &corev1.SecretKeySelector{LocalObjectReference: corev1.LocalObjectReference{Name: m.Name + "-client"}, Key: "publicKey"},
+							}},
 							{Name: "PUBLIC_KEY", ValueFrom: &corev1.EnvVarSource{
 								SecretKeyRef: &corev1.SecretKeySelector{LocalObjectReference: corev1.LocalObjectReference{Name: m.Name}, Key: "publicKey"},
 							}},
