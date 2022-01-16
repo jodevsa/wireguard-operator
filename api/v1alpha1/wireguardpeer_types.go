@@ -17,48 +17,62 @@ limitations under the License.
 package v1alpha1
 
 import (
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
+
+type PrivateKey struct {
+	SecretKeyRef corev1.SecretKeySelector `json:"secretKeyRef"`
+}
 
 // EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!
 // NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
 
-// WireguardSpec defines the desired state of Wireguard
-type WireguardSpec struct {
+// WireguardPeerSpec defines the desired state of WireguardPeer
+type WireguardPeerSpec struct {
 	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
 	// Important: Run "make" to regenerate code after modifying this file
-	LastUpdated string `json:"lastUpdated,omitempty"`
+
+	// Foo is an example field of WireguardPeer. Edit wireguardpeer_types.go to remove/update
+	WireguardRef string `json:"wireguardRef"`
+	Address      string `json:"Address,omitempty"`
+
+	PublicKey string `json:"publicKey,omitempty"`
+
+	PrivateKey PrivateKey `json:"PrivateKeyRef,omitempty"`
+
+	Config string `json:"config,omitempty"`
 }
 
-// WireguardStatus defines the observed state of Wireguard
-type WireguardStatus struct {
+// WireguardPeerStatus defines the observed state of WireguardPeer
+type WireguardPeerStatus struct {
 	// INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
 	// Important: Run "make" to regenerate code after modifying this file
-	Hostname string `json:"hostname,omitempty"`
-	Port     string `json:"port,omitempty"`
+
+	Config string `json:"result,omitempty"`
 }
 
 //+kubebuilder:object:root=true
 //+kubebuilder:subresource:status
 
-// Wireguard is the Schema for the wireguards API
-type Wireguard struct {
+// WireguardPeer is the Schema for the wireguardpeers API
+type WireguardPeer struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	Spec   WireguardSpec   `json:"spec,omitempty"`
-	Status WireguardStatus `json:"status,omitempty"`
+	Spec   WireguardPeerSpec   `json:"spec,omitempty"`
+	Status WireguardPeerStatus `json:"status,omitempty"`
 }
 
 //+kubebuilder:object:root=true
 
-// WireguardList contains a list of Wireguard
-type WireguardList struct {
+// WireguardPeerList contains a list of WireguardPeer
+type WireguardPeerList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
-	Items           []Wireguard `json:"items"`
+	Items           []WireguardPeer `json:"items"`
 }
 
 func init() {
-	SchemeBuilder.Register(&Wireguard{}, &WireguardList{})
+	SchemeBuilder.Register(&WireguardPeer{}, &WireguardPeerList{})
 }

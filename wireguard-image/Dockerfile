@@ -27,7 +27,7 @@ RUN set -eux; \
     echo 'deb http://deb.debian.org/debian buster-backports main' > /etc/apt/sources.list.d/backports.list; \
     apt-get update; \
     DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-suggests --no-install-recommends \
-    wireguard-tools sudo iproute2 iptables gettext-base
+    wireguard-tools sudo iproute2 iptables gettext-base fswatch
 
 COPY --from=builder $BORINGTUN_SRC/target/release/boringtun /usr/local/bin
 COPY entrypoint.sh /

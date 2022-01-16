@@ -3,15 +3,6 @@
 set -e
 
 
-
-function infinite_loop() {
-  # Handle shutdown behavior
-  trap 'shutdown_wg "$1"' SIGTERM SIGINT SIGQUIT
-
-  sleep infinity &
-  wait $!
-}
-
 function shutdown_wg() {
   echo "Shutting down Wireguard (boringtun)"
   wg-quick down "$1"
@@ -27,12 +18,17 @@ function setup_NAT() {
   echo "Setting up NAT"
   /usr/sbin/iptables-legacy -t nat -I POSTROUTING 1 -s $SUB_NET -o eth0 -j MASQUERADE
 }
-function create_config() {
-  cat /wg0.conf.template | envsubst > /etc/wireguard/wg0.conf
-  cat /etc/wireguard/wg0.conf
+function update_config() {
+  echo "Updating config"
+  wg-quick down wg0
+  cp /tmp/wireguard/config > /etc/wireguard/wg0.conf
+  wg-quick up wg0
 }
 
-create_config
+function watch_and_update() {
+  trap 'shutdown_wg "$1"' SIGTERM SIGINT SIGQUIT
+  update_config
+  fswatch -o /tmp/wireguard/config | xargs -n1 -I{} update_config
+}
 setup_NAT
-ls /usr/local/bin/boringtun
-start_wg wg0
+watch_and_update

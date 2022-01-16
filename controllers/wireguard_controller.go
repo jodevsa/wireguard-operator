@@ -61,6 +61,7 @@ const port = 51820
 // - https://pkg.go.dev/sigs.k8s.io/controller-runtime@v0.10.0/pkg/reconcile
 func (r *WireguardReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	log := ctrllog.FromContext(ctx)
+
 	// Fetch the Nodered instance
 	wireguard := &vpnv1alpha1.Wireguard{}
 	err := r.Get(ctx, req.NamespacedName, wireguard)
@@ -77,10 +78,56 @@ func (r *WireguardReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 		return ctrl.Result{}, err
 	}
 
+	wgConfig := ""
+
+	// wireguardpeer
+	peers := &vpnv1alpha1.WireguardPeerList{}
+	if err := r.List(ctx, peers, client.InNamespace(req.Namespace)); err != nil {
+		log.Error(err, "Failed to fetch list of peers")
+		return ctrl.Result{}, err
+	}
+
+	for _, peer := range peers.Items {
+
+		if peer.Spec.WireguardRef != wireguard.Name {
+			continue
+		}
+		if peer.Spec.PublicKey == "" {
+			continue
+		}
+
+		wgConfig = wgConfig + fmt.Sprintf("\n[Peer]\nPublicKey = %s\nallowedIps = 10.8.0.2/24\n\n", peer.Spec.PublicKey)
+	}
+
 	// svc
 	println(wireguard.Name)
+	secret := &corev1.Secret{}
+	err = r.Get(ctx, types.NamespacedName{Name: wireguard.Name, Namespace: wireguard.Namespace}, secret)
+	if err == nil {
+		privateKey := string(secret.Data["privateKey"])
 
-	err = r.Get(ctx, types.NamespacedName{Name: wireguard.Name, Namespace: wireguard.Namespace}, &corev1.Secret{})
+		wgConfig = fmt.Sprintf(`
+[Interface]
+PrivateKey = %s
+Address = 10.8.0.1/24
+ListenPort = 51820
+`, privateKey) + wgConfig
+
+		publicKey := string(secret.Data["publicKey"])
+		println("updating secret with new config")
+		err := r.Update(ctx, r.secretForWireguard(wireguard, privateKey, publicKey, wgConfig))
+		if err != nil {
+			log.Error(err, "Failed to update secret with new config")
+			return ctrl.Result{}, err
+		}
+		log.Info(string(secret.Data["config"]))
+		if string(secret.Data["config"]) != wgConfig {
+			log.Info("new secret")
+			wireguard.Spec.LastUpdated = metav1.Now().String()
+			r.Update(ctx, wireguard)
+		}
+
+	}
 	if err != nil && errors.IsNotFound(err) {
 
 		key, err := wgtypes.GeneratePrivateKey()
@@ -93,7 +140,7 @@ func (r *WireguardReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 			return ctrl.Result{}, err
 		}
 
-		secret := r.secretForWireguard(wireguard, privateKey, publicKey)
+		secret := r.secretForWireguard(wireguard, privateKey, publicKey, wgConfig)
 
 		log.Info("Creating a new secret", "secret.Namespace", secret.Namespace, "secret.Name", secret.Name)
 		err = r.Create(ctx, secret)
@@ -150,27 +197,23 @@ func (r *WireguardReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 	}
 
 	hostname := svcFound.Status.LoadBalancer.Ingress[0].Hostname
+	if hostname == "" {
+		hostname = svcFound.Status.LoadBalancer.Ingress[0].IP
+	}
+	log.Info(hostname)
 
-	// pvc
-	/*
-		pvcFound := &corev1.PersistentVolumeClaim{}
-		err = r.Get(ctx, types.NamespacedName{Name: wireguard.Name + "-pvc", Namespace: wireguard.Namespace}, pvcFound)
-		if err != nil && errors.IsNotFound(err) {
+	if wireguard.Status.Hostname == "" {
+		updateWireguard := wireguard.DeepCopy()
+		updateWireguard.Status.Hostname = hostname
+		updateWireguard.Status.Port = "51820"
 
-			pvc := r.pvcForWireguard(wireguard)
-			log.Info("Creating a new pvc", "pvc.Namespace", pvc.Namespace, "pvc.Name", pvc.Name)
-			err = r.Create(ctx, pvc)
-			if err != nil {
-				log.Error(err, "Failed to create new pvc", "pvc.Namespace", pvc.Namespace, "pvc.Name", pvc.Name)
-				return ctrl.Result{}, err
-			}
-			// pvc created successfully - return and requeue
-			return ctrl.Result{Requeue: true}, nil
-		} else if err != nil {
-			log.Error(err, "Failed to get pvc")
+		err = r.Status().Update(ctx, updateWireguard)
+
+		if err != nil {
+			log.Error(err, "Failed to update wireguard manifest host and port")
 			return ctrl.Result{}, err
 		}
-	*/
+	}
 
 	// configmap
 
@@ -217,12 +260,13 @@ func (r *WireguardReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 func (r *WireguardReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&vpnv1alpha1.Wireguard{}).
+		Owns(&vpnv1alpha1.WireguardPeer{}).
 		Complete(r)
 }
 
 func (r *WireguardReconciler) serviceForWireguard(m *vpnv1alpha1.Wireguard) *corev1.Service {
 	labels := labelsForWireguard(m.Name)
-	//timeoutSeconds := int32(120)
+	timeoutSeconds := int32(120)
 
 	dep := &corev1.Service{
 		ObjectMeta: metav1.ObjectMeta{
@@ -241,12 +285,11 @@ func (r *WireguardReconciler) serviceForWireguard(m *vpnv1alpha1.Wireguard) *cor
 				Port:       port,
 				TargetPort: intstr.FromInt(port),
 			}},
-			/*			SessionAffinityConfig: &corev1.SessionAffinityConfig{
-							ClientIP: &corev1.ClientIPConfig{
-								TimeoutSeconds: &timeoutSeconds,
-							},
-						},
-			*/
+			SessionAffinityConfig: &corev1.SessionAffinityConfig{
+				ClientIP: &corev1.ClientIPConfig{
+					TimeoutSeconds: &timeoutSeconds,
+				},
+			},
 			Type: corev1.ServiceTypeLoadBalancer,
 		},
 	}
@@ -259,7 +302,7 @@ func labelsForWireguard(name string) map[string]string {
 	return map[string]string{"wireguard_cr": name}
 }
 
-func (r *WireguardReconciler) secretForWireguard(m *vpnv1alpha1.Wireguard, privateKey string, publicKey string) *corev1.Secret {
+func (r *WireguardReconciler) secretForWireguard(m *vpnv1alpha1.Wireguard, privateKey string, publicKey string, config string) *corev1.Secret {
 	ls := labelsForWireguard(m.Name)
 	dep := &corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
@@ -267,7 +310,7 @@ func (r *WireguardReconciler) secretForWireguard(m *vpnv1alpha1.Wireguard, priva
 			Namespace: m.Namespace,
 			Labels:    ls,
 		},
-		Data: map[string][]byte{"privateKey": []byte(privateKey), "publicKey": []byte(publicKey)},
+		Data: map[string][]byte{"config": []byte(config), "privateKey": []byte(privateKey), "publicKey": []byte(publicKey)},
 	}
 	// Set Nodered instance as the owner and controller
 	ctrl.SetControllerReference(m, dep, r.Scheme)
@@ -339,6 +382,15 @@ func (r *WireguardReconciler) deploymentForWireguard(m *vpnv1alpha1.Wireguard) *
 					Labels: ls,
 				},
 				Spec: corev1.PodSpec{
+					Volumes: []corev1.Volume{{
+
+						Name: "config",
+						VolumeSource: corev1.VolumeSource{
+							Secret: &corev1.SecretVolumeSource{
+								SecretName: m.Name,
+							},
+						},
+					}},
 					Containers: []corev1.Container{{
 						SecurityContext: &corev1.SecurityContext{
 							Capabilities: &corev1.Capabilities{Add: []corev1.Capability{"NET_ADMIN"}},
@@ -356,6 +408,10 @@ func (r *WireguardReconciler) deploymentForWireguard(m *vpnv1alpha1.Wireguard) *
 							ConfigMapRef: &corev1.ConfigMapEnvSource{
 								LocalObjectReference: corev1.LocalObjectReference{Name: m.Name + "-config"},
 							},
+						}},
+						VolumeMounts: []corev1.VolumeMount{{
+							Name:      "config",
+							MountPath: "/tmp/wireguard/",
 						}},
 						Env: []corev1.EnvVar{
 							{Name: "CLIENT_PUBLIC_KEY", ValueFrom: &corev1.EnvVarSource{
