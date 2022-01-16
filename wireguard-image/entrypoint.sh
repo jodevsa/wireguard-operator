@@ -28,7 +28,7 @@ function update_config() {
 function watch_and_update() {
   trap 'shutdown_wg "$1"' SIGTERM SIGINT SIGQUIT
   update_config
-  fswatch -o /tmp/wireguard/config | xargs -n1 -I{} update_config
+  fswatch -o /tmp/wireguard/ | xargs -n1 -I{} update_config
 }
 setup_NAT
 watch_and_update

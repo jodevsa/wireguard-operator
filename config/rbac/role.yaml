@@ -9,6 +9,32 @@ rules:
 - apiGroups:
   - vpn.example.com
   resources:
+  - wireguardpeers
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - vpn.example.com
+  resources:
+  - wireguardpeers/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - vpn.example.com
+  resources:
+  - wireguardpeers/status
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - vpn.example.com
+  resources:
   - wireguards
   verbs:
   - create

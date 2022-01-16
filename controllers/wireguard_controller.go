@@ -19,6 +19,7 @@ package controllers
 import (
 	"context"
 	"fmt"
+	"time"
 
 	appsv1 "k8s.io/api/apps/v1"
 
@@ -120,12 +121,32 @@ ListenPort = 51820
 			log.Error(err, "Failed to update secret with new config")
 			return ctrl.Result{}, err
 		}
-		log.Info(string(secret.Data["config"]))
+
 		if string(secret.Data["config"]) != wgConfig {
 			log.Info("new secret")
-			wireguard.Spec.LastUpdated = metav1.Now().String()
-			r.Update(ctx, wireguard)
+			pods := &corev1.PodList{}
+			if err := r.List(ctx, pods, client.InNamespace(req.Namespace)); err != nil {
+				log.Error(err, "Failed to fetch list of pods")
+				return ctrl.Result{}, err
+			}
+
+			for _, pod := range pods.Items {
+				if pod.Annotations == nil {
+					pod.Annotations = make(map[string]string)
+				}
+				println("update............")
+				pod.Annotations["wgConfigLastUpdated"] = time.Now().Format("2006-01-02T15-04-05")
+				if err := r.Update(ctx, &pod); err != nil {
+					log.Error(err, "Failed to update pod")
+					return ctrl.Result{}, err
+				}
+
+				log.Info("updated pod")
+			}
+
 		}
+		wireguard.Annotations["wgConfigLastUpdated"] = time.Now().Format("2006-01-02T15-04-05")
+		r.Update(ctx, wireguard)
 
 	}
 	if err != nil && errors.IsNotFound(err) {
