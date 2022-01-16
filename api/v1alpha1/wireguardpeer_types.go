@@ -35,7 +35,7 @@ type WireguardPeerSpec struct {
 
 	// Foo is an example field of WireguardPeer. Edit wireguardpeer_types.go to remove/update
 	WireguardRef string `json:"wireguardRef"`
-	Address      string `json:"Address,omitempty"`
+	Address      string `json:"address,omitempty"`
 
 	PublicKey string `json:"publicKey,omitempty"`
 

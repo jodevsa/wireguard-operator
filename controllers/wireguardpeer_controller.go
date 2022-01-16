@@ -145,8 +145,12 @@ func (r *WireguardPeerReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 	}
 	serverPublicKey := string(serverPublicKeyBytes)
 
-	log.Info(serverPublicKey)
-	ctrl.SetControllerReference(wireguard, newPeer, r.Scheme)
+	if len(newPeer.OwnerReferences) == 0 {
+		ctrl.SetControllerReference(wireguard, newPeer, r.Scheme)
+		err = r.Update(ctx, newPeer)
+		return ctrl.Result{Requeue: true}, nil
+	}
+
 	newPeer.Status.Config = fmt.Sprintf(`
 echo "
 [Interface]
@@ -159,9 +163,12 @@ MTU = 1380
 PublicKey = %s
 AllowedIPs = 0.0.0.0/0
 Endpoint = %s:%s"`, newPeer.Name, newPeer.Namespace, peer.Spec.Address, serverPublicKey, wireguard.Status.Hostname, wireguard.Status.Port)
-	err = r.Update(ctx, newPeer)
-	err = r.Status().Update(ctx, newPeer)
 
+	err = r.Status().Update(ctx, newPeer)
+	if err != nil {
+		log.Error(err, "Failed to update status")
+		return ctrl.Result{}, err
+	}
 	return ctrl.Result{}, nil
 }
 
