@@ -21,7 +21,7 @@ function setup_NAT() {
 function update_config() {
   echo "Updating config"  
   wg-quick down wg0
-  cp /tmp/wireguard/config > /etc/wireguard/wg0.conf
+  cp /tmp/wireguard/config /etc/wireguard/wg0.conf
   wg-quick up wg0
 }
 
@@ -31,5 +31,5 @@ function watch_and_update() {
   fswatch -o /tmp/wireguard/ | xargs -n1 -I{} update_config
 }
 setup_NAT
-cp /tmp/wireguard/config > /etc/wireguard/wg0.conf
+cp /tmp/wireguard/config /etc/wireguard/wg0.conf
 watch_and_update
