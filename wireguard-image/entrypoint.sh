@@ -29,7 +29,7 @@ function watch_and_update() {
   trap 'shutdown_wg "$1"' SIGTERM SIGINT SIGQUIT
   cp /tmp/wireguard/config /etc/wireguard/wg0.conf
   wg-quick up wg0
-  fswatch -o /tmp/wireguard/ | xargs -n1 -I{} update_config
+  fswatch -o /tmp/wireguard/ | (while read; do update_config; done)
 }
 setup_NAT
 watch_and_update
