@@ -19,7 +19,7 @@ function setup_NAT() {
   /usr/sbin/iptables-legacy -t nat -I POSTROUTING 1 -s $SUB_NET -o eth0 -j MASQUERADE
 }
 function update_config() {
-  echo "Updating config"
+  echo "Updating config"  
   wg-quick down wg0
   cp /tmp/wireguard/config > /etc/wireguard/wg0.conf
   wg-quick up wg0
@@ -31,4 +31,5 @@ function watch_and_update() {
   fswatch -o /tmp/wireguard/ | xargs -n1 -I{} update_config
 }
 setup_NAT
+cp /tmp/wireguard/config > /etc/wireguard/wg0.conf
 watch_and_update
