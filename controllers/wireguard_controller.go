@@ -47,6 +47,56 @@ type WireguardReconciler struct {
 
 const port = 51820
 
+func (r *WireguardReconciler) getWireguardPeers(ctx context.Context, req ctrl.Request) (*vpnv1alpha1.WireguardPeerList, error) {
+	peers := &vpnv1alpha1.WireguardPeerList{}
+	if err := r.List(ctx, peers, client.InNamespace(req.Namespace)); err != nil {
+		return nil, err
+	}
+
+	relatedPeers := &vpnv1alpha1.WireguardPeerList{}
+
+	for _, peer := range peers.Items {
+		if peer.Spec.WireguardRef == req.Name {
+			relatedPeers.Items = append(relatedPeers.Items, peer)
+		}
+	}
+
+	return relatedPeers, nil
+}
+
+func (r *WireguardReconciler) updateRelatedPeers(ctx context.Context, req ctrl.Request, wireguard *vpnv1alpha1.Wireguard, serverAddress string, serverPublicKey string) error {
+
+	peers, err := r.getWireguardPeers(ctx, req)
+	if err != nil {
+		return err
+	}
+
+	for _, peer := range peers.Items {
+
+		newConfig := fmt.Sprintf(`
+echo "
+[Interface]
+PrivateKey = $(kubectl get secret %s-peer --template={{.data.privateKey}} -n %s | base64 -d)
+Address = %s
+DNS = 1.1.1.1
+MTU = 1380
+
+[Peer]
+PublicKey = %s
+AllowedIPs = 0.0.0.0/0
+Endpoint = %s:%s"`, peer.Name, peer.Namespace, peer.Spec.Address, serverPublicKey, serverAddress, wireguard.Status.Port)
+
+		if peer.Status.Config != newConfig {
+			peer.Status.Config = newConfig
+			if err := r.Status().Update(ctx, &peer); err != nil {
+				return err
+			}
+		}
+	}
+
+	return nil
+}
+
 //+kubebuilder:rbac:groups=vpn.example.com,resources=wireguards,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=vpn.example.com,resources=wireguards/status,verbs=get;update;patch
 //+kubebuilder:rbac:groups=vpn.example.com,resources=wireguards/finalizers,verbs=update
@@ -65,6 +115,7 @@ func (r *WireguardReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 
 	// Fetch the Nodered instance
 	wireguard := &vpnv1alpha1.Wireguard{}
+	log.Info(req.NamespacedName.Name)
 	err := r.Get(ctx, req.NamespacedName, wireguard)
 	if err != nil {
 		if errors.IsNotFound(err) {
@@ -78,6 +129,8 @@ func (r *WireguardReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 		log.Error(err, "Failed to get Nodered")
 		return ctrl.Result{}, err
 	}
+
+	log.Info("processing " + wireguard.Name)
 
 	wgConfig := ""
 
@@ -101,7 +154,7 @@ func (r *WireguardReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 	}
 
 	// svc
-	println(wireguard.Name)
+
 	secret := &corev1.Secret{}
 	err = r.Get(ctx, types.NamespacedName{Name: wireguard.Name, Namespace: wireguard.Namespace}, secret)
 	if err == nil {
@@ -114,18 +167,18 @@ Address = 10.8.0.1/24
 ListenPort = 51820
 `, privateKey) + wgConfig
 
-		publicKey := string(secret.Data["publicKey"])
-		println("updating secret with new config")
-		err := r.Update(ctx, r.secretForWireguard(wireguard, privateKey, publicKey, wgConfig))
-		if err != nil {
-			log.Error(err, "Failed to update secret with new config")
-			return ctrl.Result{}, err
-		}
-
 		if string(secret.Data["config"]) != wgConfig {
-			log.Info("new secret")
+			log.Info("Updating secret with new config")
+
+			publicKey := string(secret.Data["publicKey"])
+			err := r.Update(ctx, r.secretForWireguard(wireguard, privateKey, publicKey, wgConfig))
+			if err != nil {
+				log.Error(err, "Failed to update secret with new config")
+				return ctrl.Result{}, err
+			}
+
 			pods := &corev1.PodList{}
-			if err := r.List(ctx, pods, client.InNamespace(req.Namespace)); err != nil {
+			if err := r.List(ctx, pods, client.HasLabels([]string{"SS"})); err != nil {
 				log.Error(err, "Failed to fetch list of pods")
 				return ctrl.Result{}, err
 			}
@@ -134,7 +187,7 @@ ListenPort = 51820
 				if pod.Annotations == nil {
 					pod.Annotations = make(map[string]string)
 				}
-				println("update............")
+
 				pod.Annotations["wgConfigLastUpdated"] = time.Now().Format("2006-01-02T15-04-05")
 				if err := r.Update(ctx, &pod); err != nil {
 					log.Error(err, "Failed to update pod")
@@ -145,6 +198,7 @@ ListenPort = 51820
 			}
 
 		}
+
 		wireguard.Annotations["wgConfigLastUpdated"] = time.Now().Format("2006-01-02T15-04-05")
 		r.Update(ctx, wireguard)
 
@@ -274,6 +328,8 @@ ListenPort = 51820
 		return ctrl.Result{}, err
 	}
 
+	err = r.updateRelatedPeers(ctx, req, wireguard, hostname, string(secret.Data["publicKey"]))
+
 	return ctrl.Result{}, nil
 }
 
@@ -282,6 +338,7 @@ func (r *WireguardReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&vpnv1alpha1.Wireguard{}).
 		Owns(&vpnv1alpha1.WireguardPeer{}).
+		Owns(&corev1.Service{}).
 		Complete(r)
 }
 

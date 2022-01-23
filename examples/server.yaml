@@ -1,0 +1,5 @@
+apiVersion: vpn.example.com/v1alpha1
+kind: Wireguard
+metadata:
+  name: wireguard2
+spec:

@@ -25,6 +25,9 @@ type PrivateKey struct {
 	SecretKeyRef corev1.SecretKeySelector `json:"secretKeyRef"`
 }
 
+type Status struct {
+}
+
 // EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!
 // NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
 
@@ -34,21 +37,17 @@ type WireguardPeerSpec struct {
 	// Important: Run "make" to regenerate code after modifying this file
 
 	// Foo is an example field of WireguardPeer. Edit wireguardpeer_types.go to remove/update
-	WireguardRef string `json:"wireguardRef"`
-	Address      string `json:"address,omitempty"`
-
-	PublicKey string `json:"publicKey,omitempty"`
-
-	PrivateKey PrivateKey `json:"PrivateKeyRef,omitempty"`
-
-	Config string `json:"config,omitempty"`
+	WireguardRef string     `json:"wireguardRef"`
+	Address      string     `json:"address,omitempty"`
+	PublicKey    string     `json:"publicKey,omitempty"`
+	PrivateKey   PrivateKey `json:"PrivateKeyRef,omitempty"`
+	Dns          string     `json:"dns,omitempty"`
 }
 
 // WireguardPeerStatus defines the observed state of WireguardPeer
 type WireguardPeerStatus struct {
 	// INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
 	// Important: Run "make" to regenerate code after modifying this file
-
 	Config string `json:"result,omitempty"`
 }
 
