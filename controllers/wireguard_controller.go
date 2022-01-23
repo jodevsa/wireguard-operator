@@ -63,6 +63,18 @@ func (r *WireguardReconciler) getWireguardPeers(ctx context.Context, req ctrl.Re
 
 	return relatedPeers, nil
 }
+func (r *WireguardReconciler) updateStatus(ctx context.Context, req ctrl.Request, wireguard *vpnv1alpha1.Wireguard, status vpnv1alpha1.WgStatusReport) error {
+	newWireguard := wireguard.DeepCopy()
+	if newWireguard.Status.Status != status.Status || newWireguard.Status.Message != status.Message {
+		newWireguard.Status.Status = status.Status
+		newWireguard.Status.Message = status.Message
+
+		if err := r.Status().Update(ctx, newWireguard); err != nil {
+			return err
+		}
+	}
+	return nil
+}
 
 func (r *WireguardReconciler) updateRelatedPeers(ctx context.Context, req ctrl.Request, wireguard *vpnv1alpha1.Wireguard, serverAddress string, serverPublicKey string) error {
 
@@ -85,9 +97,10 @@ MTU = 1380
 PublicKey = %s
 AllowedIPs = 0.0.0.0/0
 Endpoint = %s:%s"`, peer.Name, peer.Namespace, peer.Spec.Address, serverPublicKey, serverAddress, wireguard.Status.Port)
-
-		if peer.Status.Config != newConfig {
+		if peer.Status.Config != newConfig || peer.Status.Status != vpnv1alpha1.Ready {
 			peer.Status.Config = newConfig
+			peer.Status.Status = vpnv1alpha1.Ready
+			peer.Status.Message = "Peer configured"
 			if err := r.Status().Update(ctx, &peer); err != nil {
 				return err
 			}
@@ -113,7 +126,6 @@ Endpoint = %s:%s"`, peer.Name, peer.Namespace, peer.Spec.Address, serverPublicKe
 func (r *WireguardReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	log := ctrllog.FromContext(ctx)
 
-	// Fetch the Nodered instance
 	wireguard := &vpnv1alpha1.Wireguard{}
 	log.Info(req.NamespacedName.Name)
 	err := r.Get(ctx, req.NamespacedName, wireguard)
@@ -122,15 +134,25 @@ func (r *WireguardReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 			// Request object not found, could have been deleted after reconcile request.
 			// Owned objects are automatically garbage collected. For additional cleanup logic use finalizers.
 			// Return and don't requeue
-			log.Info("Nodered resource not found. Ignoring since object must be deleted")
+			log.Info("wireguard resource not found. Ignoring since object must be deleted")
 			return ctrl.Result{}, nil
 		}
 		// Error reading the object - requeue the request.
-		log.Error(err, "Failed to get Nodered")
+		log.Error(err, "Failed to get wireguard")
 		return ctrl.Result{}, err
 	}
 
 	log.Info("processing " + wireguard.Name)
+
+	if wireguard.Status.Status == "" {
+		err = r.updateStatus(ctx, req, wireguard, vpnv1alpha1.WgStatusReport{Status: vpnv1alpha1.Pending, Message: "Fetching Wireguard status"})
+
+		if err != nil {
+			return ctrl.Result{}, err
+		}
+
+		return ctrl.Result{Requeue: true}, nil
+	}
 
 	wgConfig := ""
 
@@ -240,8 +262,7 @@ ListenPort = 51820
 			return ctrl.Result{}, err
 		}
 
-		// svc created successfully - return and requeue
-		return ctrl.Result{Requeue: true}, nil
+		return ctrl.Result{}, err
 	} else if err != nil {
 		log.Error(err, "Failed to get secret")
 		return ctrl.Result{}, err
@@ -259,7 +280,14 @@ ListenPort = 51820
 			return ctrl.Result{}, err
 		}
 		// svc created successfully - return and requeue
-		return ctrl.Result{Requeue: true}, nil
+
+		err = r.updateStatus(ctx, req, wireguard, vpnv1alpha1.WgStatusReport{Status: vpnv1alpha1.Pending, Message: "Waiting for service to be created"})
+
+		if err != nil {
+			return ctrl.Result{}, err
+		}
+
+		return ctrl.Result{}, nil
 	} else if err != nil {
 		log.Error(err, "Failed to get service")
 		return ctrl.Result{}, err
@@ -268,14 +296,18 @@ ListenPort = 51820
 	ingressList := svcFound.Status.LoadBalancer.Ingress
 
 	if len(ingressList) == 0 {
-		return ctrl.Result{Requeue: true}, nil
+		err = r.updateStatus(ctx, req, wireguard, vpnv1alpha1.WgStatusReport{Status: vpnv1alpha1.Pending, Message: "Waiting for service to be ready"})
+		if err != nil {
+			return ctrl.Result{}, err
+		}
+
+		return ctrl.Result{}, nil
 	}
 
 	hostname := svcFound.Status.LoadBalancer.Ingress[0].Hostname
 	if hostname == "" {
 		hostname = svcFound.Status.LoadBalancer.Ingress[0].IP
 	}
-	log.Info(hostname)
 
 	if wireguard.Status.Hostname == "" {
 		updateWireguard := wireguard.DeepCopy()
@@ -302,8 +334,14 @@ ListenPort = 51820
 			log.Error(err, "Failed to create new dep", "dep.Namespace", config.Namespace, "dep.Name", config.Name)
 			return ctrl.Result{}, err
 		}
-		// config created successfully - return and requeue
-		return ctrl.Result{Requeue: true}, nil
+
+		err = r.updateStatus(ctx, req, wireguard, vpnv1alpha1.WgStatusReport{Status: vpnv1alpha1.Pending, Message: "Waiting for configmap to be created"})
+
+		if err != nil {
+			return ctrl.Result{}, err
+		}
+
+		return ctrl.Result{}, err
 	} else if err != nil {
 		log.Error(err, "Failed to get config")
 		return ctrl.Result{}, err
@@ -322,13 +360,24 @@ ListenPort = 51820
 			return ctrl.Result{}, err
 		}
 		// Deployment created successfully - return and requeue
-		return ctrl.Result{Requeue: true}, nil
+		return ctrl.Result{}, err
 	} else if err != nil {
 		log.Error(err, "Failed to get dep")
 		return ctrl.Result{}, err
 	}
 
 	err = r.updateRelatedPeers(ctx, req, wireguard, hostname, string(secret.Data["publicKey"]))
+	if err != nil {
+		return ctrl.Result{}, err
+	}
+
+	log.Info("Updated related peers", "wireguard.Namespace", wireguard.Namespace, "wireguard.Name", wireguard.Name)
+
+	err = r.updateStatus(ctx, req, wireguard, vpnv1alpha1.WgStatusReport{Status: vpnv1alpha1.Ready, Message: "VPN is active!"})
+
+	if err != nil {
+		return ctrl.Result{}, err
+	}
 
 	return ctrl.Result{}, nil
 }
@@ -339,12 +388,15 @@ func (r *WireguardReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		For(&vpnv1alpha1.Wireguard{}).
 		Owns(&vpnv1alpha1.WireguardPeer{}).
 		Owns(&corev1.Service{}).
+		Owns(&corev1.ConfigMap{}).
+		Owns(&appsv1.Deployment{}).
+		Owns(&corev1.Secret{}).
 		Complete(r)
 }
 
 func (r *WireguardReconciler) serviceForWireguard(m *vpnv1alpha1.Wireguard) *corev1.Service {
 	labels := labelsForWireguard(m.Name)
-	timeoutSeconds := int32(120)
+	//timeoutSeconds := int32(120)
 
 	dep := &corev1.Service{
 		ObjectMeta: metav1.ObjectMeta{
@@ -363,15 +415,10 @@ func (r *WireguardReconciler) serviceForWireguard(m *vpnv1alpha1.Wireguard) *cor
 				Port:       port,
 				TargetPort: intstr.FromInt(port),
 			}},
-			SessionAffinityConfig: &corev1.SessionAffinityConfig{
-				ClientIP: &corev1.ClientIPConfig{
-					TimeoutSeconds: &timeoutSeconds,
-				},
-			},
 			Type: corev1.ServiceTypeLoadBalancer,
 		},
 	}
-	// Set Nodered instance as the owner and controller
+
 	ctrl.SetControllerReference(m, dep, r.Scheme)
 	return dep
 }
@@ -390,7 +437,7 @@ func (r *WireguardReconciler) secretForWireguard(m *vpnv1alpha1.Wireguard, priva
 		},
 		Data: map[string][]byte{"config": []byte(config), "privateKey": []byte(privateKey), "publicKey": []byte(publicKey)},
 	}
-	// Set Nodered instance as the owner and controller
+
 	ctrl.SetControllerReference(m, dep, r.Scheme)
 
 	return dep
@@ -407,7 +454,7 @@ func (r *WireguardReconciler) secretForClient(m *vpnv1alpha1.Wireguard, privateK
 		},
 		Data: map[string][]byte{"privateKey": []byte(privateKey), "publicKey": []byte(publicKey)},
 	}
-	// Set Nodered instance as the owner and controller
+
 	ctrl.SetControllerReference(m, dep, r.Scheme)
 
 	return dep
@@ -433,12 +480,11 @@ func (r *WireguardReconciler) configmapForWireguard(m *vpnv1alpha1.Wireguard, ho
 			"ALLOWEDIPS":      "0.0.0.0/0, ::/0",
 			"INTERNAL_SUBNET": "10.13.13.0",
 		}}
-	// Set Nodered instance as the owner and controller
+
 	ctrl.SetControllerReference(m, dep, r.Scheme)
 	return dep
 }
 
-// deploymentForNodered returns a nodered Deployment object
 func (r *WireguardReconciler) deploymentForWireguard(m *vpnv1alpha1.Wireguard) *appsv1.Deployment {
 	ls := labelsForWireguard(m.Name)
 	replicas := int32(1)
@@ -507,7 +553,7 @@ func (r *WireguardReconciler) deploymentForWireguard(m *vpnv1alpha1.Wireguard) *
 			},
 		},
 	}
-	// Set Nodered instance as the owner and controller
+
 	ctrl.SetControllerReference(m, dep, r.Scheme)
 	return dep
 }

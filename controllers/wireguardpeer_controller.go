@@ -40,6 +40,19 @@ type WireguardPeerReconciler struct {
 	Scheme *runtime.Scheme
 }
 
+func (r *WireguardPeerReconciler) updateStatus(ctx context.Context, peer *vpnv1alpha1.WireguardPeer, status string, message string) error {
+	newPeer := peer.DeepCopy()
+	if newPeer.Status.Status != status || newPeer.Status.Message != message {
+		newPeer.Status.Status = status
+		newPeer.Status.Message = message
+
+		if err := r.Status().Update(ctx, newPeer); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 func (r *WireguardPeerReconciler) secretForPeer(m *vpnv1alpha1.WireguardPeer, privateKey string, publicKey string) *corev1.Secret {
 	ls := labelsForWireguard(m.Name)
 	dep := &corev1.Secret{
@@ -120,7 +133,7 @@ func (r *WireguardPeerReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 			return ctrl.Result{}, nil
 		}
 		// Error reading the object - requeue the request.
-		log.Error(err, "Failed to get Nodered")
+		log.Error(err, "Failed to get wireguard peer")
 		return ctrl.Result{}, err
 	}
 
@@ -131,6 +144,15 @@ func (r *WireguardPeerReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 	}
 
 	newPeer := peer.DeepCopy()
+	if newPeer.Status.Status == "" {
+		err = r.updateStatus(ctx, newPeer, vpnv1alpha1.Pending, "Waiting for wireguard peer to be created")
+
+		if err != nil {
+			return ctrl.Result{}, err
+		}
+
+		return ctrl.Result{Requeue: true}, nil
+	}
 
 	if peer.Spec.Address == "" {
 		peers, err := r.getWireguardPeers(ctx, req)
@@ -196,14 +218,32 @@ func (r *WireguardPeerReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 	err = r.Get(ctx, types.NamespacedName{Name: newPeer.Spec.WireguardRef, Namespace: newPeer.Namespace}, wireguard)
 
 	if err != nil {
+		if errors.IsNotFound(err) {
+			err = r.updateStatus(ctx, newPeer, vpnv1alpha1.Error, fmt.Sprintf("Waiting for wireguard resource '%s' to be created", newPeer.Spec.WireguardRef))
+
+			if err != nil {
+				return ctrl.Result{}, err
+			}
+
+			return ctrl.Result{}, nil
+		}
+
 		log.Error(err, "Failed to get wireguard")
+
 		return ctrl.Result{}, err
 
 	}
 
-	if wireguard.Status.Hostname == "" {
+	if wireguard.Status.Status != vpnv1alpha1.Ready {
 		log.Info("Waiting for wireguard to be ready")
-		return ctrl.Result{Requeue: true}, nil
+
+		err = r.updateStatus(ctx, newPeer, vpnv1alpha1.Error, fmt.Sprintf("Waiting for %s to be ready", wireguard.Name))
+
+		if err != nil {
+			return ctrl.Result{}, err
+		}
+
+		return ctrl.Result{}, nil
 	}
 
 	wireguardSecret := &corev1.Secret{}
@@ -221,6 +261,15 @@ func (r *WireguardPeerReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 		r.Update(ctx, newPeer)
 
 		return ctrl.Result{Requeue: true}, nil
+	}
+
+	if newPeer.Status.Config == "" {
+		err = r.updateStatus(ctx, newPeer, vpnv1alpha1.Pending, "Waiting config to be updated")
+
+		if err != nil {
+			return ctrl.Result{}, err
+		}
+
 	}
 
 	return ctrl.Result{}, nil

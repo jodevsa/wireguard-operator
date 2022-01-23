@@ -48,7 +48,9 @@ type WireguardPeerSpec struct {
 type WireguardPeerStatus struct {
 	// INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
 	// Important: Run "make" to regenerate code after modifying this file
-	Config string `json:"result,omitempty"`
+	Config  string `json:"config,omitempty"`
+	Status  string `json:"status,omitempty"`
+	Message string `json:"message,omitempty"`
 }
 
 //+kubebuilder:object:root=true

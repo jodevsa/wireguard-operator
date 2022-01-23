@@ -49,7 +49,11 @@ spec:
                   of cluster Important: Run "make" to regenerate code after modifying
                   this file'
                 type: string
+              message:
+                type: string
               port:
+                type: string
+              status:
                 type: string
             type: object
         type: object

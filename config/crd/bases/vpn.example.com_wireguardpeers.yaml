@@ -75,10 +75,14 @@ spec:
           status:
             description: WireguardPeerStatus defines the observed state of WireguardPeer
             properties:
-              result:
+              config:
                 description: 'INSERT ADDITIONAL STATUS FIELD - define observed state
                   of cluster Important: Run "make" to regenerate code after modifying
                   this file'
+                type: string
+              message:
+                type: string
+              status:
                 type: string
             type: object
         type: object

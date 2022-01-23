@@ -20,6 +20,17 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
+const (
+	Pending string = "pending"
+	Error          = "error"
+	Ready          = "ready"
+)
+
+type WgStatusReport struct {
+	Status  string `json:"status,omitempty"`
+	Message string `json:"message,omitempty"`
+}
+
 // EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!
 // NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
 
@@ -36,6 +47,8 @@ type WireguardStatus struct {
 	// Important: Run "make" to regenerate code after modifying this file
 	Hostname string `json:"hostname,omitempty"`
 	Port     string `json:"port,omitempty"`
+	Status   string `json:"status,omitempty"`
+	Message  string `json:"message,omitempty"`
 }
 
 //+kubebuilder:object:root=true
