@@ -1,0 +1,233 @@
+apiVersion: operators.coreos.com/v1alpha1
+kind: ClusterServiceVersion
+metadata:
+  annotations:
+    alm-examples: |-
+      [
+        {
+          "apiVersion": "vpn.example.com/v1alpha1",
+          "kind": "Wireguard",
+          "metadata": {
+            "name": "wireguard-sample"
+          },
+          "spec": null
+        },
+        {
+          "apiVersion": "vpn.example.com/v1alpha1",
+          "kind": "WireguardPeer",
+          "metadata": {
+            "name": "wireguardpeer-sample"
+          },
+          "spec": null
+        }
+      ]
+    capabilities: Basic Install
+    operators.operatorframework.io/builder: operator-sdk-v1.15.0
+    operators.operatorframework.io/project_layout: go.kubebuilder.io/v3
+  name: wireguard-operator.v0.0.1
+  namespace: placeholder
+spec:
+  apiservicedefinitions: {}
+  customresourcedefinitions:
+    owned:
+    - description: WireguardPeer is the Schema for the wireguardpeers API
+      displayName: Wireguard Peer
+      kind: WireguardPeer
+      name: wireguardpeers.vpn.example.com
+      version: v1alpha1
+    - description: Wireguard is the Schema for the wireguards API
+      displayName: Wireguard
+      kind: Wireguard
+      name: wireguards.vpn.example.com
+      version: v1alpha1
+  description: wireguard operator
+  displayName: wireguard
+  icon:
+  - base64data: ""
+    mediatype: ""
+  install:
+    spec:
+      clusterPermissions:
+      - rules:
+        - apiGroups:
+          - vpn.example.com
+          resources:
+          - wireguardpeers
+          verbs:
+          - create
+          - delete
+          - get
+          - list
+          - patch
+          - update
+          - watch
+        - apiGroups:
+          - vpn.example.com
+          resources:
+          - wireguardpeers/finalizers
+          verbs:
+          - update
+        - apiGroups:
+          - vpn.example.com
+          resources:
+          - wireguardpeers/status
+          verbs:
+          - get
+          - patch
+          - update
+        - apiGroups:
+          - vpn.example.com
+          resources:
+          - wireguards
+          verbs:
+          - create
+          - delete
+          - get
+          - list
+          - patch
+          - update
+          - watch
+        - apiGroups:
+          - vpn.example.com
+          resources:
+          - wireguards/finalizers
+          verbs:
+          - update
+        - apiGroups:
+          - vpn.example.com
+          resources:
+          - wireguards/status
+          verbs:
+          - get
+          - patch
+          - update
+        - apiGroups:
+          - authentication.k8s.io
+          resources:
+          - tokenreviews
+          verbs:
+          - create
+        - apiGroups:
+          - authorization.k8s.io
+          resources:
+          - subjectaccessreviews
+          verbs:
+          - create
+        serviceAccountName: wireguard-operator-controller-manager
+      deployments:
+      - name: wireguard-operator-controller-manager
+        spec:
+          replicas: 1
+          selector:
+            matchLabels:
+              control-plane: controller-manager
+          strategy: {}
+          template:
+            metadata:
+              labels:
+                control-plane: controller-manager
+            spec:
+              containers:
+              - args:
+                - --secure-listen-address=0.0.0.0:8443
+                - --upstream=http://127.0.0.1:8080/
+                - --logtostderr=true
+                - --v=10
+                image: gcr.io/kubebuilder/kube-rbac-proxy:v0.8.0
+                name: kube-rbac-proxy
+                ports:
+                - containerPort: 8443
+                  name: https
+                  protocol: TCP
+                resources: {}
+              - args:
+                - --health-probe-bind-address=:8081
+                - --metrics-bind-address=127.0.0.1:8080
+                - --leader-elect
+                command:
+                - /manager
+                image: controller:latest
+                livenessProbe:
+                  httpGet:
+                    path: /healthz
+                    port: 8081
+                  initialDelaySeconds: 15
+                  periodSeconds: 20
+                name: manager
+                readinessProbe:
+                  httpGet:
+                    path: /readyz
+                    port: 8081
+                  initialDelaySeconds: 5
+                  periodSeconds: 10
+                resources:
+                  limits:
+                    cpu: 200m
+                    memory: 100Mi
+                  requests:
+                    cpu: 100m
+                    memory: 20Mi
+                securityContext:
+                  allowPrivilegeEscalation: false
+              securityContext:
+                runAsNonRoot: true
+              serviceAccountName: wireguard-operator-controller-manager
+              terminationGracePeriodSeconds: 10
+      permissions:
+      - rules:
+        - apiGroups:
+          - ""
+          resources:
+          - configmaps
+          verbs:
+          - get
+          - list
+          - watch
+          - create
+          - update
+          - patch
+          - delete
+        - apiGroups:
+          - coordination.k8s.io
+          resources:
+          - leases
+          verbs:
+          - get
+          - list
+          - watch
+          - create
+          - update
+          - patch
+          - delete
+        - apiGroups:
+          - ""
+          resources:
+          - events
+          verbs:
+          - create
+          - patch
+        serviceAccountName: wireguard-operator-controller-manager
+    strategy: deployment
+  installModes:
+  - supported: false
+    type: OwnNamespace
+  - supported: false
+    type: SingleNamespace
+  - supported: false
+    type: MultiNamespace
+  - supported: true
+    type: AllNamespaces
+  keywords:
+  - vpn
+  - wireguard
+  - operator
+  links:
+  - name: Wireguard Operator
+    url: https://wireguard-operator.domain
+  maintainers:
+  - email: subhialhasan@protonmail.com
+    name: subhi
+  maturity: alpha
+  provider:
+    name: Subhi Al Hasan
+  version: 0.0.1
