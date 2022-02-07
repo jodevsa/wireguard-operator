@@ -1,7 +1,7 @@
 apiVersion: vpn.example.com/v1alpha1
 kind: WireguardPeer
 metadata:
-  name: peer1
+  name: peer20
 spec:
   wireguardRef: "wireguard2"
 

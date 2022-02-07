@@ -20,7 +20,6 @@ import (
 	"context"
 	"fmt"
 
-	ipnetgen "github.com/korylprince/ipnetgen"
 	wgtypes "golang.zx2c4.com/wireguard/wgctrl/wgtypes"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -84,42 +83,6 @@ func (r *WireguardPeerReconciler) secretForPeer(m *vpnv1alpha1.WireguardPeer, pr
 // For more details, check Reconcile and its Result here:
 // - https://pkg.go.dev/sigs.k8s.io/controller-runtime@v0.10.0/pkg/reconcile
 
-func getAvaialbleIp(cidr string, usedIps []string) (string, error) {
-	gen, err := ipnetgen.New(cidr)
-	if err != nil {
-		return "", err
-	}
-	for ip := gen.Next(); ip != nil; ip = gen.Next() {
-		used := false
-		for _, usedIp := range usedIps {
-			if ip.String() == usedIp {
-				used = true
-				break
-			}
-		}
-		if !used {
-			return ip.String(), nil
-		}
-	}
-
-	return "", fmt.Errorf("No available ip found in %s", cidr)
-}
-
-func (r *WireguardPeerReconciler) getWireguardPeers(ctx context.Context, req ctrl.Request) (*vpnv1alpha1.WireguardPeerList, error) {
-	peers := &vpnv1alpha1.WireguardPeerList{}
-	if err := r.List(ctx, peers, client.InNamespace(req.Namespace)); err != nil {
-		return nil, err
-	}
-
-	relatedPeers := &vpnv1alpha1.WireguardPeerList{}
-
-	for _, peer := range peers.Items {
-		relatedPeers.Items = append(relatedPeers.Items, peer)
-	}
-
-	return relatedPeers, nil
-}
-
 func (r *WireguardPeerReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	log := ctrllog.FromContext(ctx)
 	peer := &vpnv1alpha1.WireguardPeer{}
@@ -151,39 +114,6 @@ func (r *WireguardPeerReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 			return ctrl.Result{}, err
 		}
 
-		return ctrl.Result{Requeue: true}, nil
-	}
-
-	if peer.Spec.Address == "" {
-		peers, err := r.getWireguardPeers(ctx, req)
-
-		if err != nil {
-			log.Error(err, "Failed to fetch list of peers")
-			return ctrl.Result{}, err
-		}
-
-		usedIps := []string{"10.8.0.0", "10.8.0.1"}
-		for _, p := range peers.Items {
-			if p.Spec.WireguardRef != newPeer.Spec.WireguardRef {
-				continue
-			}
-			usedIps = append(usedIps, p.Spec.Address)
-
-		}
-
-		ip, err := getAvaialbleIp("10.8.0.0/24", usedIps)
-
-		if err != nil {
-			log.Error(err, "Failed to generate next ip")
-			return ctrl.Result{}, err
-		}
-
-		newPeer.Spec.Address = ip
-
-		err = r.Update(ctx, newPeer)
-		if err != nil {
-			return ctrl.Result{}, err
-		}
 		return ctrl.Result{Requeue: true}, nil
 	}
 

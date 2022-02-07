@@ -21,31 +21,58 @@ import (
 	"fmt"
 	"time"
 
+	vpnv1alpha1 "github.com/jodevsa/wireguard-operator/api/v1alpha1"
+	"github.com/korylprince/ipnetgen"
+	wgtypes "golang.zx2c4.com/wireguard/wgctrl/wgtypes"
 	appsv1 "k8s.io/api/apps/v1"
-
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/types"
-
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	ctrllog "sigs.k8s.io/controller-runtime/pkg/log"
-
-	vpnv1alpha1 "github.com/jodevsa/wireguard-operator/api/v1alpha1"
-	wgtypes "golang.zx2c4.com/wireguard/wgctrl/wgtypes"
 )
 
 // WireguardReconciler reconciles a Wireguard object
+
+const port = 51820
+
 type WireguardReconciler struct {
 	client.Client
 	Scheme *runtime.Scheme
 }
 
-const port = 51820
+func labelsForWireguard(name string) map[string]string {
+	return map[string]string{"wireguard_cr": name}
+}
+
+func (r *WireguardReconciler) ConfigmapForWireguard(m *vpnv1alpha1.Wireguard, hostname string) *corev1.ConfigMap {
+	ls := labelsForWireguard(m.Name)
+	dep := &corev1.ConfigMap{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      m.Name + "-config",
+			Namespace: m.Namespace,
+			Labels:    ls,
+		},
+		Data: map[string]string{
+			"SERVERURL":       hostname,
+			"PUID":            "1000",
+			"PGID":            "1000",
+			"TZ":              "America/Mexico_City",
+			"SERVERPORT":      fmt.Sprint(port),
+			"PEERS":           "2",
+			"PEERDNS":         "169.254.169.253",
+			"ALLOWEDIPS":      "0.0.0.0/0, ::/0",
+			"INTERNAL_SUBNET": "10.13.13.0",
+		}}
+
+	ctrl.SetControllerReference(m, dep, r.Scheme)
+	return dep
+}
 
 func (r *WireguardReconciler) getWireguardPeers(ctx context.Context, req ctrl.Request) (*vpnv1alpha1.WireguardPeerList, error) {
 	peers := &vpnv1alpha1.WireguardPeerList{}
@@ -63,6 +90,7 @@ func (r *WireguardReconciler) getWireguardPeers(ctx context.Context, req ctrl.Re
 
 	return relatedPeers, nil
 }
+
 func (r *WireguardReconciler) updateStatus(ctx context.Context, req ctrl.Request, wireguard *vpnv1alpha1.Wireguard, status vpnv1alpha1.WgStatusReport) error {
 	newWireguard := wireguard.DeepCopy()
 	if newWireguard.Status.Status != status.Status || newWireguard.Status.Message != status.Message {
@@ -76,14 +104,62 @@ func (r *WireguardReconciler) updateStatus(ctx context.Context, req ctrl.Request
 	return nil
 }
 
-func (r *WireguardReconciler) updateRelatedPeers(ctx context.Context, req ctrl.Request, wireguard *vpnv1alpha1.Wireguard, serverAddress string, serverPublicKey string) error {
+func getAvaialbleIp(cidr string, usedIps []string) (string, error) {
+	gen, err := ipnetgen.New(cidr)
+	if err != nil {
+		return "", err
+	}
+	for ip := gen.Next(); ip != nil; ip = gen.Next() {
+		used := false
+		for _, usedIp := range usedIps {
+			if ip.String() == usedIp {
+				used = true
+				break
+			}
+		}
+		if !used {
+			return ip.String(), nil
+		}
+	}
+
+	return "", fmt.Errorf("No available ip found in %s", cidr)
+}
+
+func (r *WireguardReconciler) getUsedIps(peers *vpnv1alpha1.WireguardPeerList) []string {
+	usedIps := []string{"10.8.0.0", "10.8.0.1"}
+	for _, p := range peers.Items {
+		usedIps = append(usedIps, p.Spec.Address)
+
+	}
+
+	return usedIps
+}
+
+func (r *WireguardReconciler) updateWireguardPeers(ctx context.Context, req ctrl.Request, wireguard *vpnv1alpha1.Wireguard, serverAddress string, serverPublicKey string) error {
 
 	peers, err := r.getWireguardPeers(ctx, req)
 	if err != nil {
 		return err
 	}
 
+	usedIps := r.getUsedIps(peers)
+
 	for _, peer := range peers.Items {
+		if peer.Spec.Address == "" {
+			ip, err := getAvaialbleIp("10.8.0.0/24", usedIps)
+
+			if err != nil {
+				return err
+			}
+
+			peer.Spec.Address = ip
+
+			if err := r.Update(ctx, &peer); err != nil {
+				return err
+			}
+
+			usedIps = append(usedIps, ip)
+		}
 
 		newConfig := fmt.Sprintf(`
 echo "
@@ -327,7 +403,7 @@ ListenPort = 51820
 	configFound := &corev1.ConfigMap{}
 	err = r.Get(ctx, types.NamespacedName{Name: wireguard.Name + "-config", Namespace: wireguard.Namespace}, configFound)
 	if err != nil && errors.IsNotFound(err) {
-		config := r.configmapForWireguard(wireguard, hostname)
+		config := r.ConfigmapForWireguard(wireguard, hostname)
 		log.Info("Creating a new config", "config.Namespace", config.Namespace, "config.Name", config.Name)
 		err = r.Create(ctx, config)
 		if err != nil {
@@ -366,8 +442,7 @@ ListenPort = 51820
 		return ctrl.Result{}, err
 	}
 
-	err = r.updateRelatedPeers(ctx, req, wireguard, hostname, string(secret.Data["publicKey"]))
-	if err != nil {
+	if err := r.updateWireguardPeers(ctx, req, wireguard, hostname, string(secret.Data["publicKey"])); err != nil {
 		return ctrl.Result{}, err
 	}
 
@@ -423,10 +498,6 @@ func (r *WireguardReconciler) serviceForWireguard(m *vpnv1alpha1.Wireguard) *cor
 	return dep
 }
 
-func labelsForWireguard(name string) map[string]string {
-	return map[string]string{"wireguard_cr": name}
-}
-
 func (r *WireguardReconciler) secretForWireguard(m *vpnv1alpha1.Wireguard, privateKey string, publicKey string, config string) *corev1.Secret {
 	ls := labelsForWireguard(m.Name)
 	dep := &corev1.Secret{
@@ -459,30 +530,6 @@ func (r *WireguardReconciler) secretForClient(m *vpnv1alpha1.Wireguard, privateK
 
 	return dep
 
-}
-
-func (r *WireguardReconciler) configmapForWireguard(m *vpnv1alpha1.Wireguard, hostname string) *corev1.ConfigMap {
-	ls := labelsForWireguard(m.Name)
-	dep := &corev1.ConfigMap{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      m.Name + "-config",
-			Namespace: m.Namespace,
-			Labels:    ls,
-		},
-		Data: map[string]string{
-			"SERVERURL":       hostname,
-			"PUID":            "1000",
-			"PGID":            "1000",
-			"TZ":              "America/Mexico_City",
-			"SERVERPORT":      fmt.Sprint(port),
-			"PEERS":           "2",
-			"PEERDNS":         "169.254.169.253",
-			"ALLOWEDIPS":      "0.0.0.0/0, ::/0",
-			"INTERNAL_SUBNET": "10.13.13.0",
-		}}
-
-	ctrl.SetControllerReference(m, dep, r.Scheme)
-	return dep
 }
 
 func (r *WireguardReconciler) deploymentForWireguard(m *vpnv1alpha1.Wireguard) *appsv1.Deployment {

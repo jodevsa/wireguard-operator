@@ -1,6 +1,0 @@
-apiVersion: vpn.example.com/v1alpha1
-kind: WireguardPeer
-metadata:
-  name: wireguardpeer-sample
-spec:
-  # Add fields here

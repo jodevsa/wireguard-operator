@@ -20,8 +20,8 @@ spec:
       kind: Wireguard
       name: wireguards.vpn.example.com
       version: v1alpha1
-  description: wireguard operator
-  displayName: wireguard
+  description: operates
+  displayName: wireguard-operator
   icon:
   - base64data: ""
     mediatype: ""
@@ -40,15 +40,13 @@ spec:
     type: AllNamespaces
   keywords:
   - vpn
-  - wireguard
-  - operator
   links:
   - name: Wireguard Operator
     url: https://wireguard-operator.domain
   maintainers:
-  - email: subhialhasan@protonmail.com
+  - email: jodevsa@gmail.com
     name: subhi
   maturity: alpha
   provider:
-    name: Subhi Al Hasan
+    name: wireguard-operator
   version: 0.0.0
