@@ -11,8 +11,8 @@ metadata:
 spec:
   apiservicedefinitions: {}
   customresourcedefinitions: {}
-  description: wireguard
-  displayName: wireguard-operator
+  description: Wireguard Operator description. TODO.
+  displayName: Wireguard Operator
   icon:
   - base64data: ""
     mediatype: ""
@@ -30,17 +30,15 @@ spec:
   - supported: true
     type: AllNamespaces
   keywords:
-  - operator
-  - vpn
-  - wireguard
+  - wireguard-operator
   links:
   - name: Wireguard Operator
     url: https://wireguard-operator.domain
   maintainers:
-  - email: subhialhasan@protonmail.com
-    name: subhi
+  - email: your@email.com
+    name: Maintainer Name
   maturity: alpha
   provider:
-    name: Subhi AL Hasan
-    url: https://github.com/jodevsa/wireguard-operator
+    name: Provider Name
+    url: https://your.domain
   version: 0.0.1
