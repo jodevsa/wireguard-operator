@@ -195,6 +195,11 @@ Endpoint = %s:%s"`, serverPublicKey, serverAddress, wireguard.Status.Port)
 //+kubebuilder:rbac:groups=vpn.example.com,resources=wireguards/status,verbs=get;update;patch
 //+kubebuilder:rbac:groups=vpn.example.com,resources=wireguards/finalizers,verbs=update
 
+//+kubebuilder:rbac:groups=vpn.example.com,resources=secrets,verbs=get;list;watch;create;update;patch;delete
+//+kubebuilder:rbac:groups=vpn.example.com,resources=services,verbs=get;list;watch;create;update;patch;delete
+//+kubebuilder:rbac:groups=vpn.example.com,resources=configmaps,verbs=get;list;watch;create;update;patch;delete
+//+kubebuilder:rbac:groups=vpn.example.com,resources=deployments,verbs=get;list;watch;create;update;patch;delete
+
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
 // move the current state of the cluster closer to the desired state.
 // TODO(user): Modify the Reconcile function to compare the state specified by
