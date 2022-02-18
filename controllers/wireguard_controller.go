@@ -135,7 +135,7 @@ func (r *WireguardReconciler) getUsedIps(peers *vpnv1alpha1.WireguardPeerList) [
 	return usedIps
 }
 
-func (r *WireguardReconciler) updateWireguardPeers(ctx context.Context, req ctrl.Request, wireguard *vpnv1alpha1.Wireguard, serverAddress string, serverPublicKey string) error {
+func (r *WireguardReconciler) updateWireguardPeers(ctx context.Context, req ctrl.Request, wireguard *vpnv1alpha1.Wireguard, serverAddress string, serverPublicKey string, serverMtu string) error {
 
 	peers, err := r.getWireguardPeers(ctx, req)
 	if err != nil {
@@ -166,13 +166,18 @@ echo "
 [Interface]
 PrivateKey = $(kubectl get secret %s-peer --template={{.data.privateKey}} -n %s | base64 -d)
 Address = %s
-DNS = 1.1.1.1
-MTU = 1380
+DNS = 1.1.1.1`, peer.Name, peer.Namespace, peer.Spec.Address)
+
+		if serverMtu != "" {
+			newConfig = newConfig + "\nMTU = " + serverMtu
+		}
+
+		newConfig = newConfig + fmt.Sprintf(`
 
 [Peer]
 PublicKey = %s
 AllowedIPs = 0.0.0.0/0
-Endpoint = %s:%s"`, peer.Name, peer.Namespace, peer.Spec.Address, serverPublicKey, serverAddress, wireguard.Status.Port)
+Endpoint = %s:%s"`, serverPublicKey, serverAddress, wireguard.Status.Port)
 		if peer.Status.Config != newConfig || peer.Status.Status != vpnv1alpha1.Ready {
 			peer.Status.Config = newConfig
 			peer.Status.Status = vpnv1alpha1.Ready
@@ -442,7 +447,7 @@ ListenPort = 51820
 		return ctrl.Result{}, err
 	}
 
-	if err := r.updateWireguardPeers(ctx, req, wireguard, hostname, string(secret.Data["publicKey"])); err != nil {
+	if err := r.updateWireguardPeers(ctx, req, wireguard, hostname, string(secret.Data["publicKey"]), wireguard.Spec.Mtu); err != nil {
 		return ctrl.Result{}, err
 	}
 

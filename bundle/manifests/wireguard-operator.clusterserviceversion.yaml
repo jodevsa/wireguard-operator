@@ -4,14 +4,14 @@ metadata:
   annotations:
     alm-examples: '[]'
     capabilities: Basic Install
-    operators.operatorframework.io/builder: operator-sdk-v1.16.0
+    operators.operatorframework.io/builder: operator-sdk-v1.17.0
     operators.operatorframework.io/project_layout: go.kubebuilder.io/v3
   name: wireguard-operator.v0.0.1
   namespace: placeholder
 spec:
   apiservicedefinitions: {}
   customresourcedefinitions: {}
-  description: operates
+  description: wireguard
   displayName: wireguard-operator
   icon:
   - base64data: ""
@@ -30,14 +30,17 @@ spec:
   - supported: true
     type: AllNamespaces
   keywords:
+  - operator
   - vpn
+  - wireguard
   links:
   - name: Wireguard Operator
     url: https://wireguard-operator.domain
   maintainers:
-  - email: jodevsa@gmail.com
+  - email: subhialhasan@protonmail.com
     name: subhi
   maturity: alpha
   provider:
-    name: wireguard-operator
+    name: Subhi AL Hasan
+    url: https://github.com/jodevsa/wireguard-operator
   version: 0.0.1

@@ -38,7 +38,9 @@ type WgStatusReport struct {
 type WireguardSpec struct {
 	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
 	// Important: Run "make" to regenerate code after modifying this file
-	LastUpdated string `json:"lastUpdated,omitempty"`
+
+	Mtu      string `json:"mtu"`
+	Hostname string `json:"hostname,omitempty"`
 }
 
 // WireguardStatus defines the observed state of Wireguard
