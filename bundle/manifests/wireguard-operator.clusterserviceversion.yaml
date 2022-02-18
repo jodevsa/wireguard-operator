@@ -141,7 +141,7 @@ spec:
                 - --leader-elect
                 command:
                 - /manager
-                image: ghcr.io/jodevsa/wireguard-operator-operator:0.0.1
+                image: ghcr.io/jodevsa/wireguard-operator-operator
                 livenessProbe:
                   httpGet:
                     path: /healthz
