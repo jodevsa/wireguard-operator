@@ -11,6 +11,14 @@ metadata:
             "name": "wireguard-sample"
           },
           "spec": null
+        },
+        {
+          "apiVersion": "vpn.example.com/v1alpha1",
+          "kind": "WireguardPeer",
+          "metadata": {
+            "name": "wireguardpeer-sample"
+          },
+          "spec": null
         }
       ]
     capabilities: Basic Install
@@ -22,6 +30,11 @@ spec:
   apiservicedefinitions: {}
   customresourcedefinitions:
     owned:
+    - description: WireguardPeer is the Schema for the wireguardpeers API
+      displayName: Wireguard Peer
+      kind: WireguardPeer
+      name: wireguardpeers.vpn.example.com
+      version: v1alpha1
     - description: Wireguard is the Schema for the wireguards API
       displayName: Wireguard
       kind: Wireguard

@@ -1,4 +1,5 @@
 ## Append samples you want in your CSV to this file as resources ##
 resources:
 - vpn_v1alpha1_wireguard.yaml
+- vpn_v1alpha1_wireguardpeer.yaml
 #+kubebuilder:scaffold:manifestskustomizesamples
