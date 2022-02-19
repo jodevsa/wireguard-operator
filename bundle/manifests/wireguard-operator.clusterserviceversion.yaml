@@ -51,18 +51,6 @@ spec:
         - apiGroups:
           - ""
           resources:
-          - deployments
-          verbs:
-          - create
-          - delete
-          - get
-          - list
-          - patch
-          - update
-          - watch
-        - apiGroups:
-          - ""
-          resources:
           - secrets
           verbs:
           - create
@@ -76,6 +64,30 @@ spec:
           - ""
           resources:
           - services
+          verbs:
+          - create
+          - delete
+          - get
+          - list
+          - patch
+          - update
+          - watch
+        - apiGroups:
+          - apps
+          resources:
+          - deployments
+          verbs:
+          - create
+          - delete
+          - get
+          - list
+          - patch
+          - update
+          - watch
+        - apiGroups:
+          - apps
+          resources:
+          - pods
           verbs:
           - create
           - delete
