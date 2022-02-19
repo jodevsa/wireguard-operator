@@ -36,7 +36,9 @@ spec:
     spec:
       clusterPermissions:
       - rules:
-        - resources:
+        - apiGroups:
+          - ""
+          resources:
           - configmaps
           verbs:
           - create
@@ -46,7 +48,9 @@ spec:
           - patch
           - update
           - watch
-        - resources:
+        - apiGroups:
+          - ""
+          resources:
           - deployments
           verbs:
           - create
@@ -56,7 +60,9 @@ spec:
           - patch
           - update
           - watch
-        - resources:
+        - apiGroups:
+          - ""
+          resources:
           - secrets
           verbs:
           - create
@@ -66,7 +72,9 @@ spec:
           - patch
           - update
           - watch
-        - resources:
+        - apiGroups:
+          - ""
+          resources:
           - services
           verbs:
           - create
