@@ -3,5 +3,5 @@ kind: WireguardPeer
 metadata:
   name: peer20
 spec:
-  wireguardRef: "wireguard2"
+  wireguardRef: "fast"
 
