@@ -31,8 +31,6 @@ RUN set -eux; \
 
 COPY --from=builder $BORINGTUN_SRC/target/release/boringtun /usr/local/bin
 COPY entrypoint.sh /
-COPY wg0.conf.template /
-
 
 
 WORKDIR /etc/wireguard
