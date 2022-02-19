@@ -36,9 +36,7 @@ spec:
     spec:
       clusterPermissions:
       - rules:
-        - apiGroups:
-          - vpn.example.com
-          resources:
+        - resources:
           - configmaps
           verbs:
           - create
@@ -48,9 +46,7 @@ spec:
           - patch
           - update
           - watch
-        - apiGroups:
-          - vpn.example.com
-          resources:
+        - resources:
           - deployments
           verbs:
           - create
@@ -60,9 +56,7 @@ spec:
           - patch
           - update
           - watch
-        - apiGroups:
-          - vpn.example.com
-          resources:
+        - resources:
           - secrets
           verbs:
           - create
@@ -72,9 +66,7 @@ spec:
           - patch
           - update
           - watch
-        - apiGroups:
-          - vpn.example.com
-          resources:
+        - resources:
           - services
           verbs:
           - create
