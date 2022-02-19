@@ -579,7 +579,7 @@ func (r *WireguardReconciler) deploymentForWireguard(m *vpnv1alpha1.Wireguard) *
 							Capabilities: &corev1.Capabilities{Add: []corev1.Capability{"NET_ADMIN"}},
 							Privileged:   &trueVal,
 						},
-						Image:           "ghcr.io/jodevsa/wireguard-operator:main",
+						Image:           "ghcr.io/jodevsa/wireguard-operator-wireguard-image:main",
 						ImagePullPolicy: "Always",
 						Name:            "wireguard",
 						Ports: []corev1.ContainerPort{{

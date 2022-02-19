@@ -7,7 +7,7 @@ metadata:
   name: manager-role
 rules:
 - apiGroups:
-  - vpn.example.com
+  - ""
   resources:
   - configmaps
   verbs:
@@ -19,9 +19,9 @@ rules:
   - update
   - watch
 - apiGroups:
-  - vpn.example.com
+  - ""
   resources:
-  - deployments
+  - pods
   verbs:
   - create
   - delete
@@ -31,7 +31,7 @@ rules:
   - update
   - watch
 - apiGroups:
-  - vpn.example.com
+  - ""
   resources:
   - secrets
   verbs:
@@ -43,9 +43,33 @@ rules:
   - update
   - watch
 - apiGroups:
-  - vpn.example.com
+  - ""
   resources:
   - services
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - apps
+  resources:
+  - deployments
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - apps
+  resources:
+  - pods
   verbs:
   - create
   - delete
