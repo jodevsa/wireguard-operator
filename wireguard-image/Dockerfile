@@ -1,6 +1,5 @@
 ARG BORINGTUN_SRC=/usr/local/src/boringtun
-ARG PROMETHEUS_WIREGUARD_EXPORTER_SRC= \
-    /usr/local/src/prometheus-wireguard-exporter
+ARG PROMETHEUS_WIREGUARD_EXPORTER_SRC=/usr/local/src/prometheus-wireguard-exporter
 
 FROM rust:1-buster AS builder
 ARG BORINGTUN_VERSION=master
