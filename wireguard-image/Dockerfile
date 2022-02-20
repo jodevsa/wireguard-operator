@@ -18,13 +18,13 @@ ARG BORINGTUN_VERSION=master
 ARG BORINGTUN_SRC
 ARG PROMETHEUS_WIREGUARD_EXPORTER_SRC
 
-WORKDIR $BORINGTUN_SRC
+#WORKDIR $BORINGTUN_SRC
 
-RUN set -eux; \
-    git clone -b "${BORINGTUN_VERSION}" --depth=1 \
-    "https://github.com/cloudflare/boringtun.git" . ;\
-    RUSTFLAGS="${RUSTFLAGS:-} -A unused_must_use" cargo build --release; \
-    strip ./target/release/boringtun
+#RUN set -eux; \
+#    git clone -b "${BORINGTUN_VERSION}" --depth=1 \
+#    "https://github.com/cloudflare/boringtun.git" . ;\
+#    RUSTFLAGS="${RUSTFLAGS:-} -A unused_must_use" cargo build --release; \
+#    strip ./target/release/boringtun
 
 
 
@@ -57,7 +57,7 @@ RUN set -eux; \
     wireguard-tools sudo iproute2 iptables gettext-base fswatch
 
 COPY --from=golang-builder $WIREGUARD_GO_SRC/wireguard-go /usr/local/bin
-COPY --from=builder $BORINGTUN_SRC/target/release/boringtun /usr/local/bin
+#COPY --from=builder $BORINGTUN_SRC/target/release/boringtun /usr/local/bin
 COPY --from=builder $PROMETHEUS_WIREGUARD_EXPORTER_SRC/target/release/prometheus_wireguard_exporter /usr/local/bin
 COPY entrypoint.sh /
 
