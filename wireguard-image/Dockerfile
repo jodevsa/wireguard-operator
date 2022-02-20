@@ -9,7 +9,7 @@ ARG WIREGUARD_GO_SRC
 WORKDIR $WIREGUARD_GO_SRC
 
 RUN set -eux; \
-    https://github.com/WireGuard/wireguard-go.git .;\
+    git clone https://github.com/WireGuard/wireguard-go.git .;\
     make; \
     strip ./wireguard-go
 
