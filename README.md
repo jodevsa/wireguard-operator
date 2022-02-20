@@ -1,4 +1,5 @@
 # Wireguard operator
+WIP
 # Motivation
 painless deployment of wireguard on kubernetes
 ![alt text](./readme/main.png)
