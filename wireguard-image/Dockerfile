@@ -43,6 +43,7 @@ RUN set -eux; \
     wireguard-tools sudo iproute2 iptables gettext-base fswatch
 
 COPY --from=builder $BORINGTUN_SRC/target/release/boringtun /usr/local/bin
+COPY --from=builder $PROMETHEUS_WIREGUARD_EXPORTER_SRC/target/release/prometheus_wireguard_exporter /usr/local/bin
 COPY entrypoint.sh /
 
 
