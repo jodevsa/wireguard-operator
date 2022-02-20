@@ -1,6 +1,9 @@
 # Wireguard operator
 painless deployment of wireguard on kubernetes
 
+# Support
+Join our [slack channel](https://join.slack.com/t/wireguard-operator/shared_invite/zt-144xd8ufl-NvH_T82QA0lrP3q0ECTdYA)
+
 # Architecture 
 
 ![alt text](./readme/main.png)
