@@ -1,5 +1,17 @@
 ARG BORINGTUN_SRC=/usr/local/src/boringtun
+ARG WIREGUARD_GO_SRC=/usr/local/src/wireguard-go
 ARG PROMETHEUS_WIREGUARD_EXPORTER_SRC=/usr/local/src/prometheus-wireguard-exporter
+
+
+FROM golang:1-buster AS golang-builder
+ARG WIREGUARD_GO_SRC
+
+WORKDIR $WIREGUARD_GO_SRC
+
+RUN set -eux; \
+    https://github.com/WireGuard/wireguard-go.git .;\
+    make; \
+    strip ./wireguard-go
 
 FROM rust:1-buster AS builder
 ARG BORINGTUN_VERSION=master
@@ -27,9 +39,10 @@ RUN set -eux; \
    
 FROM debian:buster-slim
 ARG BORINGTUN_SRC
+ARG WIREGUARD_GO_SRC
 ARG PROMETHEUS_WIREGUARD_EXPORTER_SRC
 
-ENV WG_QUICK_USERSPACE_IMPLEMENTATION=boringtun
+ENV WG_QUICK_USERSPACE_IMPLEMENTATION=wireguard-go
 ENV WG_THREADS=4
 ENV WG_SUDO=1
 ENV WG_LOG_LEVEL=info
@@ -43,6 +56,7 @@ RUN set -eux; \
     DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-suggests --no-install-recommends \
     wireguard-tools sudo iproute2 iptables gettext-base fswatch
 
+COPY --from=golang-builder $WIREGUARD_GO_SRC/wireguard-go /usr/local/bin
 COPY --from=builder $BORINGTUN_SRC/target/release/boringtun /usr/local/bin
 COPY --from=builder $PROMETHEUS_WIREGUARD_EXPORTER_SRC/target/release/prometheus_wireguard_exporter /usr/local/bin
 COPY entrypoint.sh /
