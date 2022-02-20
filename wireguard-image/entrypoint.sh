@@ -19,7 +19,8 @@ function setup_NAT() {
   /usr/sbin/iptables-legacy -t nat -I POSTROUTING 1 -s $SUB_NET -o eth0 -j MASQUERADE
 }
 function update_config() {
-  echo "Updating config (hot reload)"  
+  echo "Updating config (hot reload)"
+  cp /tmp/wireguard/config /etc/wireguard/wg0.conf  
   wg syncconf wg0 <(wg-quick strip wg0)
 }
 
