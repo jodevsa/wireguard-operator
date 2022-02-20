@@ -1,4 +1,6 @@
 ARG BORINGTUN_SRC=/usr/local/src/boringtun
+ARG PROMETHEUS_WIREGUARD_EXPORTER_SRC= \
+    /usr/local/src/prometheus-wireguard-exporter
 
 FROM rust:1-buster AS builder
 ARG BORINGTUN_VERSION=master
@@ -12,6 +14,17 @@ RUN set -eux; \
     RUSTFLAGS="${RUSTFLAGS:-} -A unused_must_use" cargo build --release; \
     strip ./target/release/boringtun
 
+
+
+WORKDIR $PROMETHEUS_WIREGUARD_EXPORTER_SRC
+
+RUN set -eux; \
+    git clone https://github.com/MindFlavor/prometheus_wireguard_exporter.git  .;\
+    RUSTFLAGS="${RUSTFLAGS:-} -A unused_must_use" cargo build --release; \
+    strip ./target/release/prometheus_wireguard_exporter
+
+
+   
 FROM debian:buster-slim
 ARG BORINGTUN_SRC
 
