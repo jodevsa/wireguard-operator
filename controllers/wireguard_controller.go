@@ -41,6 +41,8 @@ import (
 
 const port = 51820
 
+const metricsPort = 9586
+
 type WireguardReconciler struct {
 	client.Client
 	Scheme *runtime.Scheme
@@ -357,6 +359,31 @@ ListenPort = 51820
 	}
 
 	svcFound := &corev1.Service{}
+	err = r.Get(ctx, types.NamespacedName{Name: wireguard.Name + "-metrics-svc", Namespace: wireguard.Namespace}, svcFound)
+	if err != nil && errors.IsNotFound(err) {
+
+		svc := r.serviceForWireguardMetrics(wireguard)
+		log.Info("Creating a new service", "service.Namespace", svc.Namespace, "service.Name", svc.Name)
+		err = r.Create(ctx, svc)
+		if err != nil {
+			log.Error(err, "Failed to create new service", "service.Namespace", svc.Namespace, "service.Name", svc.Name)
+			return ctrl.Result{}, err
+		}
+		// svc created successfully - return and requeue
+
+		err = r.updateStatus(ctx, req, wireguard, vpnv1alpha1.WgStatusReport{Status: vpnv1alpha1.Pending, Message: "Waiting for metrics service to be created"})
+
+		if err != nil {
+			return ctrl.Result{}, err
+		}
+
+		return ctrl.Result{}, nil
+	} else if err != nil {
+		log.Error(err, "Failed to get service")
+		return ctrl.Result{}, err
+	}
+
+	svcFound = &corev1.Service{}
 	err = r.Get(ctx, types.NamespacedName{Name: wireguard.Name + "-svc", Namespace: wireguard.Namespace}, svcFound)
 	if err != nil && errors.IsNotFound(err) {
 
@@ -510,6 +537,29 @@ func (r *WireguardReconciler) serviceForWireguard(m *vpnv1alpha1.Wireguard) *cor
 	return dep
 }
 
+func (r *WireguardReconciler) serviceForWireguardMetrics(m *vpnv1alpha1.Wireguard) *corev1.Service {
+	labels := labelsForWireguard(m.Name)
+
+	dep := &corev1.Service{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      m.Name + "-metrics-svc",
+			Namespace: m.Namespace,
+		},
+		Spec: corev1.ServiceSpec{
+			Selector: labels,
+			Ports: []corev1.ServicePort{{
+				Protocol:   corev1.ProtocolTCP,
+				Port:       metricsPort,
+				TargetPort: intstr.FromInt(metricsPort),
+			}},
+			Type: corev1.ServiceTypeClusterIP,
+		},
+	}
+
+	ctrl.SetControllerReference(m, dep, r.Scheme)
+	return dep
+}
+
 func (r *WireguardReconciler) secretForWireguard(m *vpnv1alpha1.Wireguard, privateKey string, publicKey string, config string) *corev1.Secret {
 	ls := labelsForWireguard(m.Name)
 	dep := &corev1.Secret{
@@ -582,11 +632,17 @@ func (r *WireguardReconciler) deploymentForWireguard(m *vpnv1alpha1.Wireguard) *
 						Image:           "ghcr.io/jodevsa/wireguard-operator-wireguard-image:main",
 						ImagePullPolicy: "Always",
 						Name:            "wireguard",
-						Ports: []corev1.ContainerPort{{
-							ContainerPort: port,
-							Name:          "wireguard",
-							Protocol:      corev1.ProtocolUDP,
-						}},
+						Ports: []corev1.ContainerPort{
+							{
+								ContainerPort: port,
+								Name:          "wireguard",
+								Protocol:      corev1.ProtocolUDP,
+							},
+							{
+								ContainerPort: metricsPort,
+								Name:          "metrics",
+								Protocol:      corev1.ProtocolTCP,
+							}},
 						EnvFrom: []corev1.EnvFromSource{{
 							ConfigMapRef: &corev1.ConfigMapEnvSource{
 								LocalObjectReference: corev1.LocalObjectReference{Name: m.Name + "-config"},
