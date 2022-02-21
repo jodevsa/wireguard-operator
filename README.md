@@ -68,5 +68,6 @@ Endpoint = 32.121.45.102:51820
 
 # installation: 
 `
-operator-sdk run bundle ghcr.io/jodevsa/wireguard-operator-operator-bundle:main
+git clone https://github.com/jodevsa/wireguard-operator
+make deploy
 `
