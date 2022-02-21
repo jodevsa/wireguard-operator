@@ -30,5 +30,10 @@ function watch_and_update() {
   wg-quick up wg0
   fswatch -o /tmp/wireguard/ | (while read; do update_config; done)
 }
+
+mkdir -p /dev/net
+if [ ! -c /dev/net/tun ]; then
+    mknod /dev/net/tun c 10 200
+fi
 setup_NAT
 watch_and_update  

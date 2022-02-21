@@ -597,7 +597,6 @@ func (r *WireguardReconciler) secretForClient(m *vpnv1alpha1.Wireguard, privateK
 func (r *WireguardReconciler) deploymentForWireguard(m *vpnv1alpha1.Wireguard) *appsv1.Deployment {
 	ls := labelsForWireguard(m.Name)
 	replicas := int32(1)
-	trueVal := true
 
 	dep := &appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
@@ -627,7 +626,6 @@ func (r *WireguardReconciler) deploymentForWireguard(m *vpnv1alpha1.Wireguard) *
 					Containers: []corev1.Container{{
 						SecurityContext: &corev1.SecurityContext{
 							Capabilities: &corev1.Capabilities{Add: []corev1.Capability{"NET_ADMIN"}},
-							Privileged:   &trueVal,
 						},
 						Image:           "ghcr.io/jodevsa/wireguard-operator-wireguard-image:main",
 						ImagePullPolicy: "Always",
