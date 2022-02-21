@@ -67,7 +67,8 @@ Endpoint = 32.121.45.102:51820
 
 
 # installation: 
-`
+```
 git clone https://github.com/jodevsa/wireguard-operator
+
 make deploy
-`
+```
