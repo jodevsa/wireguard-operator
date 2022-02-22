@@ -59,17 +59,7 @@ func (r *WireguardReconciler) ConfigmapForWireguard(m *vpnv1alpha1.Wireguard, ho
 			Namespace: m.Namespace,
 			Labels:    ls,
 		},
-		Data: map[string]string{
-			"SERVERURL":       hostname,
-			"PUID":            "1000",
-			"PGID":            "1000",
-			"TZ":              "America/Mexico_City",
-			"SERVERPORT":      fmt.Sprint(port),
-			"PEERS":           "2",
-			"PEERDNS":         "169.254.169.253",
-			"ALLOWEDIPS":      "0.0.0.0/0, ::/0",
-			"INTERNAL_SUBNET": "10.13.13.0",
-		}}
+	}
 
 	ctrl.SetControllerReference(m, dep, r.Scheme)
 	return dep
@@ -90,6 +80,26 @@ func (r *WireguardReconciler) getWireguardPeers(ctx context.Context, req ctrl.Re
 	}
 
 	return relatedPeers, nil
+}
+
+func (r *WireguardReconciler) getNodeIps(ctx context.Context, req ctrl.Request) ([]string, error) {
+	nodes := &corev1.NodeList{}
+	if err := r.List(ctx, nodes); err != nil {
+		return nil, err
+	}
+
+	ips := []string{}
+
+	for _, node := range nodes.Items {
+		for _, address := range node.Status.Addresses {
+			if address.Type == corev1.NodeExternalIP {
+				ips = append(ips, address.Address)
+			}
+
+		}
+	}
+
+	return ips, nil
 }
 
 func (r *WireguardReconciler) updateStatus(ctx context.Context, req ctrl.Request, wireguard *vpnv1alpha1.Wireguard, status vpnv1alpha1.WgStatusReport) error {
@@ -385,8 +395,13 @@ ListenPort = 51820
 	svcFound = &corev1.Service{}
 	err = r.Get(ctx, types.NamespacedName{Name: wireguard.Name + "-svc", Namespace: wireguard.Namespace}, svcFound)
 	if err != nil && errors.IsNotFound(err) {
+		serviceType := wireguard.Spec.ServiceType
 
-		svc := r.serviceForWireguard(wireguard)
+		if serviceType == "" {
+			serviceType = "LoadBalancer"
+		}
+
+		svc := r.serviceForWireguard(wireguard, serviceType)
 		log.Info("Creating a new service", "service.Namespace", svc.Namespace, "service.Name", svc.Name)
 		err = r.Create(ctx, svc)
 		if err != nil {
@@ -406,21 +421,35 @@ ListenPort = 51820
 		log.Error(err, "Failed to get service")
 		return ctrl.Result{}, err
 	}
+	hostname := ""
 
-	ingressList := svcFound.Status.LoadBalancer.Ingress
+	if wireguard.Spec.ServiceType == "LoadBalancer" {
+		ingressList := svcFound.Status.LoadBalancer.Ingress
 
-	if len(ingressList) == 0 {
-		err = r.updateStatus(ctx, req, wireguard, vpnv1alpha1.WgStatusReport{Status: vpnv1alpha1.Pending, Message: "Waiting for service to be ready"})
+		if len(ingressList) == 0 {
+			err = r.updateStatus(ctx, req, wireguard, vpnv1alpha1.WgStatusReport{Status: vpnv1alpha1.Pending, Message: "Waiting for service to be ready"})
+			if err != nil {
+				return ctrl.Result{}, err
+			}
+
+			return ctrl.Result{}, nil
+		}
+
+		hostname = svcFound.Status.LoadBalancer.Ingress[0].Hostname
+
+		if hostname == "" {
+			hostname = svcFound.Status.LoadBalancer.Ingress[0].IP
+		}
+	}
+	if wireguard.Spec.ServiceType == "NodePort" {
+		ips, err := r.getNodeIps(ctx, req)
+
 		if err != nil {
 			return ctrl.Result{}, err
 		}
 
-		return ctrl.Result{}, nil
-	}
+		hostname = ips[0]
 
-	hostname := svcFound.Status.LoadBalancer.Ingress[0].Hostname
-	if hostname == "" {
-		hostname = svcFound.Status.LoadBalancer.Ingress[0].IP
 	}
 
 	if wireguard.Status.Hostname == "" {
@@ -507,7 +536,7 @@ func (r *WireguardReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		Complete(r)
 }
 
-func (r *WireguardReconciler) serviceForWireguard(m *vpnv1alpha1.Wireguard) *corev1.Service {
+func (r *WireguardReconciler) serviceForWireguard(m *vpnv1alpha1.Wireguard, serviceType corev1.ServiceType) *corev1.Service {
 	labels := labelsForWireguard(m.Name)
 	//timeoutSeconds := int32(120)
 
@@ -528,7 +557,7 @@ func (r *WireguardReconciler) serviceForWireguard(m *vpnv1alpha1.Wireguard) *cor
 				Port:       port,
 				TargetPort: intstr.FromInt(port),
 			}},
-			Type: corev1.ServiceTypeLoadBalancer,
+			Type: serviceType,
 		},
 	}
 
@@ -649,17 +678,6 @@ func (r *WireguardReconciler) deploymentForWireguard(m *vpnv1alpha1.Wireguard) *
 							Name:      "config",
 							MountPath: "/tmp/wireguard/",
 						}},
-						Env: []corev1.EnvVar{
-							{Name: "CLIENT_PUBLIC_KEY", ValueFrom: &corev1.EnvVarSource{
-								SecretKeyRef: &corev1.SecretKeySelector{LocalObjectReference: corev1.LocalObjectReference{Name: m.Name + "-client"}, Key: "publicKey"},
-							}},
-							{Name: "PUBLIC_KEY", ValueFrom: &corev1.EnvVarSource{
-								SecretKeyRef: &corev1.SecretKeySelector{LocalObjectReference: corev1.LocalObjectReference{Name: m.Name}, Key: "publicKey"},
-							}},
-							{Name: "PRIVATE_KEY", ValueFrom: &corev1.EnvVarSource{
-								SecretKeyRef: &corev1.SecretKeySelector{LocalObjectReference: corev1.LocalObjectReference{Name: m.Name}, Key: "privateKey"},
-							}},
-						},
 					}},
 				},
 			},

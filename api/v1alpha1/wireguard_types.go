@@ -18,6 +18,8 @@ package v1alpha1
 
 import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
+	corev1 "k8s.io/api/core/v1"
 )
 
 const (
@@ -39,8 +41,9 @@ type WireguardSpec struct {
 	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
 	// Important: Run "make" to regenerate code after modifying this file
 
-	Mtu      string `json:"mtu"`
-	Hostname string `json:"hostname,omitempty"`
+	Mtu         string             `json:"mtu"`
+	Hostname    string             `json:"hostname,omitempty"`
+	ServiceType corev1.ServiceType `json:"serviceType,omitempty"`
 }
 
 // WireguardStatus defines the observed state of Wireguard
