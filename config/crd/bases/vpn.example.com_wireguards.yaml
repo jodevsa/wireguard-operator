@@ -40,6 +40,9 @@ spec:
                 type: string
               mtu:
                 type: string
+              serviceType:
+                description: Service Type string describes ingress methods for a service
+                type: string
             required:
             - mtu
             type: object
