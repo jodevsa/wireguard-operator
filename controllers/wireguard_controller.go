@@ -19,6 +19,7 @@ package controllers
 import (
 	"context"
 	"fmt"
+	"strconv"
 	"time"
 
 	vpnv1alpha1 "github.com/jodevsa/wireguard-operator/api/v1alpha1"
@@ -422,6 +423,7 @@ ListenPort = 51820
 		return ctrl.Result{}, err
 	}
 	hostname := ""
+	port := "51820"
 
 	if wireguard.Spec.ServiceType == "LoadBalancer" {
 		ingressList := svcFound.Status.LoadBalancer.Ingress
@@ -442,6 +444,17 @@ ListenPort = 51820
 		}
 	}
 	if wireguard.Spec.ServiceType == "NodePort" {
+		if len(svcFound.Spec.Ports) == 0 {
+			err = r.updateStatus(ctx, req, wireguard, vpnv1alpha1.WgStatusReport{Status: vpnv1alpha1.Pending, Message: "Waiting for service node port to be ready"})
+			if err != nil {
+				return ctrl.Result{}, err
+			}
+
+			return ctrl.Result{}, nil
+		}
+
+		port = strconv.FormatInt(int64(svcFound.Spec.Ports[0].NodePort), 10)
+
 		ips, err := r.getNodeIps(ctx, req)
 
 		if err != nil {
@@ -452,10 +465,10 @@ ListenPort = 51820
 
 	}
 
-	if wireguard.Status.Hostname == "" {
+	if wireguard.Status.Hostname == "" || port != wireguard.Status.Port {
 		updateWireguard := wireguard.DeepCopy()
 		updateWireguard.Status.Hostname = hostname
-		updateWireguard.Status.Port = "51820"
+		updateWireguard.Status.Port = port
 
 		err = r.Status().Update(ctx, updateWireguard)
 
