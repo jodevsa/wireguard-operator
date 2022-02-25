@@ -4,3 +4,4 @@ metadata:
   name: vpn
 spec:
   mtu: "1380"
+  serviceType: "NodePort"

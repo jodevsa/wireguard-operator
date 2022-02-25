@@ -3,5 +3,5 @@ kind: WireguardPeer
 metadata:
   name: peer20
 spec:
-  wireguardRef: "vpn-new"
+  wireguardRef: "vpn"
 

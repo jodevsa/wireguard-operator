@@ -41,7 +41,7 @@ type WireguardSpec struct {
 	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
 	// Important: Run "make" to regenerate code after modifying this file
 
-	Mtu         string             `json:"mtu"`
+	Mtu         string             `json:"mtu,omitempty"`
 	Hostname    string             `json:"hostname,omitempty"`
 	ServiceType corev1.ServiceType `json:"serviceType,omitempty"`
 }
