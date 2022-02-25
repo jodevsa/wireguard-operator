@@ -77,3 +77,12 @@ git clone https://github.com/jodevsa/wireguard-operator
 
 make deploy
 ```
+
+
+
+# uninstall
+```
+cd wireguard-operator
+
+make undeploy
+```
