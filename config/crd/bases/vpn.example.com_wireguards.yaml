@@ -43,8 +43,6 @@ spec:
               serviceType:
                 description: Service Type string describes ingress methods for a service
                 type: string
-            required:
-            - mtu
             type: object
           status:
             description: WireguardStatus defines the observed state of Wireguard
