@@ -8,6 +8,9 @@ Currently the opeartor has only been tested on GKE; if you are facing any proble
 # Tested with
 - [x] IBM Cloud Kubernetes Service
 - [x] Google Kubernetes Engine
+  * works with`spec.mtu: "1380"`
+- [x] DigitalOcean Kubernetes
+  * Works with `spec.serviceType: "NodePort"`. DigitalOcean LoadBalancer does not support UDP. 
 - [ ] Amazon EKS
 - [ ] Azure Kubernetes Service
 - [ ] ...?
