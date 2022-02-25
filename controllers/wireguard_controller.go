@@ -665,34 +665,45 @@ func (r *WireguardReconciler) deploymentForWireguard(m *vpnv1alpha1.Wireguard) *
 							},
 						},
 					}},
-					Containers: []corev1.Container{{
-						SecurityContext: &corev1.SecurityContext{
-							Capabilities: &corev1.Capabilities{Add: []corev1.Capability{"NET_ADMIN"}},
+					Containers: []corev1.Container{
+						{
+							SecurityContext: &corev1.SecurityContext{
+								Capabilities: &corev1.Capabilities{Add: []corev1.Capability{"NET_ADMIN"}},
+							},
+							Image:           "ghcr.io/jodevsa/wireguard-operator-wireguard-image:main",
+							ImagePullPolicy: "Always",
+							Name:            "metrics",
+							Command:         []string{"/usr/local/bin/prometheus_wireguard_exporter"},
+							Ports: []corev1.ContainerPort{
+								{
+									ContainerPort: metricsPort,
+									Name:          "metrics",
+									Protocol:      corev1.ProtocolTCP,
+								}},
 						},
-						Image:           "ghcr.io/jodevsa/wireguard-operator-wireguard-image:main",
-						ImagePullPolicy: "Always",
-						Name:            "wireguard",
-						Ports: []corev1.ContainerPort{
-							{
-								ContainerPort: port,
-								Name:          "wireguard",
-								Protocol:      corev1.ProtocolUDP,
+						{
+							SecurityContext: &corev1.SecurityContext{
+								Capabilities: &corev1.Capabilities{Add: []corev1.Capability{"NET_ADMIN"}},
 							},
-							{
-								ContainerPort: metricsPort,
-								Name:          "metrics",
-								Protocol:      corev1.ProtocolTCP,
+							Image:           "ghcr.io/jodevsa/wireguard-operator-wireguard-image:main",
+							ImagePullPolicy: "Always",
+							Name:            "wireguard",
+							Ports: []corev1.ContainerPort{
+								{
+									ContainerPort: port,
+									Name:          "wireguard",
+									Protocol:      corev1.ProtocolUDP,
+								}},
+							EnvFrom: []corev1.EnvFromSource{{
+								ConfigMapRef: &corev1.ConfigMapEnvSource{
+									LocalObjectReference: corev1.LocalObjectReference{Name: m.Name + "-config"},
+								},
 							}},
-						EnvFrom: []corev1.EnvFromSource{{
-							ConfigMapRef: &corev1.ConfigMapEnvSource{
-								LocalObjectReference: corev1.LocalObjectReference{Name: m.Name + "-config"},
-							},
+							VolumeMounts: []corev1.VolumeMount{{
+								Name:      "config",
+								MountPath: "/tmp/wireguard/",
+							}},
 						}},
-						VolumeMounts: []corev1.VolumeMount{{
-							Name:      "config",
-							MountPath: "/tmp/wireguard/",
-						}},
-					}},
 				},
 			},
 		},
