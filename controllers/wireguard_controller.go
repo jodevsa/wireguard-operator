@@ -665,15 +665,23 @@ func (r *WireguardReconciler) deploymentForWireguard(m *vpnv1alpha1.Wireguard) *
 					Labels: ls,
 				},
 				Spec: corev1.PodSpec{
-					Volumes: []corev1.Volume{{
+					Volumes: []corev1.Volume{
+						{
+							Name: "socket",
+							VolumeSource: corev1.VolumeSource{
 
-						Name: "config",
-						VolumeSource: corev1.VolumeSource{
-							Secret: &corev1.SecretVolumeSource{
-								SecretName: m.Name,
+								EmptyDir: &corev1.EmptyDirVolumeSource{},
 							},
 						},
-					}},
+						{
+
+							Name: "config",
+							VolumeSource: corev1.VolumeSource{
+								Secret: &corev1.SecretVolumeSource{
+									SecretName: m.Name,
+								},
+							},
+						}},
 					Containers: []corev1.Container{
 						{
 							SecurityContext: &corev1.SecurityContext{
@@ -689,6 +697,12 @@ func (r *WireguardReconciler) deploymentForWireguard(m *vpnv1alpha1.Wireguard) *
 									Name:          "metrics",
 									Protocol:      corev1.ProtocolTCP,
 								}},
+							VolumeMounts: []corev1.VolumeMount{
+								{
+									Name:      "socket",
+									MountPath: "/var/run/wireguard/",
+								},
+							},
 						},
 						{
 							SecurityContext: &corev1.SecurityContext{
@@ -708,10 +722,15 @@ func (r *WireguardReconciler) deploymentForWireguard(m *vpnv1alpha1.Wireguard) *
 									LocalObjectReference: corev1.LocalObjectReference{Name: m.Name + "-config"},
 								},
 							}},
-							VolumeMounts: []corev1.VolumeMount{{
-								Name:      "config",
-								MountPath: "/tmp/wireguard/",
-							}},
+							VolumeMounts: []corev1.VolumeMount{
+								{
+									Name:      "socket",
+									MountPath: "/var/run/wireguard/",
+								},
+								{
+									Name:      "config",
+									MountPath: "/tmp/wireguard/",
+								}},
 						}},
 				},
 			},
