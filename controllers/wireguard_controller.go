@@ -395,14 +395,14 @@ ListenPort = 51820
 	}
 
 	svcFound = &corev1.Service{}
+	serviceType := corev1.ServiceTypeLoadBalancer
+
+	if wireguard.Spec.ServiceType != "" {
+		serviceType = wireguard.Spec.ServiceType
+	}
+
 	err = r.Get(ctx, types.NamespacedName{Name: wireguard.Name + "-svc", Namespace: wireguard.Namespace}, svcFound)
 	if err != nil && errors.IsNotFound(err) {
-		serviceType := wireguard.Spec.ServiceType
-
-		if serviceType == "" {
-			serviceType = "LoadBalancer"
-		}
-
 		svc := r.serviceForWireguard(wireguard, serviceType)
 		log.Info("Creating a new service", "service.Namespace", svc.Namespace, "service.Name", svc.Name)
 		err = r.Create(ctx, svc)
@@ -426,9 +426,9 @@ ListenPort = 51820
 	hostname := ""
 	port := "51820"
 
-	if wireguard.Spec.ServiceType == "LoadBalancer" {
+	if serviceType == corev1.ServiceTypeLoadBalancer {
 		ingressList := svcFound.Status.LoadBalancer.Ingress
-
+		log.Info("Found ingress", "ingress", ingressList)
 		if len(ingressList) == 0 {
 			err = r.updateStatus(ctx, req, wireguard, vpnv1alpha1.WgStatusReport{Status: vpnv1alpha1.Pending, Message: "Waiting for service to be ready"})
 			if err != nil {
@@ -444,7 +444,7 @@ ListenPort = 51820
 			hostname = svcFound.Status.LoadBalancer.Ingress[0].IP
 		}
 	}
-	if wireguard.Spec.ServiceType == "NodePort" {
+	if serviceType == corev1.ServiceTypeNodePort {
 		if len(svcFound.Spec.Ports) == 0 {
 			err = r.updateStatus(ctx, req, wireguard, vpnv1alpha1.WgStatusReport{Status: vpnv1alpha1.Pending, Message: "Waiting for service node port to be ready"})
 			if err != nil {
