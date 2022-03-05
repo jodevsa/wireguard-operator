@@ -147,7 +147,7 @@ func (r *WireguardReconciler) getUsedIps(peers *vpnv1alpha1.WireguardPeerList) [
 	return usedIps
 }
 
-func (r *WireguardReconciler) updateWireguardPeers(ctx context.Context, req ctrl.Request, wireguard *vpnv1alpha1.Wireguard, serverAddress string, serverPublicKey string, serverMtu string) error {
+func (r *WireguardReconciler) updateWireguardPeers(ctx context.Context, req ctrl.Request, wireguard *vpnv1alpha1.Wireguard, serverAddress string, dns string, serverPublicKey string, serverMtu string) error {
 
 	peers, err := r.getWireguardPeers(ctx, req)
 	if err != nil {
@@ -178,7 +178,7 @@ echo "
 [Interface]
 PrivateKey = $(kubectl get secret %s-peer --template={{.data.privateKey}} -n %s | base64 -d)
 Address = %s
-DNS = 1.1.1.1`, peer.Name, peer.Namespace, peer.Spec.Address)
+DNS = %s`, peer.Name, peer.Namespace, peer.Spec.Address, dns)
 
 		if serverMtu != "" {
 			newConfig = newConfig + "\nMTU = " + serverMtu
@@ -401,6 +401,15 @@ ListenPort = 51820
 		serviceType = wireguard.Spec.ServiceType
 	}
 
+	dns := "1.1.1.1"
+	kubeDnsService := &corev1.Service{}
+	err = r.Get(ctx, types.NamespacedName{Name: "kube-dns", Namespace: "kube-system"}, kubeDnsService)
+	if err == nil {
+		dns = fmt.Sprintf("%s, %s.svc.cluster.local", kubeDnsService.Spec.ClusterIP, wireguard.Namespace)
+	} else {
+		log.Error(err, "Unable to get kube-dns service")
+	}
+
 	err = r.Get(ctx, types.NamespacedName{Name: wireguard.Name + "-svc", Namespace: wireguard.Namespace}, svcFound)
 	if err != nil && errors.IsNotFound(err) {
 		svc := r.serviceForWireguard(wireguard, serviceType)
@@ -523,7 +532,7 @@ ListenPort = 51820
 		return ctrl.Result{}, err
 	}
 
-	if err := r.updateWireguardPeers(ctx, req, wireguard, hostname, string(secret.Data["publicKey"]), wireguard.Spec.Mtu); err != nil {
+	if err := r.updateWireguardPeers(ctx, req, wireguard, hostname, dns, string(secret.Data["publicKey"]), wireguard.Spec.Mtu); err != nil {
 		return ctrl.Result{}, err
 	}
 
