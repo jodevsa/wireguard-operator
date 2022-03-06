@@ -14,4 +14,4 @@ data:
       resourceName: a6d3bffc.example.com
 kind: ConfigMap
 metadata:
-  name: new-manager-config
+  name: wireguard-manager-config

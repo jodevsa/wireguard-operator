@@ -4,7 +4,7 @@ metadata:
   creationTimestamp: null
   labels:
     control-plane: controller-manager
-  name: new-controller-manager-metrics-service
+  name: wireguard-controller-manager-metrics-service
 spec:
   ports:
   - name: https

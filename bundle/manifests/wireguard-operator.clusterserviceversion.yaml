@@ -185,9 +185,9 @@ spec:
           - subjectaccessreviews
           verbs:
           - create
-        serviceAccountName: new-controller-manager
+        serviceAccountName: wireguard-controller-manager
       deployments:
-      - name: new-controller-manager
+      - name: wireguard-controller-manager
         spec:
           replicas: 1
           selector:
@@ -251,7 +251,7 @@ spec:
                   allowPrivilegeEscalation: false
               securityContext:
                 runAsNonRoot: true
-              serviceAccountName: new-controller-manager
+              serviceAccountName: wireguard-controller-manager
               terminationGracePeriodSeconds: 10
       permissions:
       - rules:
@@ -286,7 +286,7 @@ spec:
           verbs:
           - create
           - patch
-        serviceAccountName: new-controller-manager
+        serviceAccountName: wireguard-controller-manager
     strategy: deployment
   installModes:
   - supported: false
