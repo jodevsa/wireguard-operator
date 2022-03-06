@@ -64,7 +64,7 @@ kubectl get wireguardpeer peer1 --template={{.status.config}} | bash
 [Interface]
 PrivateKey = WOhR7uTMAqmZamc1umzfwm8o4ZxLdR5LjDcUYaW/PH8=
 Address = 10.8.0.3
-DNS = 1.1.1.1
+DNS = 10.48.0.10, default.svc.cluster.local
 MTU = 1380
 
 [Peer]
