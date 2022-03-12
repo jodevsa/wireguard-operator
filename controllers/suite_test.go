@@ -58,7 +58,7 @@ var _ = BeforeSuite(func() {
 	testEnv = &envtest.Environment{
 		CRDDirectoryPaths:       []string{filepath.Join("..", "config", "crd", "bases")},
 		ErrorIfCRDPathMissing:   true,
-		ControlPlaneStopTimeout: time.Second * 100,
+		ControlPlaneStopTimeout: time.Second * 120,
 	}
 
 	cfg, err := testEnv.Start()
@@ -80,6 +80,12 @@ var _ = BeforeSuite(func() {
 	Expect(err).ToNot(HaveOccurred())
 
 	err = (&WireguardReconciler{
+		Client: k8sManager.GetClient(),
+		Scheme: k8sManager.GetScheme(),
+	}).SetupWithManager(k8sManager)
+	Expect(err).ToNot(HaveOccurred())
+
+	err = (&WireguardPeerReconciler{
 		Client: k8sManager.GetClient(),
 		Scheme: k8sManager.GetScheme(),
 	}).SetupWithManager(k8sManager)
