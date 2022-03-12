@@ -17,12 +17,11 @@ var _ = Describe("wireguard controller", func() {
 
 	// Define utility constants for object names and testing timeouts/durations and intervals.
 	const (
-		CronjobName      = "test-cronjob"
-		CronjobNamespace = "default"
-		JobName          = "test-job"
-		Timeout          = time.Second * 2
-		Interval         = time.Second * 1
-		dnsServiceIp     = "10.0.0.42"
+		wgName       = "vpn"
+		wgNamespace  = "default"
+		Timeout      = time.Second * 2
+		Interval     = time.Second * 1
+		dnsServiceIp = "10.0.0.42"
 	)
 
 	Context("Wireguard", func() {
@@ -43,8 +42,8 @@ var _ = Describe("wireguard controller", func() {
 			Expect(k8sClient.Create(context.Background(), dnsService)).Should(Succeed())
 
 			wgKey := types.NamespacedName{
-				Name:      "vpn",
-				Namespace: "default",
+				Name:      wgName,
+				Namespace: wgNamespace,
 			}
 			created := &vpnv1alpha1.Wireguard{
 				ObjectMeta: metav1.ObjectMeta{
