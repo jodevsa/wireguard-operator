@@ -49,7 +49,7 @@ type WireguardReconciler struct {
 }
 
 func labelsForWireguard(name string) map[string]string {
-	return map[string]string{"wireguard_cr": name}
+	return map[string]string{"app": "wireguard", "instance": name}
 }
 
 func (r *WireguardReconciler) ConfigmapForWireguard(m *vpnv1alpha1.Wireguard, hostname string) *corev1.ConfigMap {
@@ -252,7 +252,7 @@ func (r *WireguardReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 			return ctrl.Result{}, err
 		}
 
-		return ctrl.Result{Requeue: true}, nil
+		return ctrl.Result{}, nil
 	}
 
 	wgConfig := ""
@@ -321,9 +321,6 @@ ListenPort = 51820
 			}
 
 		}
-
-		wireguard.Annotations["wgConfigLastUpdated"] = time.Now().Format("2006-01-02T15-04-05")
-		r.Update(ctx, wireguard)
 
 	}
 	if err != nil && errors.IsNotFound(err) {
@@ -424,6 +421,7 @@ ListenPort = 51820
 		err = r.updateStatus(ctx, req, wireguard, vpnv1alpha1.WgStatusReport{Status: vpnv1alpha1.Pending, Message: "Waiting for service to be created"})
 
 		if err != nil {
+			log.Error(err, "Failed to update wireguard status", "service.Namespace", svc.Namespace, "service.Name", svc.Name)
 			return ctrl.Result{}, err
 		}
 
@@ -486,6 +484,8 @@ ListenPort = 51820
 			log.Error(err, "Failed to update wireguard manifest host and port")
 			return ctrl.Result{}, err
 		}
+
+		return ctrl.Result{}, nil
 	}
 
 	// configmap
@@ -502,10 +502,6 @@ ListenPort = 51820
 		}
 
 		err = r.updateStatus(ctx, req, wireguard, vpnv1alpha1.WgStatusReport{Status: vpnv1alpha1.Pending, Message: "Waiting for configmap to be created"})
-
-		if err != nil {
-			return ctrl.Result{}, err
-		}
 
 		return ctrl.Result{}, err
 	} else if err != nil {
