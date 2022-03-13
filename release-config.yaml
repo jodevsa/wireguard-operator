@@ -1,0 +1,2 @@
+WIREGUARD_IMAGE: "ghcr.io/jodevsa/wireguard-operator-wireguard-image:main"
+OPERATOR_IMAGE: "ghcr.io/jodevsa/wireguard-operator-operator:main"

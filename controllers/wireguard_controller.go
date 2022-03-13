@@ -24,6 +24,7 @@ import (
 
 	vpnv1alpha1 "github.com/jodevsa/wireguard-operator/api/v1alpha1"
 	"github.com/korylprince/ipnetgen"
+	"github.com/spf13/viper"
 	wgtypes "golang.zx2c4.com/wireguard/wgctrl/wgtypes"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -227,9 +228,21 @@ Endpoint = %s:%s"`, serverPublicKey, serverAddress, wireguard.Status.Port)
 func (r *WireguardReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	log := ctrllog.FromContext(ctx)
 
+	// pull wireguard image
+	viper.SetConfigName("release-config")
+	viper.SetConfigType("yaml")
+	viper.AddConfigPath("./")
+	err := viper.ReadInConfig()
+	if err != nil {
+		log.Error(err, "Unable to read viper config")
+		return ctrl.Result{}, err
+	}
+
+	log.Info("loaded the following wireguard image:" + viper.GetString("WIREGUARD_IMAGE"))
+
 	wireguard := &vpnv1alpha1.Wireguard{}
 	log.Info(req.NamespacedName.Name)
-	err := r.Get(ctx, req.NamespacedName, wireguard)
+	err = r.Get(ctx, req.NamespacedName, wireguard)
 	if err != nil {
 		if errors.IsNotFound(err) {
 			// Request object not found, could have been deleted after reconcile request.
@@ -683,7 +696,7 @@ func (r *WireguardReconciler) deploymentForWireguard(m *vpnv1alpha1.Wireguard) *
 							SecurityContext: &corev1.SecurityContext{
 								Capabilities: &corev1.Capabilities{Add: []corev1.Capability{"NET_ADMIN"}},
 							},
-							Image:           "ghcr.io/jodevsa/wireguard-operator-wireguard-image:main",
+							Image:           viper.GetString("WIREGUARD_IMAGE"),
 							ImagePullPolicy: "Always",
 							Name:            "metrics",
 							Command:         []string{"/usr/local/bin/prometheus_wireguard_exporter"},
