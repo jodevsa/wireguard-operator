@@ -8,6 +8,8 @@ import (
 	vpnv1alpha1 "github.com/jodevsa/wireguard-operator/api/v1alpha1"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"github.com/spf13/viper"
+	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -17,12 +19,15 @@ var _ = Describe("wireguard controller", func() {
 
 	// Define utility constants for object names and testing timeouts/durations and intervals.
 	const (
+		wgTestImage  = "test-image"
 		wgName       = "vpn"
 		wgNamespace  = "default"
 		Timeout      = time.Second * 2
 		Interval     = time.Second * 1
 		dnsServiceIp = "10.0.0.42"
 	)
+
+	viper.Set("WIREGUARD_IMAGE", wgTestImage)
 
 	Context("Wireguard", func() {
 
@@ -105,6 +110,18 @@ var _ = Describe("wireguard controller", func() {
 				Status:   "ready",
 				Message:  "VPN is active!",
 			}))
+
+			Eventually(func() string {
+				deploymentKey := types.NamespacedName{
+					Name:      wgName + "-dep",
+					Namespace: wgNamespace,
+				}
+				deployment := &appsv1.Deployment{}
+				Expect(k8sClient.Get(context.Background(), deploymentKey, deployment)).Should(Succeed())
+				Expect(len(deployment.Spec.Template.Spec.Containers)).Should(Equal(2))
+				Expect(deployment.Spec.Template.Spec.Containers[0].Image).Should(Equal(deployment.Spec.Template.Spec.Containers[1].Image))
+				return deployment.Spec.Template.Spec.Containers[0].Image
+			}, Timeout, Interval).Should(Equal(wgTestImage))
 
 			// create peer
 			peerKey := types.NamespacedName{

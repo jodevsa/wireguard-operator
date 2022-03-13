@@ -36,7 +36,8 @@ IMAGE_TAG_BASE ?= ghcr.io/jodevsa/wireguard-operator
 BUNDLE_IMG ?= $(IMAGE_TAG_BASE)-operator-bundle:main
 
 # Image URL to use all building/pushing image targets
-IMG ?= $(IMAGE_TAG_BASE)-operator:main
+IMG ?= $(shell cat release-config.yaml | awk '/OPERATOR_IMAGE:/{print $$NF}')
+
 # ENVTEST_K8S_VERSION refers to the version of kubebuilder assets to be downloaded by envtest binary.
 ENVTEST_K8S_VERSION = 1.22
 

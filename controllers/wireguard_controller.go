@@ -24,6 +24,7 @@ import (
 
 	vpnv1alpha1 "github.com/jodevsa/wireguard-operator/api/v1alpha1"
 	"github.com/korylprince/ipnetgen"
+	"github.com/spf13/viper"
 	wgtypes "golang.zx2c4.com/wireguard/wgctrl/wgtypes"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -226,6 +227,13 @@ Endpoint = %s:%s"`, serverPublicKey, serverAddress, wireguard.Status.Port)
 // - https://pkg.go.dev/sigs.k8s.io/controller-runtime@v0.10.0/pkg/reconcile
 func (r *WireguardReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	log := ctrllog.FromContext(ctx)
+
+	wireguardImage := viper.GetString("WIREGUARD_IMAGE")
+	if wireguardImage == "" {
+		return ctrl.Result{}, fmt.Errorf("WIREGUARD_IMAGE is not defined")
+	}
+
+	log.Info("loaded the following wireguard image:" + wireguardImage)
 
 	wireguard := &vpnv1alpha1.Wireguard{}
 	log.Info(req.NamespacedName.Name)
@@ -514,7 +522,7 @@ ListenPort = 51820
 	deploymentFound := &appsv1.Deployment{}
 	err = r.Get(ctx, types.NamespacedName{Name: wireguard.Name + "-dep", Namespace: wireguard.Namespace}, deploymentFound)
 	if err != nil && errors.IsNotFound(err) {
-		dep := r.deploymentForWireguard(wireguard)
+		dep := r.deploymentForWireguard(wireguard, wireguardImage)
 		log.Info("Creating a new dep", "dep.Namespace", dep.Namespace, "dep.Name", dep.Name)
 		err = r.Create(ctx, dep)
 		if err != nil {
@@ -641,7 +649,7 @@ func (r *WireguardReconciler) secretForClient(m *vpnv1alpha1.Wireguard, privateK
 
 }
 
-func (r *WireguardReconciler) deploymentForWireguard(m *vpnv1alpha1.Wireguard) *appsv1.Deployment {
+func (r *WireguardReconciler) deploymentForWireguard(m *vpnv1alpha1.Wireguard, image string) *appsv1.Deployment {
 	ls := labelsForWireguard(m.Name)
 	replicas := int32(1)
 
@@ -683,7 +691,7 @@ func (r *WireguardReconciler) deploymentForWireguard(m *vpnv1alpha1.Wireguard) *
 							SecurityContext: &corev1.SecurityContext{
 								Capabilities: &corev1.Capabilities{Add: []corev1.Capability{"NET_ADMIN"}},
 							},
-							Image:           "ghcr.io/jodevsa/wireguard-operator-wireguard-image:main",
+							Image:           image,
 							ImagePullPolicy: "Always",
 							Name:            "metrics",
 							Command:         []string{"/usr/local/bin/prometheus_wireguard_exporter"},
@@ -704,7 +712,7 @@ func (r *WireguardReconciler) deploymentForWireguard(m *vpnv1alpha1.Wireguard) *
 							SecurityContext: &corev1.SecurityContext{
 								Capabilities: &corev1.Capabilities{Add: []corev1.Capability{"NET_ADMIN"}},
 							},
-							Image:           "ghcr.io/jodevsa/wireguard-operator-wireguard-image:main",
+							Image:           image,
 							ImagePullPolicy: "Always",
 							Name:            "wireguard",
 							Ports: []corev1.ContainerPort{
