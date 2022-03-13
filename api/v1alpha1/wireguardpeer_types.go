@@ -36,12 +36,15 @@ type WireguardPeerSpec struct {
 	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
 	// Important: Run "make" to regenerate code after modifying this file
 
-	// Foo is an example field of WireguardPeer. Edit wireguardpeer_types.go to remove/update
-	WireguardRef string     `json:"wireguardRef"`
-	Address      string     `json:"address,omitempty"`
-	PublicKey    string     `json:"publicKey,omitempty"`
-	PrivateKey   PrivateKey `json:"PrivateKeyRef,omitempty"`
-	Dns          string     `json:"dns,omitempty"`
+	// the name of the active wireguard instance
+	//+kubebuilder:validation:Required
+	//+kubebuilder:validation:MinLength=1
+	WireguardRef string `json:"wireguardRef"`
+
+	Address    string     `json:"address,omitempty"`
+	PublicKey  string     `json:"publicKey,omitempty"`
+	PrivateKey PrivateKey `json:"PrivateKeyRef,omitempty"`
+	Dns        string     `json:"dns,omitempty"`
 }
 
 // WireguardPeerStatus defines the observed state of WireguardPeer

@@ -66,8 +66,8 @@ spec:
               publicKey:
                 type: string
               wireguardRef:
-                description: Foo is an example field of WireguardPeer. Edit wireguardpeer_types.go
-                  to remove/update
+                description: the name of the active wireguard instance
+                minLength: 1
                 type: string
             required:
             - wireguardRef
