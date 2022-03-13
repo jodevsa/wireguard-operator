@@ -33,6 +33,7 @@ import (
 
 	vpnv1alpha1 "github.com/jodevsa/wireguard-operator/api/v1alpha1"
 	"github.com/jodevsa/wireguard-operator/controllers"
+	"github.com/spf13/viper"
 	//+kubebuilder:scaffold:imports
 )
 
@@ -49,6 +50,15 @@ func init() {
 }
 
 func main() {
+	viper.SetConfigName("release-config")
+	viper.SetConfigType("yaml")
+	viper.AddConfigPath("./")
+	err := viper.ReadInConfig()
+	if err != nil {
+		setupLog.Error(err, "Unable to read viper config")
+		os.Exit(1)
+	}
+
 	var metricsAddr string
 	var enableLeaderElection bool
 	var probeAddr string

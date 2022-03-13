@@ -228,21 +228,16 @@ Endpoint = %s:%s"`, serverPublicKey, serverAddress, wireguard.Status.Port)
 func (r *WireguardReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	log := ctrllog.FromContext(ctx)
 
-	// pull wireguard image
-	viper.SetConfigName("release-config")
-	viper.SetConfigType("yaml")
-	viper.AddConfigPath("./")
-	err := viper.ReadInConfig()
-	if err != nil {
-		log.Error(err, "Unable to read viper config")
-		return ctrl.Result{}, err
+	wireguardImage := viper.GetString("WIREGUARD_IMAGE")
+	if wireguardImage == "" {
+		return ctrl.Result{}, fmt.Errorf("WIREGUARD_IMAGE is not defined")
 	}
 
-	log.Info("loaded the following wireguard image:" + viper.GetString("WIREGUARD_IMAGE"))
+	log.Info("loaded the following wireguard image:" + wireguardImage)
 
 	wireguard := &vpnv1alpha1.Wireguard{}
 	log.Info(req.NamespacedName.Name)
-	err = r.Get(ctx, req.NamespacedName, wireguard)
+	err := r.Get(ctx, req.NamespacedName, wireguard)
 	if err != nil {
 		if errors.IsNotFound(err) {
 			// Request object not found, could have been deleted after reconcile request.
@@ -527,7 +522,7 @@ ListenPort = 51820
 	deploymentFound := &appsv1.Deployment{}
 	err = r.Get(ctx, types.NamespacedName{Name: wireguard.Name + "-dep", Namespace: wireguard.Namespace}, deploymentFound)
 	if err != nil && errors.IsNotFound(err) {
-		dep := r.deploymentForWireguard(wireguard)
+		dep := r.deploymentForWireguard(wireguard, wireguardImage)
 		log.Info("Creating a new dep", "dep.Namespace", dep.Namespace, "dep.Name", dep.Name)
 		err = r.Create(ctx, dep)
 		if err != nil {
@@ -654,7 +649,7 @@ func (r *WireguardReconciler) secretForClient(m *vpnv1alpha1.Wireguard, privateK
 
 }
 
-func (r *WireguardReconciler) deploymentForWireguard(m *vpnv1alpha1.Wireguard) *appsv1.Deployment {
+func (r *WireguardReconciler) deploymentForWireguard(m *vpnv1alpha1.Wireguard, image string) *appsv1.Deployment {
 	ls := labelsForWireguard(m.Name)
 	replicas := int32(1)
 
@@ -696,7 +691,7 @@ func (r *WireguardReconciler) deploymentForWireguard(m *vpnv1alpha1.Wireguard) *
 							SecurityContext: &corev1.SecurityContext{
 								Capabilities: &corev1.Capabilities{Add: []corev1.Capability{"NET_ADMIN"}},
 							},
-							Image:           viper.GetString("WIREGUARD_IMAGE"),
+							Image:           image,
 							ImagePullPolicy: "Always",
 							Name:            "metrics",
 							Command:         []string{"/usr/local/bin/prometheus_wireguard_exporter"},
@@ -717,7 +712,7 @@ func (r *WireguardReconciler) deploymentForWireguard(m *vpnv1alpha1.Wireguard) *
 							SecurityContext: &corev1.SecurityContext{
 								Capabilities: &corev1.Capabilities{Add: []corev1.Capability{"NET_ADMIN"}},
 							},
-							Image:           "ghcr.io/jodevsa/wireguard-operator-wireguard-image:main",
+							Image:           image,
 							ImagePullPolicy: "Always",
 							Name:            "wireguard",
 							Ports: []corev1.ContainerPort{
