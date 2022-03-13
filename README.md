@@ -3,7 +3,7 @@ painless deployment of wireguard on kubernetes
 
 # Support and discussions
 
-Currently the opeartor has only been tested on GKE; if you are facing any problems please open an issue or join our [slack channel](https://join.slack.com/t/wireguard-operator/shared_invite/zt-144xd8ufl-NvH_T82QA0lrP3q0ECTdYA)
+If you are facing any problems please open an issue or join our [slack channel](https://join.slack.com/t/wireguard-operator/shared_invite/zt-144xd8ufl-NvH_T82QA0lrP3q0ECTdYA)
 
 # Tested with
 - [x] IBM Cloud Kubernetes Service
