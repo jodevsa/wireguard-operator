@@ -48,4 +48,7 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
       
       - name: update release config
-        run: echo ${{ steps.meta }}
+        run: | 
+        echo ${{ steps.meta.outputs.tags }}
+        echo ${{ steps.meta.outputs.digest }}
+        echo ${{ steps.meta.outputs.labels }}
