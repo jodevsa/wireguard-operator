@@ -48,4 +48,6 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
       
       - name: update release config
-        run: echo ${{ toJson(steps.meta) }}
+        env:
+          TEST: ${{ toJson(steps.meta) }}
+        run: echo "$TEST"
