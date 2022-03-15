@@ -7,7 +7,9 @@ name: Create and publish Wireguard operator
 
 on:
   push:
-    branches: ['main']
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
 
 env:
   REGISTRY: ghcr.io
@@ -44,3 +46,7 @@ jobs:
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
+
+
+    - name: update release config
+      run: echo ${{ steps.meta }}
