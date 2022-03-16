@@ -37,6 +37,9 @@ jobs:
         id: meta
         uses: docker/metadata-action@98669ae865ea3cffbcbaa878cf57c20bbf1c6c38
         with:
+          tags: |
+            type=ref,event=branch
+            type=sha
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
 
       - name: Build and push Docker image
@@ -46,8 +49,8 @@ jobs:
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
-      
+     
       - name: update release config
         env:
-          TEST: ${{ toJson(steps) }}
+          TEST: ${{ toJson(meta) }}
         run: echo "$TEST"
