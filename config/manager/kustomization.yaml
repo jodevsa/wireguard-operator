@@ -12,5 +12,5 @@ apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 images:
 - name: controller
-  newName: ghcr.io/jodevsa/wireguard-operator-operator
-  newTag: main
+  newName: ghcr.io/jodevsa/wireguard-operator/operator
+  newTag: sha-f423c093bcff87c6d5dcf8f15dfdc5e09e1b86f1
