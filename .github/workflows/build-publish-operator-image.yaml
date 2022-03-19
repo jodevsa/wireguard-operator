@@ -52,5 +52,5 @@ jobs:
      
       - name: update release config
         env:
-          TEST: ${{ toJson(meta) }}
+          TEST: ${{ toJson(steps.meta) }}
         run: echo "$TEST"
