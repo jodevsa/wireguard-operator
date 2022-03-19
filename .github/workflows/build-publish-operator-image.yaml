@@ -3,7 +3,7 @@
 # separate terms of service, privacy policy, and support
 # documentation.
 
-name: test and build images
+name: Create and publish Wireguard operator
 
 on:
   push:
@@ -16,6 +16,7 @@ env:
   IMAGE_NAME: ${{ github.repository }}-operator
 
 jobs:
+
   build-and-test:
     runs-on: ubuntu-latest
     steps:
@@ -28,11 +29,13 @@ jobs:
 
     - name: Test
       run: make test
+
   build-and-push-operator-image:
     runs-on: ubuntu-latest
     permissions:
       contents: read
       packages: write
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v2
@@ -45,7 +48,7 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Extract metadata (tags, labels) for Docker
-        id: operatorMeta
+        id: meta
         uses: docker/metadata-action@98669ae865ea3cffbcbaa878cf57c20bbf1c6c38
         with:
           tags: |
@@ -58,8 +61,14 @@ jobs:
         with:
           file: ./Dockerfile
           push: true
-          tags: ${{ steps.operatorMeta.outputs.tags }}
-          labels: ${{ steps.operatorMeta.outputs.labels }}
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+
+      - name: Save operator image 
+        env:
+          IMAGE: ${{ steps.meta.output.tags }}
+        run: echo "$IMAGE"
+
   build-and-push-wireguard-image:
     runs-on: ubuntu-latest
     permissions:
@@ -90,3 +99,18 @@ jobs:
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
+
+  save-release:
+    needs: [build-and-test, build-and-push-operator-image, build-and-push-wireguard-image]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v2
+      
+      - name: print
+        env: 
+          JOBS: ${{ toJson(jobs) }}
+        run : echo "$JOBS"
