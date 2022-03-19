@@ -1,2 +1,2 @@
-WIREGUARD_IMAGE: "ghcr.io/jodevsa/wireguard-operator-wireguard-image:main"
-OPERATOR_IMAGE: "ghcr.io/jodevsa/wireguard-operator-operator:main"
+WIREGUARD_IMAGE: "ghcr.io/jodevsa/wireguard-operator/wireguard:sha-c2b5d87ca5fb09a146b5681b959ebe88ea562318"
+OPERATOR_IMAGE: "ghcr.io/jodevsa/wireguard-operator/operator:sha-c2b5d87ca5fb09a146b5681b959ebe88ea562318"
