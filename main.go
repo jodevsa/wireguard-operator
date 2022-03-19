@@ -50,15 +50,6 @@ func init() {
 }
 
 func main() {
-	viper.SetConfigName("release-config")
-	viper.SetConfigType("yaml")
-	viper.AddConfigPath("./")
-	err := viper.ReadInConfig()
-	if err != nil {
-		setupLog.Error(err, "Unable to read viper config")
-		os.Exit(1)
-	}
-
 	var metricsAddr string
 	var enableLeaderElection bool
 	var probeAddr string
@@ -74,6 +65,15 @@ func main() {
 	flag.Parse()
 
 	ctrl.SetLogger(zap.New(zap.UseFlagOptions(&opts)))
+
+	viper.SetConfigName("release-config")
+	viper.SetConfigType("yaml")
+	viper.AddConfigPath("./")
+	err := viper.ReadInConfig()
+	if err != nil {
+		setupLog.Error(err, "Unable to read viper config")
+		os.Exit(1)
+	}
 
 	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
 		Scheme:                 scheme,
