@@ -127,7 +127,9 @@ jobs:
           git config --local user.email "jodevsa@gmail.com"
           git config --local user.name "Github action"
           printf "WIREGUARD_IMAGE: \"$WIREGUARD_IMAGE\"\nOPERATOR_IMAGE: \"$OPERATOR_IMAGE\"" > release-config.yaml
+          make update-controller-image
           git add release-config.yaml
+          git add config/manager/kustomization.yaml
           git commit -m "new release" -a
 
       - name: commit new release
