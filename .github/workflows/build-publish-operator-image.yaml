@@ -114,7 +114,7 @@ jobs:
           OPERATOR_IMAGE: ${{ needs.build-and-push-operator-image.outputs.image }}
           WIREGUARD_IMAGE: ${{ needs.build-and-push-wireguard-image.outputs.image }}
         run : |
-        printf "WIREGUARD_IMAGE: \"$WIREGUARD_IMAGE\"\nOPERATOR_IMAGE : \"$OPERATOR_IMAGE\"" > release-config.yaml
-        git add release-config.yaml
-        git commit -m "update release"
-        git push
+          printf "WIREGUARD_IMAGE: \"$WIREGUARD_IMAGE\"\nOPERATOR_IMAGE : \"$OPERATOR_IMAGE\"" > release-config.yaml
+          git add release-config.yaml
+          git commit -m "update release"
+          git push
