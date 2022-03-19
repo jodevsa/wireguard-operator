@@ -63,8 +63,8 @@ jobs:
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
-      outputs: 
-        image: ${{ steps.meta.output.tags }}
+    outputs: 
+      image: ${{ steps.meta.output.tags }}
   
   build-and-push-wireguard-image:
     runs-on: ubuntu-latest
@@ -100,7 +100,7 @@ jobs:
 
     outputs: 
       image: ${{ steps.meta.output.tags }}
-
+  
   save-release:
     needs: [build-and-push-operator-image, build-and-push-wireguard-image]
     runs-on: ubuntu-latest
