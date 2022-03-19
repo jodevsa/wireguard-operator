@@ -58,7 +58,6 @@ jobs:
         uses: docker/metadata-action@98669ae865ea3cffbcbaa878cf57c20bbf1c6c38
         with:
           tags: |
-            type=ref,event=branch
             type=sha,format=long
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/operator
 
@@ -94,7 +93,6 @@ jobs:
         uses: docker/metadata-action@98669ae865ea3cffbcbaa878cf57c20bbf1c6c38
         with:
           tags: |
-            type=ref,event=branch
             type=sha,format=long
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/wireguard
 
