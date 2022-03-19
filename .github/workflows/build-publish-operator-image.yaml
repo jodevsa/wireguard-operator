@@ -64,7 +64,7 @@ jobs:
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
 
-      - name: Save operator image 
+      - name: output operator image 
         env:
           IMAGE: ${{ steps.meta.output.tags }}
         run: echo "$IMAGE"
@@ -99,6 +99,11 @@ jobs:
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
+      
+      - name: output wirguard image 
+        env:
+          IMAGE: ${{ steps.meta.output.tags }}
+        run: echo "$IMAGE"
 
   save-release:
     needs: [build-and-test, build-and-push-operator-image, build-and-push-wireguard-image]
