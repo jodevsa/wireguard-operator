@@ -13,7 +13,7 @@ on:
 
 env:
   REGISTRY: ghcr.io
-  IMAGE_NAME: ${{ github.repository }}-operator
+  IMAGE_NAME: ${{ github.repository }}
 
 jobs:
   build-and-test:
@@ -96,7 +96,7 @@ jobs:
           tags: |
             type=ref,event=branch
             type=sha,format=long
-          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-wireguard-image
+          images: ${{ env.REGISTRY }}/wireguard-image
 
       - name: Build and push Docker image
         uses: docker/build-push-action@ad44023a93711e3deb337508980b4b5e9bcdc5dc
