@@ -126,7 +126,7 @@ jobs:
         run : |
           git config --local user.email "jodevsa@gmail.com"
           git config --local user.name "Github action"
-          printf "WIREGUARD_IMAGE: \"$WIREGUARD_IMAGE\"\nOPERATOR_IMAGE : \"$OPERATOR_IMAGE\"" > release-config.yaml
+          printf "WIREGUARD_IMAGE: \"$WIREGUARD_IMAGE\"\nOPERATOR_IMAGE: \"$OPERATOR_IMAGE\"" > release-config.yaml
           git add release-config.yaml
           git commit -m "new release" -a
 
@@ -135,4 +135,3 @@ jobs:
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           branch: ${{ github.head_ref }}
-          force: true
