@@ -112,14 +112,19 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v2
       
-      - name: print
+      - name: prepare new release
         env: 
           OPERATOR_IMAGE: ${{ needs.build-and-push-operator-image.outputs.image }}
           WIREGUARD_IMAGE: ${{ needs.build-and-push-wireguard-image.outputs.image }}
         run : |
-          git config --global user.email "action@gtihub.com"
-          git config --global user.name "Github action"
+          git config --local user.email "jodevsa@gmail.com"
+          git config --local user.name "Github action"
           printf "WIREGUARD_IMAGE: \"$WIREGUARD_IMAGE\"\nOPERATOR_IMAGE : \"$OPERATOR_IMAGE\"" > release-config.yaml
           git add release-config.yaml
-          git commit -m "update release"
-          git push
+          git commit -m "new release" -a
+
+      - name: commit new release
+        uses: ad-m/github-push-action@master
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          branch: ${{ github.ref }}
