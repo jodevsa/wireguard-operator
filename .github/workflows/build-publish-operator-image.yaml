@@ -86,6 +86,9 @@ jobs:
         id: meta
         uses: docker/metadata-action@98669ae865ea3cffbcbaa878cf57c20bbf1c6c38
         with:
+          tags: |
+            type=ref,event=branch
+            type=sha,format=long
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-wireguard-image
 
       - name: Build and push Docker image
@@ -114,6 +117,8 @@ jobs:
           OPERATOR_IMAGE: ${{ needs.build-and-push-operator-image.outputs.image }}
           WIREGUARD_IMAGE: ${{ needs.build-and-push-wireguard-image.outputs.image }}
         run : |
+          git config --global user.email "action@gtihub.com"
+          git config --global user.name "Github action"
           printf "WIREGUARD_IMAGE: \"$WIREGUARD_IMAGE\"\nOPERATOR_IMAGE : \"$OPERATOR_IMAGE\"" > release-config.yaml
           git add release-config.yaml
           git commit -m "update release"
