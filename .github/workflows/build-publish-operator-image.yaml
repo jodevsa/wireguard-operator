@@ -31,7 +31,7 @@ jobs:
 
   build-and-push-operator-image:
     runs-on: ubuntu-latest
-    needs: [build-and-test]
+    #needs: [build-and-test]
     permissions:
       contents: read
       packages: write
@@ -68,7 +68,7 @@ jobs:
   
   build-and-push-wireguard-image:
     runs-on: ubuntu-latest
-    needs: [build-and-test, build-and-push-operator-image]
+    needs: [build-and-push-operator-image]
     permissions:
       contents: read
       packages: write
@@ -98,11 +98,11 @@ jobs:
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
 
-      outputs: 
-        image: ${{ steps.meta.output.tags }}
+    outputs: 
+      image: ${{ steps.meta.output.tags }}
   
   save-release:
-    needs: [build-and-test, build-and-push-operator-image, build-and-push-wireguard-image]
+    needs: [build-and-push-operator-image, build-and-push-wireguard-image]
     runs-on: ubuntu-latest
     permissions:
       contents: read
