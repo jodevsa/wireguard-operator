@@ -127,6 +127,8 @@ jobs:
           printf "WIREGUARD_IMAGE: \"$WIREGUARD_IMAGE\"\nOPERATOR_IMAGE: \"$OPERATOR_IMAGE\"" > release-config.yaml
           make update-controller-image
           git add release-config.yaml
+          make update-installation-yaml
+          git add release.yaml
           git add config/manager/kustomization.yaml
           git commit -m "new release" -a
 

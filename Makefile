@@ -114,6 +114,9 @@ uninstall: manifests kustomize ## Uninstall CRDs from the K8s cluster specified 
 update-controller-image: kustomize
 	cd config/manager && $(KUSTOMIZE) edit set image controller=${IMG}
 
+update-installation-yaml: kustomize
+	$(KUSTOMIZE) build config/default > release.yaml
+
 deploy: manifests kustomize ## Deploy controller to the K8s cluster specified in ~/.kube/config.
 	cd config/manager && $(KUSTOMIZE) edit set image controller=${IMG}
 	$(KUSTOMIZE) build config/default | kubectl apply -f -
