@@ -110,8 +110,17 @@ jobs:
     permissions:
       contents: read
       packages: write
-
+    
     steps:
+      - name: install operator-sdk
+        run: |
+          export ARCH=$(case $(uname -m) in x86_64) echo -n amd64 ;; aarch64) echo -n arm64 ;; *) echo -n $(uname -m) ;; esac)
+          export OS=$(uname | awk '{print tolower($0)}')
+          export OPERATOR_SDK_DL_URL=https://github.com/operator-framework/operator-sdk/releases/download/v1.18.1
+          curl -LO ${OPERATOR_SDK_DL_URL}/operator-sdk_${OS}_${ARCH}
+          chmod +x operator-sdk_${OS}_${ARCH}
+          mv operator-sdk_${OS}_${ARCH} /usr/local/bin/operator-sdk
+
       - name: Checkout repository
         uses: actions/checkout@v2
 
@@ -121,6 +130,7 @@ jobs:
           WIREGUARD_IMAGE: ${{ needs.build-and-push-wireguard-image.outputs.image }}
         run: |
           printf "WIREGUARD_IMAGE: \"$WIREGUARD_IMAGE\"\nOPERATOR_IMAGE: \"$OPERATOR_IMAGE\"" > release-config.yaml
+          make bundle
           make update-controller-image
 
       - name: Log in to the Container registry
@@ -152,6 +162,15 @@ jobs:
     needs: [build-and-push-operator-image, build-and-push-wireguard-image, build-and-push-bundle-image]
     runs-on: ubuntu-latest
     steps:
+      - name: install operator-sdk
+        run: |
+          export ARCH=$(case $(uname -m) in x86_64) echo -n amd64 ;; aarch64) echo -n arm64 ;; *) echo -n $(uname -m) ;; esac)
+          export OS=$(uname | awk '{print tolower($0)}')
+          export OPERATOR_SDK_DL_URL=https://github.com/operator-framework/operator-sdk/releases/download/v1.18.1
+          curl -LO ${OPERATOR_SDK_DL_URL}/operator-sdk_${OS}_${ARCH}
+          chmod +x operator-sdk_${OS}_${ARCH}
+          mv operator-sdk_${OS}_${ARCH} /usr/local/bin/operator-sdk
+
       - name: Checkout repository
         uses: actions/checkout@v2
         with:
@@ -170,6 +189,8 @@ jobs:
           make update-controller-image
           git add release-config.yaml
           make update-installation-yaml
+          make bundle
+          git add ./bundle/
           git add release.yaml
           git add config/manager/kustomization.yaml
           git commit -m "new release" -a
