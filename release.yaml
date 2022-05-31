@@ -486,7 +486,7 @@ spec:
         - --leader-elect
         command:
         - /manager
-        image: ghcr.io/jodevsa/wireguard-operator/operator:sha-1e1aa4a4861a1927ca37b95573d5304931ca201e
+        image: ghcr.io/jodevsa/wireguard-operator/operator:sha-ef1a92d9154674bdec0b15917cad2243c7b831bb
         livenessProbe:
           httpGet:
             path: /healthz
