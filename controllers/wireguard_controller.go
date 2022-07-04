@@ -565,7 +565,6 @@ func (r *WireguardReconciler) SetupWithManager(mgr ctrl.Manager) error {
 
 func (r *WireguardReconciler) serviceForWireguard(m *vpnv1alpha1.Wireguard, serviceType corev1.ServiceType) *corev1.Service {
 	labels := labelsForWireguard(m.Name)
-	//timeoutSeconds := int32(120)
 
 	dep := &corev1.Service{
 		ObjectMeta: metav1.ObjectMeta{
@@ -599,10 +598,12 @@ func (r *WireguardReconciler) serviceForWireguardMetrics(m *vpnv1alpha1.Wireguar
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      m.Name + "-metrics-svc",
 			Namespace: m.Namespace,
+			Labels:    labels,
 		},
 		Spec: corev1.ServiceSpec{
 			Selector: labels,
 			Ports: []corev1.ServicePort{{
+				Name:       "metrics",
 				Protocol:   corev1.ProtocolTCP,
 				Port:       metricsPort,
 				TargetPort: intstr.FromInt(metricsPort),
