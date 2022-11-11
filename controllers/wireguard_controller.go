@@ -273,7 +273,9 @@ func (r *WireguardReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 	}
 
 	for _, peer := range peers.Items {
-
+		if peer.Spec.Disabled == true {
+			continue
+		}
 		if peer.Spec.WireguardRef != wireguard.Name {
 			continue
 		}

@@ -61,6 +61,9 @@ spec:
                 type: object
               address:
                 type: string
+              disabled:
+                description: set to true to temporarily disable a peer
+                type: boolean
               dns:
                 type: string
               publicKey:
