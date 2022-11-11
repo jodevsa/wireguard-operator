@@ -39,12 +39,13 @@ type WireguardPeerSpec struct {
 	// the name of the active wireguard instance
 	//+kubebuilder:validation:Required
 	//+kubebuilder:validation:MinLength=1
-	WireguardRef string `json:"wireguardRef"`
 
-	Address    string     `json:"address,omitempty"`
-	PublicKey  string     `json:"publicKey,omitempty"`
-	PrivateKey PrivateKey `json:"PrivateKeyRef,omitempty"`
-	Dns        string     `json:"dns,omitempty"`
+	Address      string     `json:"address,omitempty"`
+	Disabled     bool       `json:"disabled,omitempty"`
+	Dns          string     `json:"dns,omitempty"`
+	PrivateKey   PrivateKey `json:"PrivateKeyRef,omitempty"`
+	PublicKey    string     `json:"publicKey,omitempty"`
+	WireguardRef string     `json:"wireguardRef"`
 }
 
 // WireguardPeerStatus defines the observed state of WireguardPeer
