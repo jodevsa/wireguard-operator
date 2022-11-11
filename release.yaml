@@ -59,6 +59,9 @@ spec:
                 type: object
               address:
                 type: string
+              disabled:
+                description: set to true to temporarily disable a peer
+                type: boolean
               dns:
                 type: string
               publicKey:
@@ -486,7 +489,7 @@ spec:
         - --leader-elect
         command:
         - /manager
-        image: ghcr.io/jodevsa/wireguard-operator/operator:sha-2b596d92a59502ed032270dffb564c30859d71ee
+        image: ghcr.io/jodevsa/wireguard-operator/operator:sha-d2fac4d22a3ae9ca2479614c3f93fa9f4ed71598
         livenessProbe:
           httpGet:
             path: /healthz
