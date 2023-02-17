@@ -11,6 +11,8 @@ If you are facing any problems please open an issue or join our [slack channel](
 
 # Tested with
 - [x] IBM Cloud Kubernetes Service
+- [x] Gcore Labs KMP
+requires enable IP forwarding manually. will dig more into automating it but I was able to make it work manually.
 - [x] Google Kubernetes Engine
   * requires `spec.mtu: "1380"`
 - [x] DigitalOcean Kubernetes
