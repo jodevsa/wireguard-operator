@@ -478,8 +478,12 @@ ListenPort = 51820
 		if err != nil {
 			return ctrl.Result{}, err
 		}
-
-		hostname = ips[0]
+		
+		if len(ips) > 0 {
+			hostname = ips[0]
+		} else {
+			hostname = "0.0.0.0"
+		}
 
 	}
 
