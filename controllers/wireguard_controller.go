@@ -97,7 +97,16 @@ func (r *WireguardReconciler) getNodeIps(ctx context.Context, req ctrl.Request) 
 			if address.Type == corev1.NodeExternalIP {
 				ips = append(ips, address.Address)
 			}
+		}
+	}
 
+	if len(ips) == 0 {
+		for _, node := range nodes.Items {
+			for _, address := range node.Status.Addresses {
+				if address.Type == corev1.NodeInternalIP {
+					ips = append(ips, address.Address)
+				}
+			}
 		}
 	}
 
@@ -478,12 +487,8 @@ ListenPort = 51820
 		if err != nil {
 			return ctrl.Result{}, err
 		}
-		
-		if len(ips) > 0 {
-			hostname = ips[0]
-		} else {
-			hostname = "0.0.0.0"
-		}
+
+		hostname = ips[0]
 
 	}
 
