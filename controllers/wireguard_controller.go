@@ -664,6 +664,7 @@ func (r *WireguardReconciler) secretForClient(m *vpnv1alpha1.Wireguard, privateK
 func (r *WireguardReconciler) deploymentForWireguard(m *vpnv1alpha1.Wireguard, image string) *appsv1.Deployment {
 	ls := labelsForWireguard(m.Name)
 	replicas := int32(1)
+	privileged := true
 
 	dep := &appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
@@ -747,6 +748,17 @@ func (r *WireguardReconciler) deploymentForWireguard(m *vpnv1alpha1.Wireguard, i
 									Name:      "config",
 									MountPath: "/tmp/wireguard/",
 								}},
+						}},
+					InitContainers: []corev1.Container{
+						{
+							SecurityContext: &corev1.SecurityContext{
+								Privileged:  &privileged,
+							},
+							Image:           image,
+							ImagePullPolicy: "Always",
+							Name:            "sysctl",
+							Command:         []string{"/bin/sh"},
+							Args:         []string{"-c","echo 1 > /proc/sys/net/ipv4/ip_forward"},
 						}},
 				},
 			},
