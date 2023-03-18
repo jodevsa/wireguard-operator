@@ -24,6 +24,7 @@ rules:
   - nodes
   verbs:
   - list
+  - watch
 - apiGroups:
   - ""
   resources:

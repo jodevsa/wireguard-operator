@@ -128,6 +128,8 @@ spec:
           spec:
             description: WireguardSpec defines the desired state of Wireguard
             properties:
+              enableIpForwardOnPodInit:
+                type: boolean
               hostname:
                 type: string
               mtu:
@@ -229,6 +231,7 @@ rules:
   - nodes
   verbs:
   - list
+  - watch
 - apiGroups:
   - ""
   resources:
@@ -489,7 +492,7 @@ spec:
         - --leader-elect
         command:
         - /manager
-        image: ghcr.io/jodevsa/wireguard-operator/operator:sha-e78fd80cd98f1c904134dbbe0eaf2712ef21e091
+        image: ghcr.io/jodevsa/wireguard-operator/operator:sha-b13cde18670d7e13d5a3ac0e462bdeeb94116cf0
         livenessProbe:
           httpGet:
             path: /healthz
