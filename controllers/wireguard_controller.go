@@ -97,7 +97,16 @@ func (r *WireguardReconciler) getNodeIps(ctx context.Context, req ctrl.Request) 
 			if address.Type == corev1.NodeExternalIP {
 				ips = append(ips, address.Address)
 			}
+		}
+	}
 
+	if len(ips) == 0 {
+		for _, node := range nodes.Items {
+			for _, address := range node.Status.Addresses {
+				if address.Type == corev1.NodeInternalIP {
+					ips = append(ips, address.Address)
+				}
+			}
 		}
 	}
 
@@ -214,7 +223,7 @@ Endpoint = %s:%s"`, serverPublicKey, serverAddress, wireguard.Status.Port)
 //+kubebuilder:rbac:groups="apps",resources=deployments,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups="",resources=pods,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups="apps",resources=pods,verbs=get;list;watch;create;update;patch;delete
-//+kubebuilder:rbac:groups="",resources=nodes,verbs=list
+//+kubebuilder:rbac:groups="",resources=nodes,verbs=list;watch
 
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
 // move the current state of the cluster closer to the desired state.
@@ -689,6 +698,7 @@ func (r *WireguardReconciler) deploymentForWireguard(m *vpnv1alpha1.Wireguard, i
 								},
 							},
 						}},
+					InitContainers: []corev1.Container{},
 					Containers: []corev1.Container{
 						{
 							SecurityContext: &corev1.SecurityContext{
@@ -744,6 +754,20 @@ func (r *WireguardReconciler) deploymentForWireguard(m *vpnv1alpha1.Wireguard, i
 		},
 	}
 
+	if m.Spec.EnableIpForwardOnPodInit {
+		privileged := true
+		dep.Spec.Template.Spec.InitContainers = append(dep.Spec.Template.Spec.InitContainers,
+			corev1.Container{
+				SecurityContext: &corev1.SecurityContext{
+					Privileged: &privileged,
+				},
+				Image:           image,
+				ImagePullPolicy: "Always",
+				Name:            "sysctl",
+				Command:         []string{"/bin/sh"},
+				Args:            []string{"-c", "echo 1 > /proc/sys/net/ipv4/ip_forward"},
+			})
+	}
 	ctrl.SetControllerReference(m, dep, r.Scheme)
 	return dep
 }
