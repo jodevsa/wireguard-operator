@@ -664,7 +664,6 @@ func (r *WireguardReconciler) secretForClient(m *vpnv1alpha1.Wireguard, privateK
 func (r *WireguardReconciler) deploymentForWireguard(m *vpnv1alpha1.Wireguard, image string) *appsv1.Deployment {
 	ls := labelsForWireguard(m.Name)
 	replicas := int32(1)
-	privileged := true
 
 	dep := &appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
@@ -699,6 +698,7 @@ func (r *WireguardReconciler) deploymentForWireguard(m *vpnv1alpha1.Wireguard, i
 								},
 							},
 						}},
+					InitContainers: []corev1.Container{},
 					Containers: []corev1.Container{
 						{
 							SecurityContext: &corev1.SecurityContext{
@@ -749,22 +749,25 @@ func (r *WireguardReconciler) deploymentForWireguard(m *vpnv1alpha1.Wireguard, i
 									MountPath: "/tmp/wireguard/",
 								}},
 						}},
-					InitContainers: []corev1.Container{
-						{
-							SecurityContext: &corev1.SecurityContext{
-								Privileged:  &privileged,
-							},
-							Image:           image,
-							ImagePullPolicy: "Always",
-							Name:            "sysctl",
-							Command:         []string{"/bin/sh"},
-							Args:         []string{"-c","echo 1 > /proc/sys/net/ipv4/ip_forward"},
-						}},
 				},
 			},
 		},
 	}
 
+	if m.Spec.EnableIpForwardOnPodInit {
+		privileged := true
+		dep.Spec.Template.Spec.InitContainers = append(dep.Spec.Template.Spec.InitContainers,
+			corev1.Container{
+				SecurityContext: &corev1.SecurityContext{
+					Privileged: &privileged,
+				},
+				Image:           image,
+				ImagePullPolicy: "Always",
+				Name:            "sysctl",
+				Command:         []string{"/bin/sh"},
+				Args:            []string{"-c", "echo 1 > /proc/sys/net/ipv4/ip_forward"},
+			})
+	}
 	ctrl.SetControllerReference(m, dep, r.Scheme)
 	return dep
 }

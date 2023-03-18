@@ -41,9 +41,10 @@ type WireguardSpec struct {
 	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
 	// Important: Run "make" to regenerate code after modifying this file
 
-	Mtu         string             `json:"mtu,omitempty"`
-	Hostname    string             `json:"hostname,omitempty"`
-	ServiceType corev1.ServiceType `json:"serviceType,omitempty"`
+	Mtu                      string             `json:"mtu,omitempty"`
+	Hostname                 string             `json:"hostname,omitempty"`
+	ServiceType              corev1.ServiceType `json:"serviceType,omitempty"`
+	EnableIpForwardOnPodInit bool               `json:"enableIpForwardOnPodInit,omitempty"`
 }
 
 // WireguardStatus defines the observed state of Wireguard

@@ -36,6 +36,8 @@ spec:
           spec:
             description: WireguardSpec defines the desired state of Wireguard
             properties:
+              enableIpForwardOnPodInit:
+                type: boolean
               hostname:
                 type: string
               mtu:
