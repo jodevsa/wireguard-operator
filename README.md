@@ -83,12 +83,12 @@ Endpoint = 32.121.45.102:51820
 
 # installation: 
 ```
-kubectl apply -f https://raw.githubusercontent.com/jodevsa/wireguard-operator/0.0.3/release.yaml
+kubectl apply -f https://raw.githubusercontent.com/jodevsa/wireguard-operator/1.0.1/release.yaml
 ```
 
 
 
 # uninstall
 ```
-kubectl delete -f https://raw.githubusercontent.com/jodevsa/wireguard-operator/0.0.3/release.yaml
+kubectl delete -f https://raw.githubusercontent.com/jodevsa/wireguard-operator/1.0.1/release.yaml
 ```
