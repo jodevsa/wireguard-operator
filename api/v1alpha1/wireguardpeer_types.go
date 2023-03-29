@@ -17,8 +17,10 @@ limitations under the License.
 package v1alpha1
 
 import (
+	"fmt"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"strings"
 )
 
 type PrivateKey struct {
@@ -28,6 +30,38 @@ type PrivateKey struct {
 type Status struct {
 }
 
+
+func (r EgressNetworkPolicy) Compile(peerIp string, kubeDnsIp string, wgServerIp string) string {
+
+	var rules []string
+
+
+	peerChain := strings.ReplaceAll(peerIp, ".", "-")
+
+	// create chain for peer
+	rules = append(rules, fmt.Sprintf("%s - [0:0]", peerChain))
+	// associate peer chain to FORWARD chain
+	rules = append(rules, fmt.Sprintf("-A FORWARD -s %s -j %s", peerIp, peerChain))
+
+
+	// default rules
+
+	// allow peer to ping (ICMP) wireguard server for debugging purposes
+	rules = append(rules, fmt.Sprintf("-A %s -d %s -p icmp -j ACCEPT", peerChain, wgServerIp))
+	// allow peer to communicate with itself
+	rules = append(rules, fmt.Sprintf("-A %s -d %s -j ACCEPT", peerChain, peerIp))
+	// allow peer to communicate with kube-dns
+	rules = append(rules, fmt.Sprintf("-A %s -d %s -p udp --dport 53 -j ACCEPT ", peerChain, kubeDnsIp))
+
+
+
+
+
+	// implicit deny all
+	rules = append(rules, fmt.Sprintf("-A %s -j REJECT --reject-with icmp-port-unreachable", peerChain))
+
+	return strings.Join(rules, "\n")
+}
 // EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!
 // NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
 
@@ -46,6 +80,36 @@ type WireguardPeerSpec struct {
 	//+kubebuilder:validation:Required
 	//+kubebuilder:validation:MinLength=1
 	WireguardRef string `json:"wireguardRef"`
+
+
+	egressNetworkPolicy EgressNetworkPolicy `json:"egressNetworkPolicy,omitempty"`
+}
+
+//+kubebuilder:validation:Enum=admin;Allow;Deny
+type EgressNetworkPolicyAction string
+
+//+kubebuilder:validation:Enum=TCP;UDP
+type EgressNetworkPolicyProtocol string
+
+const (
+	 EgressNetworkPolicyActionAllow EgressNetworkPolicyAction= "Allow"
+	 EgressNetworkPolicyActionDeny EgressNetworkPolicyAction= "Deny"
+)
+
+const (
+	EgressNetworkPolicyProtocolTCP EgressNetworkPolicyAction= "TCP"
+	EgressNetworkPolicyProtocolUDP EgressNetworkPolicyAction= "UDP"
+)
+
+type EgressNetworkPolicy struct {
+	action EgressNetworkPolicyAction `json:"action,omitempty"`
+	To EgressNetworkPolicyTo `json:"to,omitempty"`
+	//+kubebuilder:validation:Enum=tcp;udp;TCP;UDP
+	Protocol string `json:"protocol,omitempty"`
+}
+
+type EgressNetworkPolicyTo struct {
+	Ip string `json:"ip,omitempty"`
 }
 
 // WireguardPeerStatus defines the observed state of WireguardPeer
