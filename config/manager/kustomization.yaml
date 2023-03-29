@@ -13,4 +13,4 @@ kind: Kustomization
 images:
 - name: controller
   newName: ghcr.io/jodevsa/wireguard-operator/operator
-  newTag: sha-7b4133ef765b314d67b62455be3eea076deafa3d
+  newTag: sha-477d926d25543154888aa3642f601d59468c2484
