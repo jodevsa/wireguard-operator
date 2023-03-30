@@ -1,10 +1,9 @@
-
 ---
 apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.7.0
+    controller-gen.kubebuilder.io/version: v0.8.0
   creationTimestamp: null
   name: wireguardpeers.vpn.example.com
 spec:
@@ -66,6 +65,30 @@ spec:
                 type: boolean
               dns:
                 type: string
+              egressNetworkPolicies:
+                items:
+                  properties:
+                    action:
+                      enum:
+                      - ACCEPT
+                      - REJECT
+                      - Accept
+                      - Reject
+                      type: string
+                    protocol:
+                      enum:
+                      - TCP
+                      - UDP
+                      type: string
+                    to:
+                      properties:
+                        ip:
+                          type: string
+                        port:
+                          type: string
+                      type: object
+                  type: object
+                type: array
               publicKey:
                 type: string
               wireguardRef:
@@ -82,6 +105,8 @@ spec:
                 description: 'INSERT ADDITIONAL STATUS FIELD - define observed state
                   of cluster Important: Run "make" to regenerate code after modifying
                   this file'
+                type: string
+              iptableRules:
                 type: string
               message:
                 type: string

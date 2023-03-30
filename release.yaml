@@ -9,7 +9,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.7.0
+    controller-gen.kubebuilder.io/version: v0.8.0
   creationTimestamp: null
   name: wireguardpeers.vpn.example.com
 spec:
@@ -64,6 +64,29 @@ spec:
                 type: boolean
               dns:
                 type: string
+              egressNetworkPolicies:
+                items:
+                  properties:
+                    action:
+                      enum:
+                      - admin
+                      - Allow
+                      - Deny
+                      type: string
+                    protocol:
+                      enum:
+                      - TCP
+                      - UDP
+                      type: string
+                    to:
+                      properties:
+                        ip:
+                          type: string
+                        port:
+                          type: string
+                      type: object
+                  type: object
+                type: array
               publicKey:
                 type: string
               wireguardRef:
@@ -100,7 +123,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.7.0
+    controller-gen.kubebuilder.io/version: v0.8.0
   creationTimestamp: null
   name: wireguards.vpn.example.com
 spec:
@@ -492,7 +515,7 @@ spec:
         - --leader-elect
         command:
         - /manager
-        image: ghcr.io/jodevsa/wireguard-operator/operator:sha-7b4133ef765b314d67b62455be3eea076deafa3d
+        image: ghcr.io/jodevsa/wireguard-operator/operator:sha-6c225bbba480fb248017a68904667ce7f9bbf97c
         livenessProbe:
           httpGet:
             path: /healthz
