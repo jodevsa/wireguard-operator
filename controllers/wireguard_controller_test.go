@@ -41,7 +41,7 @@ var _ = Describe("wireguard controller", func() {
 -A FORWARD -s 192.168.1.115 -j 192-168-1-115
 -A 192-168-1-115 -d 192.168.1.1 -p icmp -j ACCEPT
 -A 192-168-1-115 -d 192.168.1.115 -j ACCEPT
--A 192-168-1-115 -d 69.96.1.42 -p udp --dport 53 -j ACCEPT
+-A 192-168-1-115 -d 69.96.1.42 -p UDP --dport 53 -j ACCEPT
 -A 192-168-1-115 -d 8.8.8.8 -j ACCEPT
 -A 192-168-1-115 -j REJECT --reject-with icmp-port-unreachable
 # end of rules for peer 192.168.1.115`,
@@ -62,7 +62,7 @@ var _ = Describe("wireguard controller", func() {
 -A FORWARD -s 10.8.0.9 -j 10-8-0-9
 -A 10-8-0-9 -d 10.8.0.1 -p icmp -j ACCEPT
 -A 10-8-0-9 -d 10.8.0.9 -j ACCEPT
--A 10-8-0-9 -d 100.64.0.10 -p udp --dport 53 -j ACCEPT
+-A 10-8-0-9 -d 100.64.0.10 -p UDP --dport 53 -j ACCEPT
 -A 10-8-0-9 -p UDP -j ACCEPT
 -A 10-8-0-9 -j REJECT --reject-with icmp-port-unreachable
 # end of rules for peer 10.8.0.9`,
@@ -78,7 +78,7 @@ var _ = Describe("wireguard controller", func() {
 -A FORWARD -s 10.8.0.9 -j 10-8-0-9
 -A 10-8-0-9 -d 10.8.0.1 -p icmp -j ACCEPT
 -A 10-8-0-9 -d 10.8.0.9 -j ACCEPT
--A 10-8-0-9 -d 100.64.0.10 -p udp --dport 53 -j ACCEPT
+-A 10-8-0-9 -d 100.64.0.10 -p UDP --dport 53 -j ACCEPT
 # end of rules for peer 10.8.0.9`,
 			},
 			{
@@ -92,7 +92,7 @@ var _ = Describe("wireguard controller", func() {
 -A FORWARD -s 10.8.0.11 -j 10-8-0-11
 -A 10-8-0-11 -d 10.7.0.1 -p icmp -j ACCEPT
 -A 10-8-0-11 -d 10.8.0.11 -j ACCEPT
--A 10-8-0-11 -d 100.64.0.21 -p udp --dport 53 -j ACCEPT
+-A 10-8-0-11 -d 100.64.0.21 -p UDP --dport 53 -j ACCEPT
 -A 10-8-0-11 -j Reject
 -A 10-8-0-11 -j REJECT --reject-with icmp-port-unreachable
 # end of rules for peer 10.8.0.11`,
@@ -112,7 +112,7 @@ var _ = Describe("wireguard controller", func() {
 -A FORWARD -s 10.8.0.9 -j 10-8-0-9
 -A 10-8-0-9 -d 10.8.0.1 -p icmp -j ACCEPT
 -A 10-8-0-9 -d 10.8.0.9 -j ACCEPT
--A 10-8-0-9 -d 100.64.0.10 -p udp --dport 53 -j ACCEPT
+-A 10-8-0-9 -d 100.64.0.10 -p UDP --dport 53 -j ACCEPT
 -A 10-8-0-9 -p TCP --dport 8080 -j ACCEPT
 -A 10-8-0-9 -j REJECT --reject-with icmp-port-unreachable
 # end of rules for peer 10.8.0.9`,
