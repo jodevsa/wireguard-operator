@@ -20,6 +20,7 @@ import (
 	"context"
 	"fmt"
 	"strconv"
+	"strings"
 	"time"
 
 	vpnv1alpha1 "github.com/jodevsa/wireguard-operator/api/v1alpha1"
@@ -51,6 +52,111 @@ type WireguardReconciler struct {
 
 func labelsForWireguard(name string) map[string]string {
 	return map[string]string{"app": "wireguard", "instance": name}
+}
+
+func createIptableRulesforWireguard(wgHostName string, dns string, peers []vpnv1alpha1.WireguardPeer) string {
+	var rules []string
+
+	var natTableRules = fmt.Sprintf(`
+*nat
+:PREROUTING ACCEPT [0:0]
+:INPUT ACCEPT [0:0]
+:OUTPUT ACCEPT [0:0]
+:POSTROUTING ACCEPT [0:0]
+-A POSTROUTING -s 10.8.0.0/24 -o eth0 -j MASQUERADE
+COMMIT`)
+
+	for _, peer := range peers {
+		rules = append(rules, EgressNetworkPoliciestoIptableRules(peer.Spec.EgressNetworkPolicies, peer.Spec.Address, dns, wgHostName))
+	}
+
+	var filterTableRules = fmt.Sprintf(`
+*filter
+:INPUT ACCEPT [0:0]
+:FORWARD ACCEPT [0:0]
+:OUTPUT ACCEPT [0:0]
+%s
+COMMIT
+`, strings.Join(rules, "\n"))
+
+	return fmt.Sprintf("%s\n%s", natTableRules, filterTableRules)
+}
+
+func EgressNetworkPoliciestoIptableRules(policies vpnv1alpha1.EgressNetworkPolicies, peerIp string, kubeDnsIp string, wgServerIp string) string {
+	var rules []string
+
+	// add a comment
+	rules = append(rules, fmt.Sprintf("# start of rules for peer %s", peerIp))
+
+	peerChain := strings.ReplaceAll(peerIp, ".", "-")
+
+	// create chain for peer
+	rules = append(rules, fmt.Sprintf(":%s - [0:0]", peerChain))
+	// associate peer chain to FORWARD chain
+	rules = append(rules, fmt.Sprintf("-A FORWARD -s %s -j %s", peerIp, peerChain))
+
+	// allow peer to ping (ICMP) wireguard server for debugging purposes
+	rules = append(rules, fmt.Sprintf("-A %s -d %s -p icmp -j ACCEPT", peerChain, wgServerIp))
+	// allow peer to communicate with itself
+	rules = append(rules, fmt.Sprintf("-A %s -d %s -j ACCEPT", peerChain, peerIp))
+	// allow peer to communicate with kube-dns
+	rules = append(rules, fmt.Sprintf("-A %s -d %s -p UDP --dport 53 -j ACCEPT", peerChain, kubeDnsIp))
+
+	for _, policy := range policies {
+		for _, rule := range EgressNetworkPolicyToIpTableRules(policy, peerChain) {
+			rules = append(rules, rule)
+		}
+	}
+
+	// if policies are defined impose an implicit deny all
+	if len(policies) != 0 {
+		rules = append(rules, fmt.Sprintf("-A %s -j REJECT --reject-with icmp-port-unreachable", peerChain))
+	}
+
+	// add a comment
+	rules = append(rules, fmt.Sprintf("# end of rules for peer %s", peerIp))
+
+	return strings.Join(rules, "\n")
+}
+
+func EgressNetworkPolicyToIpTableRules(policy vpnv1alpha1.EgressNetworkPolicy, peerChain string) []string {
+
+	var rules []string
+
+	// customer rules
+	var rulePeerChain = "-A " + peerChain
+	var ruleAction = string("-j " + vpnv1alpha1.EgressNetworkPolicyActionDeny)
+	var ruleProtocol = ""
+	var ruleDestIp = ""
+	var ruleDestPort = ""
+
+	if policy.To.Ip != "" {
+		ruleDestIp = "-d " + policy.To.Ip
+	}
+
+	if policy.To.Port != "" {
+		ruleDestPort = "--dport " + policy.To.Port
+	}
+
+	if policy.Action != "" {
+		ruleAction = "-j " + strings.ToUpper(string(policy.Action))
+	}
+
+	if policy.Protocol != "" {
+		ruleProtocol = "-p " + strings.ToUpper(string(policy.Protocol))
+	}
+
+	var options = []string{rulePeerChain, ruleDestIp, ruleProtocol, ruleDestPort, ruleAction}
+	var filteredOptions []string
+	for _, option := range options {
+		if len(option) != 0 {
+			filteredOptions = append(filteredOptions, option)
+		}
+	}
+	rules = append(rules, strings.Join(filteredOptions, " "))
+
+	return rules
+
 }
 
 func (r *WireguardReconciler) ConfigmapForWireguard(m *vpnv1alpha1.Wireguard, hostname string) *corev1.ConfigMap {
@@ -200,10 +306,12 @@ DNS = %s`, peer.Name, peer.Namespace, peer.Spec.Address, dns)
 PublicKey = %s
 AllowedIPs = 0.0.0.0/0
 Endpoint = %s:%s"`, serverPublicKey, serverAddress, wireguard.Status.Port)
-		if peer.Status.Config != newConfig || peer.Status.Status != vpnv1alpha1.Ready {
+		iptableRulesForPeer := EgressNetworkPoliciestoIptableRules(peer.Spec.EgressNetworkPolicies, peer.Spec.Address, dns, serverAddress)
+		if peer.Status.IptableRules != iptableRulesForPeer || peer.Status.Config != newConfig || peer.Status.Status != vpnv1alpha1.Ready {
 			peer.Status.Config = newConfig
 			peer.Status.Status = vpnv1alpha1.Ready
 			peer.Status.Message = "Peer configured"
+			peer.Status.IptableRules = iptableRulesForPeer
 			if err := r.Status().Update(ctx, &peer); err != nil {
 				return err
 			}
@@ -276,11 +384,13 @@ func (r *WireguardReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 
 	// wireguardpeer
 	peers := &vpnv1alpha1.WireguardPeerList{}
+	// TODO add a label to wireguardpeers and then filter by label here to only get peers of the wg instance we need.
 	if err := r.List(ctx, peers, client.InNamespace(req.Namespace)); err != nil {
 		log.Error(err, "Failed to fetch list of peers")
 		return ctrl.Result{}, err
 	}
 
+	var filteredPeers []vpnv1alpha1.WireguardPeer
 	for _, peer := range peers.Items {
 		if peer.Spec.Disabled == true {
 			continue
@@ -292,97 +402,12 @@ func (r *WireguardReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 			continue
 		}
 
+		if peer.Spec.Address == "" {
+			continue
+		}
+
+		filteredPeers = append(filteredPeers, peer)
 		wgConfig = wgConfig + fmt.Sprintf("\n[Peer]\nPublicKey = %s\nallowedIps = %s\n\n", peer.Spec.PublicKey, peer.Spec.Address)
-	}
-
-	// svc
-
-	secret := &corev1.Secret{}
-	err = r.Get(ctx, types.NamespacedName{Name: wireguard.Name, Namespace: wireguard.Namespace}, secret)
-	if err == nil {
-		privateKey := string(secret.Data["privateKey"])
-
-		wgConfig = fmt.Sprintf(`
-[Interface]
-PrivateKey = %s
-Address = 10.8.0.1/24
-ListenPort = 51820
-`, privateKey) + wgConfig
-
-		if string(secret.Data["config"]) != wgConfig {
-			log.Info("Updating secret with new config")
-
-			publicKey := string(secret.Data["publicKey"])
-			err := r.Update(ctx, r.secretForWireguard(wireguard, privateKey, publicKey, wgConfig))
-			if err != nil {
-				log.Error(err, "Failed to update secret with new config")
-				return ctrl.Result{}, err
-			}
-
-			pods := &corev1.PodList{}
-			if err := r.List(ctx, pods, client.HasLabels([]string{"SS"})); err != nil {
-				log.Error(err, "Failed to fetch list of pods")
-				return ctrl.Result{}, err
-			}
-
-			for _, pod := range pods.Items {
-				if pod.Annotations == nil {
-					pod.Annotations = make(map[string]string)
-				}
-
-				pod.Annotations["wgConfigLastUpdated"] = time.Now().Format("2006-01-02T15-04-05")
-				if err := r.Update(ctx, &pod); err != nil {
-					log.Error(err, "Failed to update pod")
-					return ctrl.Result{}, err
-				}
-
-				log.Info("updated pod")
-			}
-
-		}
-
-	}
-	if err != nil && errors.IsNotFound(err) {
-
-		key, err := wgtypes.GeneratePrivateKey()
-
-		privateKey := key.String()
-		publicKey := key.PublicKey().String()
-
-		if err != nil {
-			log.Error(err, "Failed to generate private key")
-			return ctrl.Result{}, err
-		}
-
-		secret := r.secretForWireguard(wireguard, privateKey, publicKey, wgConfig)
-
-		log.Info("Creating a new secret", "secret.Namespace", secret.Namespace, "secret.Name", secret.Name)
-		err = r.Create(ctx, secret)
-		if err != nil {
-			log.Error(err, "Failed to create new secret", "secret.Namespace", secret.Namespace, "secret.Name", secret.Name)
-			return ctrl.Result{}, err
-		}
-
-		clientKey, err := wgtypes.GeneratePrivateKey()
-
-		if err != nil {
-			log.Error(err, "Failed to generate private key")
-			return ctrl.Result{}, err
-		}
-
-		clientSecret := r.secretForClient(wireguard, clientKey.String(), clientKey.PublicKey().String())
-
-		log.Info("Creating a new secret", "secret.Namespace", clientSecret.Namespace, "secret.Name", clientSecret.Name)
-		err = r.Create(ctx, clientSecret)
-		if err != nil {
-			log.Error(err, "Failed to create new secret", "secret.Namespace", clientSecret.Namespace, "secret.Name", clientSecret.Name)
-			return ctrl.Result{}, err
-		}
-
-		return ctrl.Result{}, err
-	} else if err != nil {
-		log.Error(err, "Failed to get secret")
-		return ctrl.Result{}, err
 	}
 
 	svcFound := &corev1.Service{}
@@ -507,6 +532,100 @@ ListenPort = 51820
 		return ctrl.Result{}, nil
 	}
 
+	iptableRules := createIptableRulesforWireguard(hostname, dns, filteredPeers)
+
+	// fetch secret
+	secret := &corev1.Secret{}
+	err = r.Get(ctx, types.NamespacedName{Name: wireguard.Name, Namespace: wireguard.Namespace}, secret)
+	// secret already created
+	if err == nil {
+		privateKey := string(secret.Data["privateKey"])
+
+		wgConfig = fmt.Sprintf(`
+[Interface]
+PrivateKey = %s
+Address = 10.8.0.1/24
+ListenPort = 51820
+`, privateKey) + wgConfig
+
+		if string(secret.Data["config"]) != wgConfig || string(secret.Data["iptable"]) != iptableRules {
+			log.Info("Updating secret with new config")
+
+			publicKey := string(secret.Data["publicKey"])
+
+			err := r.Update(ctx, r.secretForWireguard(wireguard, privateKey, publicKey, wgConfig, iptableRules))
+			if err != nil {
+				log.Error(err, "Failed to update secret with new config")
+				return ctrl.Result{}, err
+			}
+
+			pods := &corev1.PodList{}
+			if err := r.List(ctx, pods, client.MatchingLabels{"app": "wireguard", "instance": wireguard.Name}); err != nil {
+				log.Error(err, "Failed to fetch list of pods")
+				return ctrl.Result{}, err
+			}
+
+			for _, pod := range pods.Items {
+				if pod.Annotations == nil {
+					pod.Annotations = make(map[string]string)
+				}
+				// this is needed to force k8s to push the new secret to the pod
+				pod.Annotations["wgConfigLastUpdated"] = time.Now().Format("2006-01-02T15-04-05")
+				if err := r.Update(ctx, &pod); err != nil {
+					log.Error(err, "Failed to update pod")
+					return ctrl.Result{}, err
+				}
+
+				log.Info("updated pod")
+			}
+
+		}
+
+	}
+	// secret not yet created
+	if err != nil && errors.IsNotFound(err) {
+
+		key, err := wgtypes.GeneratePrivateKey()
+
+		privateKey := key.String()
+		publicKey := key.PublicKey().String()
+
+		if err != nil {
+			log.Error(err, "Failed to generate private key")
+			return ctrl.Result{}, err
+		}
+
+		secret := r.secretForWireguard(wireguard, privateKey, publicKey, wgConfig, iptableRules)
+
+		log.Info("Creating a new secret", "secret.Namespace", secret.Namespace, "secret.Name", secret.Name)
+		err = r.Create(ctx, secret)
+		if err != nil {
+			log.Error(err, "Failed to create new secret", "secret.Namespace", secret.Namespace, "secret.Name", secret.Name)
+			return ctrl.Result{}, err
+		}
+
+		clientKey, err := wgtypes.GeneratePrivateKey()
+
+		if err != nil {
+			log.Error(err, "Failed to generate private key")
+			return ctrl.Result{}, err
+		}
+
+		clientSecret := r.secretForClient(wireguard, clientKey.String(), clientKey.PublicKey().String())
+
+		log.Info("Creating a new secret", "secret.Namespace", clientSecret.Namespace, "secret.Name", clientSecret.Name)
+		err = r.Create(ctx, clientSecret)
+		if err != nil {
+			log.Error(err, "Failed to create new secret", "secret.Namespace", clientSecret.Namespace, "secret.Name", clientSecret.Name)
+			return ctrl.Result{}, err
+		}
+
+		return ctrl.Result{}, err
+	} else if err != nil {
+		log.Error(err, "Failed to get secret")
+		return ctrl.Result{}, err
+	}
+
 	// configmap
 
 	configFound := &corev1.ConfigMap{}
@@ -627,7 +746,7 @@ func (r *WireguardReconciler) serviceForWireguardMetrics(m *vpnv1alpha1.Wireguar
 	return dep
 }
 
-func (r *WireguardReconciler) secretForWireguard(m *vpnv1alpha1.Wireguard, privateKey string, publicKey string, config string) *corev1.Secret {
+func (r *WireguardReconciler) secretForWireguard(m *vpnv1alpha1.Wireguard, privateKey string, publicKey string, config string, iptableConfig string) *corev1.Secret {
 	ls := labelsForWireguard(m.Name)
 	dep := &corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
@@ -635,7 +754,7 @@ func (r *WireguardReconciler) secretForWireguard(m *vpnv1alpha1.Wireguard, priva
 			Namespace: m.Namespace,
 			Labels:    ls,
 		},
-		Data: map[string][]byte{"config": []byte(config), "privateKey": []byte(privateKey), "publicKey": []byte(publicKey)},
+		Data: map[string][]byte{"iptable": []byte(iptableConfig), "config": []byte(config), "privateKey": []byte(privateKey), "publicKey": []byte(publicKey)},
 	}
 
 	ctrl.SetControllerReference(m, dep, r.Scheme)
