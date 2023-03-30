@@ -20,6 +20,7 @@ import (
 	"context"
 	"fmt"
 	"strconv"
+	"strings"
 	"time"
 
 	vpnv1alpha1 "github.com/jodevsa/wireguard-operator/api/v1alpha1"
@@ -51,6 +52,86 @@ type WireguardReconciler struct {
 
 func labelsForWireguard(name string) map[string]string {
 	return map[string]string{"app": "wireguard", "instance": name}
+}
+
+func EgressNetworkPoliciestoIptableRules(policies vpnv1alpha1.EgressNetworkPolicies, peerIp string, kubeDnsIp string, wgServerIp string) string {
+	var rules []string
+
+
+	// add a comment
+	rules = append(rules, fmt.Sprintf("# start of rules for peer %s", peerIp))
+
+	peerChain := strings.ReplaceAll(peerIp, ".", "-")
+
+	// create chain for peer
+	rules = append(rules, fmt.Sprintf("%s - [0:0]", peerChain))
+	// associate peer chain to FORWARD chain
+	rules = append(rules, fmt.Sprintf("-A FORWARD -s %s -j %s", peerIp, peerChain))
+
+	// allow peer to ping (ICMP) wireguard server for debugging purposes
+	rules = append(rules, fmt.Sprintf("-A %s -d %s -p icmp -j ACCEPT", peerChain, wgServerIp))
+	// allow peer to communicate with itself
+	rules = append(rules, fmt.Sprintf("-A %s -d %s -j ACCEPT", peerChain, peerIp))
+	// allow peer to communicate with kube-dns
+	rules = append(rules, fmt.Sprintf("-A %s -d %s -p udp --dport 53 -j ACCEPT", peerChain, kubeDnsIp))
+
+	for _, policy := range policies {
+		for _, rule := range EgressNetworkPolicyToIpTableRules(policy, peerChain) {
+			rules = append(rules, rule)
+		}
+	}
+
+
+
+	// if policies are defined impose an implicit deny all
+	if len(policies) != 0 {
+		rules = append(rules, fmt.Sprintf("-A %s -j REJECT --reject-with icmp-port-unreachable", peerChain))
+	}
+
+	// add a comment
+	rules = append(rules, fmt.Sprintf("# end of rules for peer %s", peerIp))
+
+	return strings.Join(rules, "\n")
+}
+
+func EgressNetworkPolicyToIpTableRules(policy vpnv1alpha1.EgressNetworkPolicy, peerChain string) []string {
+
+	var rules []string
+
+	// customer rules
+	var rulePeerChain ="-A " + peerChain
+	var ruleAction = string("-j " +vpnv1alpha1.EgressNetworkPolicyActionDeny)
+	var ruleProtocol = ""
+	var ruleDestIp = ""
+	var ruleDestPort = ""
+
+	if policy.To.Ip != "" {
+		ruleDestIp = "-d " + policy.To.Ip
+	}
+
+	if policy.To.Port != "" {
+		ruleDestPort = "--dport " + policy.To.Port
+	}
+
+	if policy.Action != "" {
+		ruleAction = "-j " + strings.ToUpper(string(policy.Action))
+	}
+
+	if policy.Protocol != "" {
+		ruleProtocol = "-p " + strings.ToUpper(string(policy.Protocol))
+	}
+
+	var options = []string{ rulePeerChain, ruleDestIp, ruleProtocol, ruleDestPort, ruleAction}
+	var filteredOptions []string
+	for _, option := range options {
+		if len(option) != 0 {
+			filteredOptions = append(filteredOptions, option)
+		}
+	}
+	rules = append(rules, strings.Join(filteredOptions, " "))
+
+	return rules
+
 }
 
 func (r *WireguardReconciler) ConfigmapForWireguard(m *vpnv1alpha1.Wireguard, hostname string) *corev1.ConfigMap {

@@ -46,6 +46,37 @@ type WireguardPeerSpec struct {
 	//+kubebuilder:validation:Required
 	//+kubebuilder:validation:MinLength=1
 	WireguardRef string `json:"wireguardRef"`
+
+	EgressNetworkPolicies EgressNetworkPolicies `json:"egressNetworkPolicies,omitempty"`
+}
+
+type EgressNetworkPolicies []EgressNetworkPolicy
+
+// +kubebuilder:validation:Enum=admin;Allow;Deny
+type EgressNetworkPolicyAction string
+
+// +kubebuilder:validation:Enum=TCP;UDP
+type EgressNetworkPolicyProtocol string
+
+const (
+	EgressNetworkPolicyActionAccept EgressNetworkPolicyAction = "Accept"
+	EgressNetworkPolicyActionDeny   EgressNetworkPolicyAction = "Reject"
+)
+
+const (
+	EgressNetworkPolicyProtocolTCP EgressNetworkPolicyProtocol = "TCP"
+	EgressNetworkPolicyProtocolUDP EgressNetworkPolicyProtocol = "UDP"
+)
+
+type EgressNetworkPolicy struct {
+	Action   EgressNetworkPolicyAction   `json:"action,omitempty"`
+	To       EgressNetworkPolicyTo       `json:"to,omitempty"`
+	Protocol EgressNetworkPolicyProtocol `json:"protocol,omitempty"`
+}
+
+type EgressNetworkPolicyTo struct {
+	Ip   string `json:"ip,omitempty"`
+	Port string `json:"port,omitempty"`
 }
 
 // WireguardPeerStatus defines the observed state of WireguardPeer
