@@ -70,9 +70,10 @@ spec:
                   properties:
                     action:
                       enum:
-                      - admin
-                      - Allow
-                      - Deny
+                      - ACCEPT
+                      - REJECT
+                      - Accept
+                      - Reject
                       type: string
                     protocol:
                       enum:
@@ -104,6 +105,8 @@ spec:
                 description: 'INSERT ADDITIONAL STATUS FIELD - define observed state
                   of cluster Important: Run "make" to regenerate code after modifying
                   this file'
+                type: string
+              iptableRules:
                 type: string
               message:
                 type: string

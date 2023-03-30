@@ -36,9 +36,8 @@ var _ = Describe("wireguard controller", func() {
 						Action: vpnv1alpha1.EgressNetworkPolicyActionAccept,
 						To:     vpnv1alpha1.EgressNetworkPolicyTo{Ip: "8.8.8.8"}},
 				},
-				expectedIptableRules:
-`# start of rules for peer 192.168.1.115
-192-168-1-115 - [0:0]
+				expectedIptableRules: `# start of rules for peer 192.168.1.115
+:192-168-1-115 - [0:0]
 -A FORWARD -s 192.168.1.115 -j 192-168-1-115
 -A 192-168-1-115 -d 192.168.1.1 -p icmp -j ACCEPT
 -A 192-168-1-115 -d 192.168.1.115 -j ACCEPT
@@ -54,13 +53,12 @@ var _ = Describe("wireguard controller", func() {
 				wgServerIp: "10.8.0.1",
 				networkPolicies: vpnv1alpha1.EgressNetworkPolicies{
 					vpnv1alpha1.EgressNetworkPolicy{
-						Action: vpnv1alpha1.EgressNetworkPolicyActionAccept,
+						Action:   vpnv1alpha1.EgressNetworkPolicyActionAccept,
 						Protocol: "UDP",
-						To:     vpnv1alpha1.EgressNetworkPolicyTo{}},
+						To:       vpnv1alpha1.EgressNetworkPolicyTo{}},
 				},
-				expectedIptableRules:
-`# start of rules for peer 10.8.0.9
-10-8-0-9 - [0:0]
+				expectedIptableRules: `# start of rules for peer 10.8.0.9
+:10-8-0-9 - [0:0]
 -A FORWARD -s 10.8.0.9 -j 10-8-0-9
 -A 10-8-0-9 -d 10.8.0.1 -p icmp -j ACCEPT
 -A 10-8-0-9 -d 10.8.0.9 -j ACCEPT
@@ -70,14 +68,13 @@ var _ = Describe("wireguard controller", func() {
 # end of rules for peer 10.8.0.9`,
 			},
 			{
-				name:       "Empty networkPolicies",
-				peerIp:     "10.8.0.9",
-				kubeDnsIp:  "100.64.0.10",
-				wgServerIp: "10.8.0.1",
+				name:            "Empty networkPolicies",
+				peerIp:          "10.8.0.9",
+				kubeDnsIp:       "100.64.0.10",
+				wgServerIp:      "10.8.0.1",
 				networkPolicies: vpnv1alpha1.EgressNetworkPolicies{},
-				expectedIptableRules:
-`# start of rules for peer 10.8.0.9
-10-8-0-9 - [0:0]
+				expectedIptableRules: `# start of rules for peer 10.8.0.9
+:10-8-0-9 - [0:0]
 -A FORWARD -s 10.8.0.9 -j 10-8-0-9
 -A 10-8-0-9 -d 10.8.0.1 -p icmp -j ACCEPT
 -A 10-8-0-9 -d 10.8.0.9 -j ACCEPT
@@ -85,14 +82,13 @@ var _ = Describe("wireguard controller", func() {
 # end of rules for peer 10.8.0.9`,
 			},
 			{
-				name:       "networkPolicies with 1 empty networkPolicy",
-				peerIp:     "10.8.0.11",
-				kubeDnsIp:  "100.64.0.21",
-				wgServerIp: "10.7.0.1",
+				name:            "networkPolicies with 1 empty networkPolicy",
+				peerIp:          "10.8.0.11",
+				kubeDnsIp:       "100.64.0.21",
+				wgServerIp:      "10.7.0.1",
 				networkPolicies: vpnv1alpha1.EgressNetworkPolicies{vpnv1alpha1.EgressNetworkPolicy{}},
-				expectedIptableRules:
-`# start of rules for peer 10.8.0.11
-10-8-0-11 - [0:0]
+				expectedIptableRules: `# start of rules for peer 10.8.0.11
+:10-8-0-11 - [0:0]
 -A FORWARD -s 10.8.0.11 -j 10-8-0-11
 -A 10-8-0-11 -d 10.7.0.1 -p icmp -j ACCEPT
 -A 10-8-0-11 -d 10.8.0.11 -j ACCEPT
@@ -108,12 +104,11 @@ var _ = Describe("wireguard controller", func() {
 				wgServerIp: "10.8.0.1",
 				networkPolicies: vpnv1alpha1.EgressNetworkPolicies{vpnv1alpha1.EgressNetworkPolicy{
 					Protocol: vpnv1alpha1.EgressNetworkPolicyProtocolTCP,
-					Action: vpnv1alpha1.EgressNetworkPolicyActionAccept,
-					To: vpnv1alpha1.EgressNetworkPolicyTo{Port: "8080" },
+					Action:   vpnv1alpha1.EgressNetworkPolicyActionAccept,
+					To:       vpnv1alpha1.EgressNetworkPolicyTo{Port: "8080"},
 				}},
-				expectedIptableRules:
-`# start of rules for peer 10.8.0.9
-10-8-0-9 - [0:0]
+				expectedIptableRules: `# start of rules for peer 10.8.0.9
+:10-8-0-9 - [0:0]
 -A FORWARD -s 10.8.0.9 -j 10-8-0-9
 -A 10-8-0-9 -d 10.8.0.1 -p icmp -j ACCEPT
 -A 10-8-0-9 -d 10.8.0.9 -j ACCEPT

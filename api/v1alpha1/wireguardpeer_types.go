@@ -52,7 +52,7 @@ type WireguardPeerSpec struct {
 
 type EgressNetworkPolicies []EgressNetworkPolicy
 
-// +kubebuilder:validation:Enum=admin;Allow;Deny
+// +kubebuilder:validation:Enum=ACCEPT;REJECT;Accept;Reject
 type EgressNetworkPolicyAction string
 
 // +kubebuilder:validation:Enum=TCP;UDP
@@ -83,9 +83,10 @@ type EgressNetworkPolicyTo struct {
 type WireguardPeerStatus struct {
 	// INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
 	// Important: Run "make" to regenerate code after modifying this file
-	Config  string `json:"config,omitempty"`
-	Status  string `json:"status,omitempty"`
-	Message string `json:"message,omitempty"`
+	Config       string `json:"config,omitempty"`
+	Status       string `json:"status,omitempty"`
+	Message      string `json:"message,omitempty"`
+	IptableRules string `json:"iptableRules,omitempty"`
 }
 
 //+kubebuilder:object:root=true
