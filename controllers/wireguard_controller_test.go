@@ -280,8 +280,9 @@ DNS = %s, %s.svc.cluster.local
 PublicKey = %s
 AllowedIPs = 0.0.0.0/0
 Endpoint = %s:%s"`, peerKey.Name, peer.Spec.Address, dnsServiceIp, peer.Namespace, wgPublicKey, expectedExternalHostName, wg.Status.Port),
-				Status:  "ready",
-				Message: "Peer configured",
+				Status:       "ready",
+				Message:      "Peer configured",
+				IptableRules: "# start of rules for peer 10.8.0.2\n:10-8-0-2 - [0:0]\n-A FORWARD -s 10.8.0.2 -j 10-8-0-2\n-A 10-8-0-2 -d test-host-name -p icmp -j ACCEPT\n-A 10-8-0-2 -d 10.8.0.2 -j ACCEPT\n-A 10-8-0-2 -d 10.0.0.42, default.svc.cluster.local -p UDP --dport 53 -j ACCEPT\n# end of rules for peer 10.8.0.2",
 			}))
 
 		})
