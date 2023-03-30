@@ -69,9 +69,10 @@ spec:
                   properties:
                     action:
                       enum:
-                      - admin
-                      - Allow
-                      - Deny
+                      - ACCEPT
+                      - REJECT
+                      - Accept
+                      - Reject
                       type: string
                     protocol:
                       enum:
@@ -101,6 +102,8 @@ spec:
             properties:
               config:
                 description: 'INSERT ADDITIONAL STATUS FIELD - define observed state of cluster Important: Run "make" to regenerate code after modifying this file'
+                type: string
+              iptableRules:
                 type: string
               message:
                 type: string
@@ -515,7 +518,7 @@ spec:
         - --leader-elect
         command:
         - /manager
-        image: ghcr.io/jodevsa/wireguard-operator/operator:sha-6c225bbba480fb248017a68904667ce7f9bbf97c
+        image: ghcr.io/jodevsa/wireguard-operator/operator:sha-2f3deed532a530db4914939d3864253722e34cfd
         livenessProbe:
           httpGet:
             path: /healthz
