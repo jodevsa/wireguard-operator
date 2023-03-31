@@ -105,7 +105,7 @@ var _ = Describe("wireguard controller", func() {
 				networkPolicies: vpnv1alpha1.EgressNetworkPolicies{vpnv1alpha1.EgressNetworkPolicy{
 					Protocol: vpnv1alpha1.EgressNetworkPolicyProtocolTCP,
 					Action:   vpnv1alpha1.EgressNetworkPolicyActionAccept,
-					To:       vpnv1alpha1.EgressNetworkPolicyTo{Port: "8080"},
+					To:       vpnv1alpha1.EgressNetworkPolicyTo{Port: 8080},
 				}},
 				expectedIptableRules: `# start of rules for peer 10.8.0.9
 :10-8-0-9 - [0:0]

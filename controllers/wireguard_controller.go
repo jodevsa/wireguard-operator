@@ -134,8 +134,8 @@ func EgressNetworkPolicyToIpTableRules(policy vpnv1alpha1.EgressNetworkPolicy, p
 		ruleDestIp = "-d " + policy.To.Ip
 	}
 
-	if policy.To.Port != "" {
-		ruleDestPort = "--dport " + policy.To.Port
+	if policy.To.Port != 0 {
+		ruleDestPort = "--dport " + fmt.Sprint(policy.To.Port)
 	}
 
 	if policy.Action != "" {

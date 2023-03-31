@@ -85,7 +85,7 @@ spec:
                         ip:
                           type: string
                         port:
-                          type: string
+                          type: integer
                       type: object
                   type: object
                 type: array
