@@ -4,15 +4,9 @@ set -e
 IPTABLE_FILE=/tmp/wireguard/iptable
 
 function shutdown_wg() {
-  echo "Shutting down Wireguard (boringtun)"
+  echo "Shutting down Wireguard"
   wg-quick down "$1"
   exit 0
-}
-
-function start_wg() {
-  echo "Starting up Wireguard (boringtun)"
-  wg-quick up "$1"
-  infinite_loop "$1"
 }
 
 function update_config() {
@@ -28,7 +22,7 @@ function update_config() {
 function watch_and_update() {
   trap 'shutdown_wg "$1"' SIGTERM SIGINT SIGQUIT
   cp /tmp/wireguard/config /etc/wireguard/wg0.conf
-  wg-quick up wg0
+  wg-quick up wg0 &
   if [ -f "$IPTABLE_FILE" ]; then
     iptables-restore < "$IPTABLE_FILE"
   fi
