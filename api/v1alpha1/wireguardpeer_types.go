@@ -46,15 +46,47 @@ type WireguardPeerSpec struct {
 	//+kubebuilder:validation:Required
 	//+kubebuilder:validation:MinLength=1
 	WireguardRef string `json:"wireguardRef"`
+
+	EgressNetworkPolicies EgressNetworkPolicies `json:"egressNetworkPolicies,omitempty"`
+}
+
+type EgressNetworkPolicies []EgressNetworkPolicy
+
+// +kubebuilder:validation:Enum=ACCEPT;REJECT;Accept;Reject
+type EgressNetworkPolicyAction string
+
+// +kubebuilder:validation:Enum=TCP;UDP
+type EgressNetworkPolicyProtocol string
+
+const (
+	EgressNetworkPolicyActionAccept EgressNetworkPolicyAction = "Accept"
+	EgressNetworkPolicyActionDeny   EgressNetworkPolicyAction = "Reject"
+)
+
+const (
+	EgressNetworkPolicyProtocolTCP EgressNetworkPolicyProtocol = "TCP"
+	EgressNetworkPolicyProtocolUDP EgressNetworkPolicyProtocol = "UDP"
+)
+
+type EgressNetworkPolicy struct {
+	Action   EgressNetworkPolicyAction   `json:"action,omitempty"`
+	To       EgressNetworkPolicyTo       `json:"to,omitempty"`
+	Protocol EgressNetworkPolicyProtocol `json:"protocol,omitempty"`
+}
+
+type EgressNetworkPolicyTo struct {
+	Ip   string `json:"ip,omitempty"`
+	Port uint16 `json:"port,omitempty"`
 }
 
 // WireguardPeerStatus defines the observed state of WireguardPeer
 type WireguardPeerStatus struct {
 	// INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
 	// Important: Run "make" to regenerate code after modifying this file
-	Config  string `json:"config,omitempty"`
-	Status  string `json:"status,omitempty"`
-	Message string `json:"message,omitempty"`
+	Config       string `json:"config,omitempty"`
+	Status       string `json:"status,omitempty"`
+	Message      string `json:"message,omitempty"`
+	IptableRules string `json:"iptableRules,omitempty"`
 }
 
 //+kubebuilder:object:root=true
