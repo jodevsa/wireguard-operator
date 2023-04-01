@@ -477,43 +477,49 @@ func (r *WireguardReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 	hostname := ""
 	port := "51820"
 
-	if serviceType == corev1.ServiceTypeLoadBalancer {
-		ingressList := svcFound.Status.LoadBalancer.Ingress
-		log.Info("Found ingress", "ingress", ingressList)
-		if len(ingressList) == 0 {
-			err = r.updateStatus(ctx, req, wireguard, vpnv1alpha1.WgStatusReport{Status: vpnv1alpha1.Pending, Message: "Waiting for service to be ready"})
+	if wireguard.Spec.Hostname != "" {
+		hostname = wireguard.Spec.Hostname
+	} else{
+
+		if serviceType == corev1.ServiceTypeLoadBalancer {
+			ingressList := svcFound.Status.LoadBalancer.Ingress
+			log.Info("Found ingress", "ingress", ingressList)
+			if len(ingressList) == 0 {
+				err = r.updateStatus(ctx, req, wireguard, vpnv1alpha1.WgStatusReport{Status: vpnv1alpha1.Pending, Message: "Waiting for service to be ready"})
+				if err != nil {
+					return ctrl.Result{}, err
+				}
+
+				return ctrl.Result{}, nil
+			}
+
+			hostname = svcFound.Status.LoadBalancer.Ingress[0].Hostname
+
+			if hostname == "" {
+				hostname = svcFound.Status.LoadBalancer.Ingress[0].IP
+			}
+		}
+		if serviceType == corev1.ServiceTypeNodePort {
+			if len(svcFound.Spec.Ports) == 0 {
+				err = r.updateStatus(ctx, req, wireguard, vpnv1alpha1.WgStatusReport{Status: vpnv1alpha1.Pending, Message: "Waiting for service node port to be ready"})
+				if err != nil {
+					return ctrl.Result{}, err
+				}
+
+				return ctrl.Result{}, nil
+			}
+
+			port = strconv.FormatInt(int64(svcFound.Spec.Ports[0].NodePort), 10)
+
+			ips, err := r.getNodeIps(ctx, req)
+
 			if err != nil {
 				return ctrl.Result{}, err
 			}
 
-			return ctrl.Result{}, nil
+			hostname = ips[0]
+
 		}
-
-		hostname = svcFound.Status.LoadBalancer.Ingress[0].Hostname
-
-		if hostname == "" {
-			hostname = svcFound.Status.LoadBalancer.Ingress[0].IP
-		}
-	}
-	if serviceType == corev1.ServiceTypeNodePort {
-		if len(svcFound.Spec.Ports) == 0 {
-			err = r.updateStatus(ctx, req, wireguard, vpnv1alpha1.WgStatusReport{Status: vpnv1alpha1.Pending, Message: "Waiting for service node port to be ready"})
-			if err != nil {
-				return ctrl.Result{}, err
-			}
-
-			return ctrl.Result{}, nil
-		}
-
-		port = strconv.FormatInt(int64(svcFound.Spec.Ports[0].NodePort), 10)
-
-		ips, err := r.getNodeIps(ctx, req)
-
-		if err != nil {
-			return ctrl.Result{}, err
-		}
-
-		hostname = ips[0]
 
 	}
 
