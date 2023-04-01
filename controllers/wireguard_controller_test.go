@@ -3,6 +3,8 @@ package controllers
 import (
 	"context"
 	"fmt"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+	"strings"
 	"time"
 
 	vpnv1alpha1 "github.com/jodevsa/wireguard-operator/api/v1alpha1"
@@ -16,7 +18,6 @@ import (
 )
 
 var _ = Describe("wireguard controller", func() {
-
 	Context("Egress Network Policy", func() {
 		tests := []struct {
 			name                 string
@@ -138,23 +139,114 @@ var _ = Describe("wireguard controller", func() {
 	)
 
 	viper.Set("WIREGUARD_IMAGE", wgTestImage)
+	wgKey := types.NamespacedName{
+		Name:      wgName,
+		Namespace: wgNamespace,
+	}
 
+	BeforeEach(func() {
+		var listOpts []client.ListOption
+
+		// delete all wg resources
+		wgList := &vpnv1alpha1.WireguardList{}
+		k8sClient.List(context.Background(), wgList, listOpts...)
+		for _, wg := range wgList.Items {
+			k8sClient.Delete(context.Background(), &wg)
+		}
+		// delete all wg-peer resources
+		peerList := &vpnv1alpha1.WireguardPeerList{}
+		k8sClient.List(context.Background(), peerList, listOpts...)
+		for _, peer := range peerList.Items {
+			k8sClient.Delete(context.Background(), &peer)
+		}
+
+		// delete all wg-peer services
+		svcList := &corev1.ServiceList{}
+		k8sClient.List(context.Background(), svcList, listOpts...)
+		for _, svc := range svcList.Items {
+			k8sClient.Delete(context.Background(), &svc)
+		}
+
+		// create kube-dns service
+		dnsService := &corev1.Service{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "kube-dns",
+				Namespace: "kube-system",
+			},
+			Spec: corev1.ServiceSpec{
+				ClusterIP: dnsServiceIp,
+				Ports:     []corev1.ServicePort{{Name: "dns", Protocol: corev1.ProtocolUDP, Port: 53}},
+			},
+		}
+		Expect(k8sClient.Create(context.Background(), dnsService)).Should(Succeed())
+
+	})
 	Context("Wireguard", func() {
+		It("sets Custom DNS through Wireguard.Spec.DNS", func() {
 
-		It("Should create succesfully", func() {
-			// create kube-dns service
-			dnsService := &corev1.Service{
+			expectedDNS := "3.3.3.3"
+			wgServer := &vpnv1alpha1.Wireguard{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      "kube-dns",
-					Namespace: "kube-system",
+					Name:      wgKey.Name,
+					Namespace: wgKey.Namespace,
 				},
-				Spec: corev1.ServiceSpec{
-					ClusterIP: dnsServiceIp,
-					Ports:     []corev1.ServicePort{{Name: "dns", Protocol: corev1.ProtocolUDP, Port: 53}},
+				Spec: vpnv1alpha1.WireguardSpec{
+					Dns: expectedDNS,
+				},
+			}
+			Expect(k8sClient.Create(context.Background(), wgServer)).Should(Succeed())
+
+			wgPeerKey := types.NamespacedName{
+				Name:      wgName + "-peer1",
+				Namespace: wgNamespace,
+			}
+
+			wgPeer := &vpnv1alpha1.WireguardPeer{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      wgPeerKey.Name,
+					Namespace: wgPeerKey.Namespace,
+				},
+				Spec: vpnv1alpha1.WireguardPeerSpec{
+					WireguardRef: wgName,
 				},
 			}
 
-			Expect(k8sClient.Create(context.Background(), dnsService)).Should(Succeed())
+			Expect(k8sClient.Create(context.Background(), wgPeer)).Should(Succeed())
+			expectedLabels := map[string]string{"app": "wireguard", "instance": wgKey.Name}
+			// service created
+			serviceName := wgKey.Name + "-svc"
+			serviceKey := types.NamespacedName{
+				Namespace: wgKey.Namespace,
+				Name:      serviceName,
+			}
+
+			// match labels
+			Eventually(func() map[string]string {
+				svc := &corev1.Service{}
+				k8sClient.Get(context.Background(), serviceKey, svc)
+				return svc.Spec.Selector
+			}, Timeout, Interval).Should(BeEquivalentTo(expectedLabels))
+
+			// update service external hostname
+			svc := &corev1.Service{}
+			k8sClient.Get(context.Background(), serviceKey, svc)
+			svc.Status.LoadBalancer.Ingress = []corev1.LoadBalancerIngress{{Hostname: "hostname"}}
+			Expect(k8sClient.Status().Update(context.Background(), svc)).Should(Succeed())
+
+			Eventually(func() string {
+				wgPeer := &vpnv1alpha1.WireguardPeer{}
+				k8sClient.Get(context.Background(), wgPeerKey, wgPeer)
+				for _, line := range strings.Split(wgPeer.Status.Config, "\n") {
+					if strings.Contains(line, "DNS") {
+						return line
+					}
+				}
+				return "DNS = CONFIG_NOT_SET_ERROR"
+			}, Timeout, Interval).Should(Equal("DNS = " + expectedDNS))
+
+		})
+
+		It("Should create a WG and WG peer successfully", func() {
 
 			wgKey := types.NamespacedName{
 				Name:      wgName,
