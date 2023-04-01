@@ -443,12 +443,17 @@ func (r *WireguardReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 	}
 
 	dns := "1.1.1.1"
-	kubeDnsService := &corev1.Service{}
-	err = r.Get(ctx, types.NamespacedName{Name: "kube-dns", Namespace: "kube-system"}, kubeDnsService)
-	if err == nil {
-		dns = fmt.Sprintf("%s, %s.svc.cluster.local", kubeDnsService.Spec.ClusterIP, wireguard.Namespace)
+
+	if wireguard.Spec.Dns != "" {
+		dns = wireguard.Spec.Dns
 	} else {
-		log.Error(err, "Unable to get kube-dns service")
+		kubeDnsService := &corev1.Service{}
+		err = r.Get(ctx, types.NamespacedName{Name: "kube-dns", Namespace: "kube-system"}, kubeDnsService)
+		if err == nil {
+			dns = fmt.Sprintf("%s, %s.svc.cluster.local", kubeDnsService.Spec.ClusterIP, wireguard.Namespace)
+		} else {
+			log.Error(err, "Unable to get kube-dns service")
+		}
 	}
 
 	err = r.Get(ctx, types.NamespacedName{Name: wireguard.Name + "-svc", Namespace: wireguard.Namespace}, svcFound)
@@ -479,7 +484,7 @@ func (r *WireguardReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 
 	if wireguard.Spec.Hostname != "" {
 		hostname = wireguard.Spec.Hostname
-	} else{
+	} else {
 
 		if serviceType == corev1.ServiceTypeLoadBalancer {
 			ingressList := svcFound.Status.LoadBalancer.Ingress

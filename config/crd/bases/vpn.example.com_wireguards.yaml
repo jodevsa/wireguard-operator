@@ -35,6 +35,8 @@ spec:
           spec:
             description: WireguardSpec defines the desired state of Wireguard
             properties:
+              dns:
+                type: string
               enableIpForwardOnPodInit:
                 type: boolean
               hostname:

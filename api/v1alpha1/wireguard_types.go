@@ -43,6 +43,7 @@ type WireguardSpec struct {
 
 	Mtu                      string             `json:"mtu,omitempty"`
 	Hostname                 string             `json:"hostname,omitempty"`
+	Dns                      string             `json:"dns,omitempty"`
 	ServiceType              corev1.ServiceType `json:"serviceType,omitempty"`
 	EnableIpForwardOnPodInit bool               `json:"enableIpForwardOnPodInit,omitempty"`
 }
