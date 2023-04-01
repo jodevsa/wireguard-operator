@@ -528,7 +528,7 @@ func (r *WireguardReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 
 	}
 
-	if wireguard.Status.Hostname == "" || port != wireguard.Status.Port {
+	if wireguard.Status.Hostname != hostname || port != wireguard.Status.Port {
 		updateWireguard := wireguard.DeepCopy()
 		updateWireguard.Status.Hostname = hostname
 		updateWireguard.Status.Port = port
