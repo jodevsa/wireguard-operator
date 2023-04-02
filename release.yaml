@@ -170,7 +170,7 @@ spec:
           status:
             description: WireguardStatus defines the observed state of Wireguard
             properties:
-              hostname:
+              address:
                 description: 'INSERT ADDITIONAL STATUS FIELD - define observed state of cluster Important: Run "make" to regenerate code after modifying this file'
                 type: string
               message:
@@ -522,9 +522,10 @@ spec:
         - --health-probe-bind-address=:8081
         - --metrics-bind-address=127.0.0.1:8080
         - --leader-elect
+        - --wireguard-container-image=ghcr.io/jodevsa/wireguard-operator/wireguard:sha-998929ef69b8ddc743bbaa3fd6b268cbdba91e91
         command:
         - /manager
-        image: ghcr.io/jodevsa/wireguard-operator/operator:sha-f06f32093bf63bd97499a1545e280d3f47433f28
+        image: ghcr.io/jodevsa/wireguard-operator/operator:sha-998929ef69b8ddc743bbaa3fd6b268cbdba91e91
         livenessProbe:
           httpGet:
             path: /healthz
