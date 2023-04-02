@@ -29,7 +29,6 @@ jobs:
 
   build-and-push-operator-image:
     runs-on: ubuntu-latest
-    needs: [build-and-push-wireguard-image]
     permissions:
       contents: read
       packages: write
@@ -38,12 +37,6 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v2
       
-      - name: load wireguard image url
-        env: 
-          WIREGUARD_IMAGE: ${{ needs.build-and-push-wireguard-image.outputs.image }}
-        run : |
-          printf "WIREGUARD_IMAGE: \"$WIREGUARD_IMAGE\"" > release-config.yaml
-
       - name: Log in to the Container registry
         uses: docker/login-action@f054a8b539a109f9f41c372932f1ae047eff08c9
         with:
