@@ -24,7 +24,6 @@ import (
 
 	vpnv1alpha1 "github.com/jodevsa/wireguard-operator/api/v1alpha1"
 	"github.com/korylprince/ipnetgen"
-	"github.com/spf13/viper"
 	wgtypes "golang.zx2c4.com/wireguard/wgctrl/wgtypes"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -46,7 +45,8 @@ const metricsPort = 9586
 
 type WireguardReconciler struct {
 	client.Client
-	Scheme *runtime.Scheme
+	Scheme                  *runtime.Scheme
+	WireguardContainerImage string
 }
 
 func labelsForWireguard(name string) map[string]string {
@@ -342,12 +342,7 @@ Endpoint = %s:%d"`, serverPublicKey, serverAddress, wireguard.Status.Port)
 func (r *WireguardReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	log := ctrllog.FromContext(ctx)
 
-	wireguardImage := viper.GetString("WIREGUARD_IMAGE")
-	if wireguardImage == "" {
-		return ctrl.Result{}, fmt.Errorf("WIREGUARD_IMAGE is not defined")
-	}
-
-	log.Info("loaded the following wireguard image:" + wireguardImage)
+	log.Info("loaded the following wireguard image:" + r.WireguardContainerImage)
 
 	wireguard := &vpnv1alpha1.Wireguard{}
 	log.Info(req.NamespacedName.Name)
@@ -664,7 +659,7 @@ ListenPort = 51820
 	deploymentFound := &appsv1.Deployment{}
 	err = r.Get(ctx, types.NamespacedName{Name: wireguard.Name + "-dep", Namespace: wireguard.Namespace}, deploymentFound)
 	if err != nil && errors.IsNotFound(err) {
-		dep := r.deploymentForWireguard(wireguard, wireguardImage)
+		dep := r.deploymentForWireguard(wireguard, r.WireguardContainerImage)
 		log.Info("Creating a new dep", "dep.Namespace", dep.Namespace, "dep.Name", dep.Name)
 		err = r.Create(ctx, dep)
 		if err != nil {
@@ -677,6 +672,16 @@ ListenPort = 51820
 		log.Error(err, "Failed to get dep")
 		return ctrl.Result{}, err
 	}
+
+	if deploymentFound.Spec.Template.Spec.Containers[0].Image != r.WireguardContainerImage {
+		dep := r.deploymentForWireguard(wireguard, r.WireguardContainerImage)
+		err = r.Update(ctx, dep)
+		if err != nil {
+			log.Error(err, "unable to update deployment image", "dep.Namespace", dep.Namespace, "dep.Name", dep.Name)
+			return ctrl.Result{}, err
+		}
+	}
+
 
 	if err := r.updateWireguardPeers(ctx, req, wireguard, address, dns, string(secret.Data["publicKey"]), wireguard.Spec.Mtu); err != nil {
 		return ctrl.Result{}, err
