@@ -35,12 +35,12 @@ spec:
           spec:
             description: WireguardSpec defines the desired state of Wireguard
             properties:
+              address:
+                type: string
               dns:
                 type: string
               enableIpForwardOnPodInit:
                 type: boolean
-              hostname:
-                type: string
               mtu:
                 type: string
               serviceType:
@@ -58,9 +58,12 @@ spec:
               message:
                 type: string
               port:
-                type: string
+                format: int32
+                type: integer
               status:
                 type: string
+            required:
+            - port
             type: object
         type: object
     served: true

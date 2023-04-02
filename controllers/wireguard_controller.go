@@ -19,7 +19,6 @@ package controllers
 import (
 	"context"
 	"fmt"
-	"strconv"
 	"strings"
 	"time"
 
@@ -305,13 +304,11 @@ DNS = %s`, peer.Name, peer.Namespace, peer.Spec.Address, dns)
 [Peer]
 PublicKey = %s
 AllowedIPs = 0.0.0.0/0
-Endpoint = %s:%s"`, serverPublicKey, serverAddress, wireguard.Status.Port)
-		iptableRulesForPeer := EgressNetworkPoliciestoIptableRules(peer.Spec.EgressNetworkPolicies, peer.Spec.Address, dns, serverAddress)
-		if peer.Status.IptableRules != iptableRulesForPeer || peer.Status.Config != newConfig || peer.Status.Status != vpnv1alpha1.Ready {
+Endpoint = %s:%d"`, serverPublicKey, serverAddress, wireguard.Status.Port)
+		if peer.Status.Config != newConfig || peer.Status.Status != vpnv1alpha1.Ready {
 			peer.Status.Config = newConfig
 			peer.Status.Status = vpnv1alpha1.Ready
 			peer.Status.Message = "Peer configured"
-			peer.Status.IptableRules = iptableRulesForPeer
 			if err := r.Status().Update(ctx, &peer); err != nil {
 				return err
 			}
@@ -479,58 +476,62 @@ func (r *WireguardReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 		log.Error(err, "Failed to get service")
 		return ctrl.Result{}, err
 	}
-	hostname := ""
-	port := "51820"
+	address := wireguard.Spec.Address
+	var port int32 = 51820
 
-	if wireguard.Spec.Hostname != "" {
-		hostname = wireguard.Spec.Hostname
-	} else {
-
-		if serviceType == corev1.ServiceTypeLoadBalancer {
-			ingressList := svcFound.Status.LoadBalancer.Ingress
-			log.Info("Found ingress", "ingress", ingressList)
-			if len(ingressList) == 0 {
-				err = r.updateStatus(ctx, req, wireguard, vpnv1alpha1.WgStatusReport{Status: vpnv1alpha1.Pending, Message: "Waiting for service to be ready"})
-				if err != nil {
-					return ctrl.Result{}, err
-				}
-
-				return ctrl.Result{}, nil
-			}
-
-			hostname = svcFound.Status.LoadBalancer.Ingress[0].Hostname
-
-			if hostname == "" {
-				hostname = svcFound.Status.LoadBalancer.Ingress[0].IP
-			}
-		}
-		if serviceType == corev1.ServiceTypeNodePort {
-			if len(svcFound.Spec.Ports) == 0 {
-				err = r.updateStatus(ctx, req, wireguard, vpnv1alpha1.WgStatusReport{Status: vpnv1alpha1.Pending, Message: "Waiting for service node port to be ready"})
-				if err != nil {
-					return ctrl.Result{}, err
-				}
-
-				return ctrl.Result{}, nil
-			}
-
-			port = strconv.FormatInt(int64(svcFound.Spec.Ports[0].NodePort), 10)
-
-			ips, err := r.getNodeIps(ctx, req)
-
+	if serviceType == corev1.ServiceTypeLoadBalancer {
+		ingressList := svcFound.Status.LoadBalancer.Ingress
+		log.Info("Found ingress", "ingress", ingressList)
+		if len(ingressList) == 0 {
+			err = r.updateStatus(ctx, req, wireguard, vpnv1alpha1.WgStatusReport{Status: vpnv1alpha1.Pending, Message: "Waiting for service to be ready"})
 			if err != nil {
 				return ctrl.Result{}, err
 			}
 
-			hostname = ips[0]
+			return ctrl.Result{}, nil
+		}
 
+		if address == "" {
+			address = svcFound.Status.LoadBalancer.Ingress[0].Hostname
+
+		}
+		if address == "" {
+			address = svcFound.Status.LoadBalancer.Ingress[0].IP
+		}
+	}
+	if serviceType == corev1.ServiceTypeNodePort {
+		if len(svcFound.Spec.Ports) == 0 {
+			err = r.updateStatus(ctx, req, wireguard, vpnv1alpha1.WgStatusReport{Status: vpnv1alpha1.Pending, Message: "Waiting for service with type NodePort to be ready"})
+			if err != nil {
+				return ctrl.Result{}, err
+			}
+
+			return ctrl.Result{}, nil
+		}
+
+		port = svcFound.Spec.Ports[0].NodePort
+
+		ips, err := r.getNodeIps(ctx, req)
+
+		if err != nil {
+			return ctrl.Result{}, err
+		}
+		if address == "" {
+			if len(ips) == 0 {
+				err = r.updateStatus(ctx, req, wireguard, vpnv1alpha1.WgStatusReport{Status: vpnv1alpha1.Pending, Message: "Unable to determine WG address though nodes addresses. Please set Wireguard.Spec.Address if necessary."})
+				if err != nil {
+					return ctrl.Result{}, err
+				}
+				return ctrl.Result{}, nil
+			}
+			address = ips[0]
 		}
 
 	}
 
-	if wireguard.Status.Hostname != hostname || port != wireguard.Status.Port {
+	if wireguard.Status.Address != address || port != wireguard.Status.Port {
 		updateWireguard := wireguard.DeepCopy()
-		updateWireguard.Status.Hostname = hostname
+		updateWireguard.Status.Address = address
 		updateWireguard.Status.Port = port
 
 		err = r.Status().Update(ctx, updateWireguard)
@@ -543,7 +544,7 @@ func (r *WireguardReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 		return ctrl.Result{}, nil
 	}
 
-	iptableRules := createIptableRulesforWireguard(hostname, dns, filteredPeers)
+	iptableRules := createIptableRulesforWireguard(address, dns, filteredPeers)
 
 	// fetch secret
 	secret := &corev1.Secret{}
@@ -642,7 +643,7 @@ ListenPort = 51820
 	configFound := &corev1.ConfigMap{}
 	err = r.Get(ctx, types.NamespacedName{Name: wireguard.Name + "-config", Namespace: wireguard.Namespace}, configFound)
 	if err != nil && errors.IsNotFound(err) {
-		config := r.ConfigmapForWireguard(wireguard, hostname)
+		config := r.ConfigmapForWireguard(wireguard, address)
 		log.Info("Creating a new config", "config.Namespace", config.Namespace, "config.Name", config.Name)
 		err = r.Create(ctx, config)
 		if err != nil {
@@ -677,7 +678,7 @@ ListenPort = 51820
 		return ctrl.Result{}, err
 	}
 
-	if err := r.updateWireguardPeers(ctx, req, wireguard, hostname, dns, string(secret.Data["publicKey"]), wireguard.Spec.Mtu); err != nil {
+	if err := r.updateWireguardPeers(ctx, req, wireguard, address, dns, string(secret.Data["publicKey"]), wireguard.Spec.Mtu); err != nil {
 		return ctrl.Result{}, err
 	}
 

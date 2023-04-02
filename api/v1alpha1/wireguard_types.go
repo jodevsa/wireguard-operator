@@ -42,7 +42,7 @@ type WireguardSpec struct {
 	// Important: Run "make" to regenerate code after modifying this file
 
 	Mtu                      string             `json:"mtu,omitempty"`
-	Hostname                 string             `json:"hostname,omitempty"`
+	Address                  string             `json:"address,omitempty"`
 	Dns                      string             `json:"dns,omitempty"`
 	ServiceType              corev1.ServiceType `json:"serviceType,omitempty"`
 	EnableIpForwardOnPodInit bool               `json:"enableIpForwardOnPodInit,omitempty"`
@@ -52,10 +52,10 @@ type WireguardSpec struct {
 type WireguardStatus struct {
 	// INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
 	// Important: Run "make" to regenerate code after modifying this file
-	Hostname string `json:"hostname,omitempty"`
-	Port     string `json:"port,omitempty"`
-	Status   string `json:"status,omitempty"`
-	Message  string `json:"message,omitempty"`
+	Address string `json:"hostname,omitempty"`
+	Port    int32  `json:"port" protobuf:"varint,3,opt,name=port"`
+	Status  string `json:"status,omitempty"`
+	Message string `json:"message,omitempty"`
 }
 
 //+kubebuilder:object:root=true

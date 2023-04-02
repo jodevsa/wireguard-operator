@@ -85,7 +85,10 @@ spec:
                         ip:
                           type: string
                         port:
+                          format: int32
                           type: integer
+                      required:
+                      - port
                       type: object
                   type: object
                 type: array
@@ -105,8 +108,6 @@ spec:
                 description: 'INSERT ADDITIONAL STATUS FIELD - define observed state
                   of cluster Important: Run "make" to regenerate code after modifying
                   this file'
-                type: string
-              iptableRules:
                 type: string
               message:
                 type: string

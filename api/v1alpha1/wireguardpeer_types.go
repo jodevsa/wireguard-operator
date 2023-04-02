@@ -76,17 +76,16 @@ type EgressNetworkPolicy struct {
 
 type EgressNetworkPolicyTo struct {
 	Ip   string `json:"ip,omitempty"`
-	Port uint16 `json:"port,omitempty"`
+	Port int32  `json:"port" protobuf:"varint,3,opt,name=port"`
 }
 
 // WireguardPeerStatus defines the observed state of WireguardPeer
 type WireguardPeerStatus struct {
 	// INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
 	// Important: Run "make" to regenerate code after modifying this file
-	Config       string `json:"config,omitempty"`
-	Status       string `json:"status,omitempty"`
-	Message      string `json:"message,omitempty"`
-	IptableRules string `json:"iptableRules,omitempty"`
+	Config  string `json:"config,omitempty"`
+	Status  string `json:"status,omitempty"`
+	Message string `json:"message,omitempty"`
 }
 
 //+kubebuilder:object:root=true
