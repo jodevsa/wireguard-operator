@@ -522,10 +522,10 @@ spec:
         - --health-probe-bind-address=:8081
         - --metrics-bind-address=127.0.0.1:8080
         - --leader-elect
-        - --wireguard-container-image=ghcr.io/jodevsa/wireguard-operator/wireguard:sha-6ba2feb20dbeb6204934e9b512cee8ea602156e4
+        - --wireguard-container-image=ghcr.io/jodevsa/wireguard-operator/wireguard:sha-eb68e8f23cb6dd11e3f96a48ad6f2ef289efb3e8
         command:
         - /manager
-        image: ghcr.io/jodevsa/wireguard-operator/operator:sha-6ba2feb20dbeb6204934e9b512cee8ea602156e4
+        image: ghcr.io/jodevsa/wireguard-operator/operator:sha-eb68e8f23cb6dd11e3f96a48ad6f2ef289efb3e8
         livenessProbe:
           httpGet:
             path: /healthz
