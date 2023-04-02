@@ -127,6 +127,7 @@ jobs:
           git config --local user.email "jodevsa@gmail.com"
           git config --local user.name "Github action"
           printf "WIREGUARD_IMAGE: \"$WIREGUARD_IMAGE\"\nOPERATOR_IMAGE: \"$OPERATOR_IMAGE\"" > release-config.yaml
+          envsubst < ./bundle/manifests/wireguard-operator.clusterserviceversion.yaml.template > ./bundle/manifests/wireguard-operator.clusterserviceversion.yaml
           make update-controller-image
           git add release-config.yaml
           make update-installation-yaml
