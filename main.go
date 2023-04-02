@@ -18,6 +18,7 @@ package main
 
 import (
 	"flag"
+	"fmt"
 	"os"
 
 	// Import all Kubernetes client auth plugins (e.g. Azure, GCP, OIDC, etc.)
@@ -33,7 +34,6 @@ import (
 
 	vpnv1alpha1 "github.com/jodevsa/wireguard-operator/api/v1alpha1"
 	"github.com/jodevsa/wireguard-operator/controllers"
-	"github.com/spf13/viper"
 	//+kubebuilder:scaffold:imports
 )
 
@@ -68,15 +68,6 @@ func main() {
 
 	ctrl.SetLogger(zap.New(zap.UseFlagOptions(&opts)))
 
-	viper.SetConfigName("release-config")
-	viper.SetConfigType("yaml")
-	viper.AddConfigPath("./")
-	err := viper.ReadInConfig()
-	if err != nil {
-		setupLog.Error(err, "Unable to read viper config")
-		os.Exit(1)
-	}
-
 	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
 		Scheme:                 scheme,
 		MetricsBindAddress:     metricsAddr,
@@ -90,9 +81,14 @@ func main() {
 		os.Exit(1)
 	}
 
+	if wgImage =="" {
+		setupLog.Error(fmt.Errorf("--wireguard-container-image flag is not set"), "unable to start manager due to --wireguard-container-image flag is not set")
+		os.Exit(1)
+	}
+
 	if err = (&controllers.WireguardReconciler{
-		Client: mgr.GetClient(),
-		Scheme: mgr.GetScheme(),
+		Client:                  mgr.GetClient(),
+		Scheme:                  mgr.GetScheme(),
 		WireguardContainerImage: wgImage,
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "Wireguard")

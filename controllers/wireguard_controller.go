@@ -45,7 +45,7 @@ const metricsPort = 9586
 
 type WireguardReconciler struct {
 	client.Client
-	Scheme *runtime.Scheme
+	Scheme                  *runtime.Scheme
 	WireguardContainerImage string
 }
 
