@@ -10,7 +10,6 @@ import (
 	vpnv1alpha1 "github.com/jodevsa/wireguard-operator/api/v1alpha1"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"github.com/spf13/viper"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -173,7 +172,6 @@ var _ = Describe("wireguard controller", func() {
 
 	// Define utility constants for object names and testing timeouts/durations and intervals.
 	const (
-		wgTestImage  = "test-image"
 		wgName       = "vpn"
 		wgNamespace  = "default"
 		Timeout      = time.Second * 2
@@ -181,7 +179,6 @@ var _ = Describe("wireguard controller", func() {
 		dnsServiceIp = "10.0.0.42"
 	)
 
-	viper.Set("WIREGUARD_IMAGE", wgTestImage)
 	wgKey := types.NamespacedName{
 		Name:      wgName,
 		Namespace: wgNamespace,

@@ -3,7 +3,7 @@
 # separate terms of service, privacy policy, and support
 # documentation.
 
-name: Create and publish Wireguard operator
+name: Build and Release
 
 on:
   push:
@@ -16,7 +16,7 @@ env:
   IMAGE_NAME: ${{ github.repository }}
 
 jobs:
-  build-and-test:
+  test:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v2
@@ -27,9 +27,8 @@ jobs:
     - name: Test
       run: make test
 
-  build-and-push-operator-image:
+  build-operator:
     runs-on: ubuntu-latest
-    needs: [build-and-push-wireguard-image]
     permissions:
       contents: read
       packages: write
@@ -38,12 +37,6 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v2
       
-      - name: load wireguard image url
-        env: 
-          WIREGUARD_IMAGE: ${{ needs.build-and-push-wireguard-image.outputs.image }}
-        run : |
-          printf "WIREGUARD_IMAGE: \"$WIREGUARD_IMAGE\"" > release-config.yaml
-
       - name: Log in to the Container registry
         uses: docker/login-action@f054a8b539a109f9f41c372932f1ae047eff08c9
         with:
@@ -69,7 +62,7 @@ jobs:
     outputs: 
       image: ${{ steps.meta.outputs.tags }}
   
-  build-and-push-wireguard-image:
+  build-wireguard:
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -106,7 +99,7 @@ jobs:
       image: ${{ steps.meta.outputs.tags }}
   
   save-release:
-    needs: [build-and-push-operator-image, build-and-push-wireguard-image]
+    needs: [build-operator, build-wireguard]
     runs-on: ubuntu-latest
     steps:
       - name: Set up Go
@@ -121,12 +114,13 @@ jobs:
 
       - name: prepare new release
         env: 
-          OPERATOR_IMAGE: ${{ needs.build-and-push-operator-image.outputs.image }}
-          WIREGUARD_IMAGE: ${{ needs.build-and-push-wireguard-image.outputs.image }}
+          OPERATOR_IMAGE: ${{ needs.build-operator.outputs.image }}
+          WIREGUARD_IMAGE: ${{ needs.build-wireguard.outputs.image }}
         run : |
           git config --local user.email "jodevsa@gmail.com"
           git config --local user.name "Github action"
           printf "WIREGUARD_IMAGE: \"$WIREGUARD_IMAGE\"\nOPERATOR_IMAGE: \"$OPERATOR_IMAGE\"" > release-config.yaml
+          envsubst < ./bundle/manifests/wireguard-operator.clusterserviceversion.yaml.template > ./bundle/manifests/wireguard-operator.clusterserviceversion.yaml
           make update-controller-image
           git add release-config.yaml
           make update-installation-yaml
