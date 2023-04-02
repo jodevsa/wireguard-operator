@@ -673,6 +673,16 @@ ListenPort = 51820
 		return ctrl.Result{}, err
 	}
 
+	if deploymentFound.Spec.Template.Spec.Containers[0].Image != r.WireguardContainerImage {
+		dep := r.deploymentForWireguard(wireguard, r.WireguardContainerImage)
+		err = r.Update(ctx, dep)
+		if err != nil {
+			log.Error(err, "unable to update deployment image", "dep.Namespace", dep.Namespace, "dep.Name", dep.Name)
+			return ctrl.Result{}, err
+		}
+	}
+
+
 	if err := r.updateWireguardPeers(ctx, req, wireguard, address, dns, string(secret.Data["publicKey"]), wireguard.Spec.Mtu); err != nil {
 		return ctrl.Result{}, err
 	}
