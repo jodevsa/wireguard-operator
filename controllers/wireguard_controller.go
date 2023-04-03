@@ -309,7 +309,7 @@ DNS = %s`, peer.Name, peer.Namespace, peer.Spec.Address, dnsConfiguration)
 [Peer]
 PublicKey = %s
 AllowedIPs = 0.0.0.0/0
-Endpoint = %s:%d"`, serverPublicKey, serverAddress, wireguard.Status.Port)
+Endpoint = %s:%s"`, serverPublicKey, serverAddress, wireguard.Status.Port)
 		if peer.Status.Config != newConfig || peer.Status.Status != vpnv1alpha1.Ready {
 			peer.Status.Config = newConfig
 			peer.Status.Status = vpnv1alpha1.Ready
@@ -479,7 +479,7 @@ func (r *WireguardReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 		return ctrl.Result{}, err
 	}
 	address := wireguard.Spec.Address
-	var port int32 = 51820
+	var port = "51820"
 
 	if serviceType == corev1.ServiceTypeLoadBalancer {
 		ingressList := svcFound.Status.LoadBalancer.Ingress
@@ -511,7 +511,7 @@ func (r *WireguardReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 			return ctrl.Result{}, nil
 		}
 
-		port = svcFound.Spec.Ports[0].NodePort
+		port = fmt.Sprint(svcFound.Spec.Ports[0].NodePort)
 
 		ips, err := r.getNodeIps(ctx, req)
 

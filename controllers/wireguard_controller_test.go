@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"strconv"
 	"strings"
 	"time"
 
@@ -38,14 +39,16 @@ func createNode(address string) error {
 	return k8sClient.Status().Update(context.Background(), node)
 }
 
-func reconcileServiceWithTypeNodePort(svcKey client.ObjectKey, nodePort int32, port int32) error {
+func reconcileServiceWithTypeNodePort(svcKey client.ObjectKey, nodePort string, port int32) error {
 	// update NodePort service port
 	svc := &corev1.Service{}
 	k8sClient.Get(context.Background(), svcKey, svc)
 	if svc.Spec.Type != corev1.ServiceTypeNodePort {
 		return fmt.Errorf("ReconcileServiceWithTypeNodePort only reconsiles NodePort services")
 	}
-	svc.Spec.Ports = []corev1.ServicePort{{NodePort: nodePort, Port: port}}
+
+	nodePortInteger, _ := strconv.ParseInt(nodePort, 10, 32)
+	svc.Spec.Ports = []corev1.ServicePort{{NodePort: int32(nodePortInteger), Port: port}}
 	return k8sClient.Update(context.Background(), svc)
 }
 func reconcileServiceWithTypeLoadBalancer(svcKey client.ObjectKey, hostname string) error {
@@ -245,7 +248,7 @@ var _ = Describe("wireguard controller", func() {
 	Context("Wireguard", func() {
 		It("sets Custom address for peers through Wireguard.Spec.Address", func() {
 			expectedAddress := "test-address"
-			var expectedPort int32 = 30000
+			var expectedPort = "30000"
 
 			wgServer := &vpnv1alpha1.Wireguard{
 				ObjectMeta: metav1.ObjectMeta{
@@ -363,7 +366,7 @@ var _ = Describe("wireguard controller", func() {
 
 		})
 		It("Should create a WG with ServiceType NodePort and WG peer successfully", func() {
-			var expectedNodePort int32 = 30000
+			var expectedNodePort = "30000"
 			expectedAddress := "69.0.0.2"
 			// create node with IP 69.0.0.2
 			Expect(createNode(expectedAddress)).Should(Succeed())
@@ -477,7 +480,7 @@ DNS = %s, %s.svc.cluster.local
 [Peer]
 PublicKey = %s
 AllowedIPs = 0.0.0.0/0
-Endpoint = %s:%d"`, peerKey.Name, peer.Spec.Address, dnsServiceIp, peer.Namespace, wgPublicKey, expectedAddress, expectedNodePort),
+Endpoint = %s:%s"`, peerKey.Name, peer.Spec.Address, dnsServiceIp, peer.Namespace, wgPublicKey, expectedAddress, expectedNodePort),
 				Status:  "ready",
 				Message: "Peer configured",
 			}))
@@ -541,7 +544,7 @@ Endpoint = %s:%d"`, peerKey.Name, peer.Spec.Address, dnsServiceIp, peer.Namespac
 				return wg.Status
 			}, Timeout, Interval).Should(Equal(vpnv1alpha1.WireguardStatus{
 				Address: expectedExternalHostName,
-				Port:    51820,
+				Port:    "51820",
 				Status:  "ready",
 				Message: "VPN is active!",
 			}))
@@ -605,7 +608,7 @@ DNS = %s, %s.svc.cluster.local
 [Peer]
 PublicKey = %s
 AllowedIPs = 0.0.0.0/0
-Endpoint = %s:%d"`, peerKey.Name, peer.Spec.Address, dnsServiceIp, peer.Namespace, wgPublicKey, expectedExternalHostName, wg.Status.Port),
+Endpoint = %s:%s"`, peerKey.Name, peer.Spec.Address, dnsServiceIp, peer.Namespace, wgPublicKey, expectedExternalHostName, wg.Status.Port),
 				Status:  "ready",
 				Message: "Peer configured",
 			}))

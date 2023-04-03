@@ -58,12 +58,9 @@ spec:
               message:
                 type: string
               port:
-                format: int32
-                type: integer
+                type: string
               status:
                 type: string
-            required:
-            - port
             type: object
         type: object
     served: true
