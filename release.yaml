@@ -176,12 +176,9 @@ spec:
               message:
                 type: string
               port:
-                format: int32
-                type: integer
+                type: string
               status:
                 type: string
-            required:
-            - port
             type: object
         type: object
     served: true
@@ -522,10 +519,10 @@ spec:
         - --health-probe-bind-address=:8081
         - --metrics-bind-address=127.0.0.1:8080
         - --leader-elect
-        - --wireguard-container-image=ghcr.io/jodevsa/wireguard-operator/wireguard:sha-523f34501db88118ae817b27ee32d52b72d6beee
+        - --wireguard-container-image=ghcr.io/jodevsa/wireguard-operator/wireguard:sha-5dd8b8cc06180da5bf8782bfbc53c04ea637cb56
         command:
         - /manager
-        image: ghcr.io/jodevsa/wireguard-operator/operator:sha-523f34501db88118ae817b27ee32d52b72d6beee
+        image: ghcr.io/jodevsa/wireguard-operator/operator:sha-5dd8b8cc06180da5bf8782bfbc53c04ea637cb56
         livenessProbe:
           httpGet:
             path: /healthz
