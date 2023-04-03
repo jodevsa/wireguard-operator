@@ -81,7 +81,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	if wgImage =="" {
+	if wgImage == "" {
 		setupLog.Error(fmt.Errorf("--wireguard-container-image flag is not set"), "unable to start manager")
 		os.Exit(1)
 	}

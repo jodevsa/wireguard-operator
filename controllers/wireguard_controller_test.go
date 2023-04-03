@@ -610,6 +610,33 @@ Endpoint = %s:%d"`, peerKey.Name, peer.Spec.Address, dnsServiceIp, peer.Namespac
 				Message: "Peer configured",
 			}))
 
+			Eventually(func() error {
+				return k8sClient.Get(context.Background(), wgSecretKeyName, wgSecret)
+			}, Timeout, Interval).Should(Succeed())
+
+			Expect(string(wgSecret.Data["iptable"])).Should(Equal(
+				`
+*nat
+:PREROUTING ACCEPT [0:0]
+:INPUT ACCEPT [0:0]
+:OUTPUT ACCEPT [0:0]
+:POSTROUTING ACCEPT [0:0]
+-A POSTROUTING -s 10.8.0.0/24 -o eth0 -j MASQUERADE
+COMMIT
+
+*filter
+:INPUT ACCEPT [0:0]
+:FORWARD ACCEPT [0:0]
+:OUTPUT ACCEPT [0:0]
+# start of rules for peer 10.8.0.2
+:10-8-0-2 - [0:0]
+-A FORWARD -s 10.8.0.2 -j 10-8-0-2
+-A 10-8-0-2 -d test-host-name -p icmp -j ACCEPT
+-A 10-8-0-2 -d 10.8.0.2 -j ACCEPT
+-A 10-8-0-2 -d 10.0.0.42 -p UDP --dport 53 -j ACCEPT
+# end of rules for peer 10.8.0.2
+COMMIT
+`))
 		})
 
 	})

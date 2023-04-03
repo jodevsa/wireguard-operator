@@ -262,7 +262,7 @@ func (r *WireguardReconciler) getUsedIps(peers *vpnv1alpha1.WireguardPeerList) [
 	return usedIps
 }
 
-func (r *WireguardReconciler) updateWireguardPeers(ctx context.Context, req ctrl.Request, wireguard *vpnv1alpha1.Wireguard, serverAddress string, dns string, serverPublicKey string, serverMtu string) error {
+func (r *WireguardReconciler) updateWireguardPeers(ctx context.Context, req ctrl.Request, wireguard *vpnv1alpha1.Wireguard, serverAddress string, dns string, dnsSearchDomain string, serverPublicKey string, serverMtu string) error {
 
 	peers, err := r.getWireguardPeers(ctx, req)
 	if err != nil {
@@ -287,13 +287,18 @@ func (r *WireguardReconciler) updateWireguardPeers(ctx context.Context, req ctrl
 
 			usedIps = append(usedIps, ip)
 		}
+		dnsConfiguration := dns
+
+		if dnsSearchDomain != "" {
+			dnsConfiguration = dns + ", " + dnsSearchDomain
+		}
 
 		newConfig := fmt.Sprintf(`
 echo "
 [Interface]
 PrivateKey = $(kubectl get secret %s-peer --template={{.data.privateKey}} -n %s | base64 -d)
 Address = %s
-DNS = %s`, peer.Name, peer.Namespace, peer.Spec.Address, dns)
+DNS = %s`, peer.Name, peer.Namespace, peer.Spec.Address, dnsConfiguration)
 
 		if serverMtu != "" {
 			newConfig = newConfig + "\nMTU = " + serverMtu
@@ -434,15 +439,17 @@ func (r *WireguardReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 		serviceType = wireguard.Spec.ServiceType
 	}
 
-	dns := "1.1.1.1"
+	dnsAddress := "1.1.1.1"
+	dnsSearchDomain := ""
 
 	if wireguard.Spec.Dns != "" {
-		dns = wireguard.Spec.Dns
+		dnsAddress = wireguard.Spec.Dns
 	} else {
 		kubeDnsService := &corev1.Service{}
 		err = r.Get(ctx, types.NamespacedName{Name: "kube-dns", Namespace: "kube-system"}, kubeDnsService)
 		if err == nil {
-			dns = fmt.Sprintf("%s, %s.svc.cluster.local", kubeDnsService.Spec.ClusterIP, wireguard.Namespace)
+			dnsAddress = kubeDnsService.Spec.ClusterIP
+			dnsSearchDomain = fmt.Sprintf("%s.svc.cluster.local", wireguard.Namespace)
 		} else {
 			log.Error(err, "Unable to get kube-dns service")
 		}
@@ -539,7 +546,7 @@ func (r *WireguardReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 		return ctrl.Result{}, nil
 	}
 
-	iptableRules := createIptableRulesforWireguard(address, dns, filteredPeers)
+	iptableRules := createIptableRulesforWireguard(address, dnsAddress, filteredPeers)
 
 	// fetch secret
 	secret := &corev1.Secret{}
@@ -682,8 +689,7 @@ ListenPort = 51820
 		}
 	}
 
-
-	if err := r.updateWireguardPeers(ctx, req, wireguard, address, dns, string(secret.Data["publicKey"]), wireguard.Spec.Mtu); err != nil {
+	if err := r.updateWireguardPeers(ctx, req, wireguard, address, dnsAddress, dnsSearchDomain, string(secret.Data["publicKey"]), wireguard.Spec.Mtu); err != nil {
 		return ctrl.Result{}, err
 	}
 
