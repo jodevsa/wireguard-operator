@@ -87,8 +87,6 @@ spec:
                         port:
                           format: int32
                           type: integer
-                      required:
-                      - port
                       type: object
                   type: object
                 type: array

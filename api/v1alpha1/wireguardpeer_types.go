@@ -76,7 +76,7 @@ type EgressNetworkPolicy struct {
 
 type EgressNetworkPolicyTo struct {
 	Ip   string `json:"ip,omitempty"`
-	Port int32  `json:"port" protobuf:"varint,3,opt,name=port"`
+	Port int32  `json:"port,omitempty" protobuf:"varint,3,opt,name=port"`
 }
 
 // WireguardPeerStatus defines the observed state of WireguardPeer
