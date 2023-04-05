@@ -122,6 +122,14 @@ func EgressNetworkPolicyToIpTableRules(policy vpnv1alpha1.EgressNetworkPolicy, p
 
 	var rules []string
 
+	if policy.Protocol == "" && policy.To.Port != 0 {
+		policy.Protocol = "TCP"
+		rules = append(rules, EgressNetworkPolicyToIpTableRules(policy, peerChain)[0])
+		policy.Protocol = "UDP"
+		rules = append(rules, EgressNetworkPolicyToIpTableRules(policy, peerChain)[0])
+		return rules
+	}
+
 	// customer rules
 	var rulePeerChain = "-A " + peerChain
 	var ruleAction = string("-j " + vpnv1alpha1.EgressNetworkPolicyActionDeny)
@@ -139,11 +147,6 @@ func EgressNetworkPolicyToIpTableRules(policy vpnv1alpha1.EgressNetworkPolicy, p
 
 	if policy.To.Port != 0 {
 		ruleDestPort = "--dport " + fmt.Sprint(policy.To.Port)
-		if ruleProtocol == "" {
-			// use TCP as protocol if protocol not set
-			ruleProtocol = "-p TCP"
-		}
-
 	}
 
 	if policy.Action != "" {
