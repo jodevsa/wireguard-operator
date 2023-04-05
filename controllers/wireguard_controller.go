@@ -133,16 +133,21 @@ func EgressNetworkPolicyToIpTableRules(policy vpnv1alpha1.EgressNetworkPolicy, p
 		ruleDestIp = "-d " + policy.To.Ip
 	}
 
+	if policy.Protocol != "" {
+		ruleProtocol = "-p " + strings.ToUpper(string(policy.Protocol))
+	}
+
 	if policy.To.Port != 0 {
 		ruleDestPort = "--dport " + fmt.Sprint(policy.To.Port)
+		if ruleProtocol == "" {
+			// use TCP as protocol if protocol not set
+			ruleProtocol = "-p TCP"
+		}
+
 	}
 
 	if policy.Action != "" {
 		ruleAction = "-j " + strings.ToUpper(string(policy.Action))
-	}
-
-	if policy.Protocol != "" {
-		ruleProtocol = "-p " + strings.ToUpper(string(policy.Protocol))
 	}
 
 	var options = []string{rulePeerChain, ruleDestIp, ruleProtocol, ruleDestPort, ruleAction}
