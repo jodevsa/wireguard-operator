@@ -17,7 +17,6 @@ If you are facing any problems please open an issue or join our [slack channel](
   * requires `spec.mtu: "1380"`
 - [x] DigitalOcean Kubernetes
   * requires `spec.serviceType: "NodePort"`. DigitalOcean LoadBalancer does not support UDP. 
-- [x] Self managed k3s on Hetzner 
 - [ ] Amazon EKS
 - [ ] Azure Kubernetes Service
 - [ ] ...?
