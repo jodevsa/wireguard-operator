@@ -35,9 +35,10 @@ spec:
           metadata:
             type: object
           spec:
-            description: WireguardPeerSpec defines the desired state of WireguardPeer
+            description: The desired state of the peer.
             properties:
               PrivateKeyRef:
+                description: The private key of the peer
                 properties:
                   secretKeyRef:
                     description: SecretKeySelector selects a key of a Secret.
@@ -58,16 +59,20 @@ spec:
                 - secretKeyRef
                 type: object
               address:
+                description: 'INSERT ADDITIONAL SPEC FIELDS - desired state of cluster Important: Run "make" to regenerate code after modifying this file The address of the peer.'
                 type: string
               disabled:
-                description: set to true to temporarily disable a peer
+                description: Set to true to temporarily disable the peer.
                 type: boolean
               dns:
+                description: The DNS configuration for the peer.
                 type: string
               egressNetworkPolicies:
+                description: Egress network policies for the peer.
                 items:
                   properties:
                     action:
+                      description: Specifies the action to take when outgoing traffic from a Wireguard peer matches the policy. This could be 'Accept' or 'Reject'.
                       enum:
                       - ACCEPT
                       - REJECT
@@ -75,38 +80,46 @@ spec:
                       - Reject
                       type: string
                     protocol:
+                      description: Specifies the protocol to match for this policy. This could be TCP, UDP, or ICMP.
                       enum:
                       - TCP
                       - UDP
+                      - ICMP
                       type: string
                     to:
+                      description: A struct that specifies the destination address and port for the traffic. This could include IP addresses or hostnames, as well as specific port numbers or port ranges.
                       properties:
                         ip:
+                          description: A string field that specifies the destination IP address for traffic that matches the policy.
                           type: string
                         port:
+                          description: An integer field that specifies the destination port number for traffic that matches the policy.
                           format: int32
                           type: integer
                       type: object
                   type: object
                 type: array
               publicKey:
+                description: The key used by the peer to authenticate with the wg server.
                 type: string
               wireguardRef:
-                description: the name of the active wireguard instance
+                description: The name of the Wireguard instance in k8s that the peer belongs to. The wg instance should be in the same namespace as the peer.
                 minLength: 1
                 type: string
             required:
             - wireguardRef
             type: object
           status:
-            description: WireguardPeerStatus defines the observed state of WireguardPeer
+            description: A field that defines the observed state of the Wireguard peer. This includes fields like the current configuration and status of the peer.
             properties:
               config:
-                description: 'INSERT ADDITIONAL STATUS FIELD - define observed state of cluster Important: Run "make" to regenerate code after modifying this file'
+                description: 'INSERT ADDITIONAL STATUS FIELD - define observed state of cluster Important: Run "make" to regenerate code after modifying this file A string field that contains the current configuration for the Wireguard peer.'
                 type: string
               message:
+                description: A string field that provides additional information about the status of the Wireguard peer. This could include error messages or other information that helps to diagnose issues with the peer.
                 type: string
               status:
+                description: A string field that represents the current status of the Wireguard peer. This could include values like ready, pending, or error.
                 type: string
             type: object
         type: object
@@ -154,28 +167,35 @@ spec:
             description: WireguardSpec defines the desired state of Wireguard
             properties:
               address:
+                description: A string field that specifies the address for the Wireguard VPN server. This is the public IP address or hostname that peers will use to connect to the VPN.
                 type: string
               dns:
+                description: A string field that specifies the DNS server(s) to be used by the peers.
                 type: string
               enableIpForwardOnPodInit:
+                description: A boolean field that specifies whether IP forwarding should be enabled on the Wireguard VPN pod at startup. This can be useful to enable if the peers are having problems with sending traffic to the internet.
                 type: boolean
               mtu:
+                description: 'INSERT ADDITIONAL SPEC FIELDS - desired state of cluster Important: Run "make" to regenerate code after modifying this file A string field that specifies the maximum transmission unit (MTU) size for Wireguard packets for all peers.'
                 type: string
               serviceType:
-                description: Service Type string describes ingress methods for a service
+                description: A field that specifies the type of Kubernetes service that should be used for the Wireguard VPN. This could be NodePort or LoadBalancer, depending on the needs of the deployment.
                 type: string
             type: object
           status:
             description: WireguardStatus defines the observed state of Wireguard
             properties:
               address:
-                description: 'INSERT ADDITIONAL STATUS FIELD - define observed state of cluster Important: Run "make" to regenerate code after modifying this file'
+                description: 'INSERT ADDITIONAL STATUS FIELD - define observed state of cluster Important: Run "make" to regenerate code after modifying this file A string field that specifies the address for the Wireguard VPN server that is currently being used.'
                 type: string
               message:
+                description: A string field that provides additional information about the status of Wireguard. This could include error messages or other information that helps to diagnose issues with the wg instance.
                 type: string
               port:
+                description: A string field that specifies the port for the Wireguard VPN server that is currently being used.
                 type: string
               status:
+                description: A string field that represents the current status of Wireguard. This could include values like ready, pending, or error.
                 type: string
             type: object
         type: object
@@ -517,10 +537,10 @@ spec:
         - --health-probe-bind-address=:8081
         - --metrics-bind-address=127.0.0.1:8080
         - --leader-elect
-        - --wireguard-container-image=ghcr.io/jodevsa/wireguard-operator/wireguard:sha-e95bceb1e301c5c0f7b7328b62a967154a233333
+        - --wireguard-container-image=ghcr.io/jodevsa/wireguard-operator/wireguard:sha-b17442f4513a33fa60404d752195bcfd29589c17
         command:
         - /manager
-        image: ghcr.io/jodevsa/wireguard-operator/operator:sha-e95bceb1e301c5c0f7b7328b62a967154a233333
+        image: ghcr.io/jodevsa/wireguard-operator/operator:sha-b17442f4513a33fa60404d752195bcfd29589c17
         livenessProbe:
           httpGet:
             path: /healthz
