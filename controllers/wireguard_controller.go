@@ -855,7 +855,7 @@ func (r *WireguardReconciler) deploymentForWireguard(m *vpnv1alpha1.Wireguard, i
 								Capabilities: &corev1.Capabilities{Add: []corev1.Capability{"NET_ADMIN"}},
 							},
 							Image:           image,
-							ImagePullPolicy: "Always",
+							ImagePullPolicy: "IfNotPresent",
 							Name:            "metrics",
 							Command:         []string{"/usr/local/bin/prometheus_wireguard_exporter"},
 							Ports: []corev1.ContainerPort{
@@ -876,7 +876,7 @@ func (r *WireguardReconciler) deploymentForWireguard(m *vpnv1alpha1.Wireguard, i
 								Capabilities: &corev1.Capabilities{Add: []corev1.Capability{"NET_ADMIN"}},
 							},
 							Image:           image,
-							ImagePullPolicy: "Always",
+							ImagePullPolicy: "IfNotPresent",
 							Name:            "wireguard",
 							Ports: []corev1.ContainerPort{
 								{
@@ -912,7 +912,7 @@ func (r *WireguardReconciler) deploymentForWireguard(m *vpnv1alpha1.Wireguard, i
 					Privileged: &privileged,
 				},
 				Image:           image,
-				ImagePullPolicy: "Always",
+				ImagePullPolicy: "IfNotPresent",
 				Name:            "sysctl",
 				Command:         []string{"/bin/sh"},
 				Args:            []string{"-c", "echo 1 > /proc/sys/net/ipv4/ip_forward"},
