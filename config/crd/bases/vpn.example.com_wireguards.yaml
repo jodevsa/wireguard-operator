@@ -51,10 +51,8 @@ spec:
                   traffic to the internet.
                 type: boolean
               mtu:
-                description: 'INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
-                  Important: Run "make" to regenerate code after modifying this file
-                  A string field that specifies the maximum transmission unit (MTU)
-                  size for Wireguard packets for all peers.'
+                description: A string field that specifies the maximum transmission
+                  unit (MTU) size for Wireguard packets for all peers.
                 type: string
               serviceType:
                 description: A field that specifies the type of Kubernetes service
@@ -66,10 +64,8 @@ spec:
             description: WireguardStatus defines the observed state of Wireguard
             properties:
               address:
-                description: 'INSERT ADDITIONAL STATUS FIELD - define observed state
-                  of cluster Important: Run "make" to regenerate code after modifying
-                  this file A string field that specifies the address for the Wireguard
-                  VPN server that is currently being used.'
+                description: A string field that specifies the address for the Wireguard
+                  VPN server that is currently being used.
                 type: string
               message:
                 description: A string field that provides additional information about

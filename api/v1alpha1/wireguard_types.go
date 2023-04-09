@@ -35,13 +35,8 @@ type WgStatusReport struct {
 	Message string `json:"message,omitempty"`
 }
 
-// EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!
-// NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
-
 // WireguardSpec defines the desired state of Wireguard
 type WireguardSpec struct {
-	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
-	// Important: Run "make" to regenerate code after modifying this file
 	// A string field that specifies the maximum transmission unit (MTU) size for Wireguard packets for all peers.
 	Mtu                      string             `json:"mtu,omitempty"`
 	// A string field that specifies the address for the Wireguard VPN server. This is the public IP address or hostname that peers will use to connect to the VPN.
@@ -56,8 +51,6 @@ type WireguardSpec struct {
 
 // WireguardStatus defines the observed state of Wireguard
 type WireguardStatus struct {
-	// INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
-	// Important: Run "make" to regenerate code after modifying this file
 	// A string field that specifies the address for the Wireguard VPN server that is currently being used.
 	Address string `json:"address,omitempty"`
 	// A string field that specifies the port for the Wireguard VPN server that is currently being used.
