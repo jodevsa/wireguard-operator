@@ -25,7 +25,7 @@ If you are facing any problems please open an issue or join our [slack channel](
 
 ![alt text](./readme/main.png)
 # Features 
-* Uses userspace implementation of wireguard through [wireguard-go](https://github.com/WireGuard/wireguard-go) 
+* Falls back to userspace implementation of wireguard [wireguard-go](https://github.com/WireGuard/wireguard-go) if wireguard kernal module is missing
 * Automatic key generation
 * Automatic IP allocation
 * Does not need persistance. peer/server keys are stored as k8s secrets and loaded into the wireguard pod
