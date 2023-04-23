@@ -11,6 +11,36 @@ import (
 
 const MTU = 1420
 
+func syncRoute(_ agent.State, iface string) error {
+	link, err := netlink.LinkByName(iface)
+	if err != nil {
+		return err
+	}
+
+	routes, err := netlink.RouteList(link, syscall.AF_INET)
+	if err != nil {
+		return err
+	}
+
+	for _, route := range routes {
+		if route.LinkIndex == link.Attrs().Index {
+			return nil
+		}
+	}
+	route := netlink.Route{
+		LinkIndex: link.Attrs().Index,
+		Dst:       &getIP("10.8.0.0/24")[0],
+		Gw:        net.ParseIP("10.8.0.1"),
+	}
+
+	err = netlink.RouteAdd(&route)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func syncAddress(_ agent.State, iface string) error {
 	link, err := netlink.LinkByName(iface)
 	if err != nil {
@@ -83,7 +113,7 @@ func SyncLink(_ agent.State, iface string) error {
 		return nil
 	}
 	err = netlink.AddrAdd(link, &netlink.Addr{
-		IPNet: &getAllowedIP("10.8.0.1")[0],
+		IPNet: &getIP("10.8.0.1/32")[0],
 	})
 
 	if err := netlink.LinkSetUp(link); err != nil {
@@ -113,6 +143,13 @@ func Sync(state agent.State, iface string, listenPort int) error {
 		return err
 	}
 
+	// create route
+	err = syncRoute(state, iface)
+
+	if err != nil {
+		return err
+	}
+
 	// set wg0 address to 10.8.0.1/32
 	err = syncAddress(state, iface)
 	if err != nil {
@@ -121,11 +158,15 @@ func Sync(state agent.State, iface string, listenPort int) error {
 
 	// sync wg configuration
 	err = syncWireguard(state, iface, listenPort)
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
 
-func getAllowedIP(ip string) []net.IPNet {
-	_, ipnet, _ := net.ParseCIDR(ip + "/32")
+func getIP(ip string) []net.IPNet {
+	_, ipnet, _ := net.ParseCIDR(ip)
 
 	return []net.IPNet{*ipnet}
 }
@@ -156,7 +197,7 @@ func CreateWireguardConfiguration(state agent.State, listenPort int) (wgtypes.Co
 			continue
 		}
 
-		peerCfg := wgtypes.PeerConfig{AllowedIPs: getAllowedIP(peer.Spec.Address)}
+		peerCfg := wgtypes.PeerConfig{AllowedIPs: getIP(peer.Spec.Address + "/32")}
 
 		key, err := wgtypes.ParseKey(peer.Spec.PublicKey)
 		if err != nil {

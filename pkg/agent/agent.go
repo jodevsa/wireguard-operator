@@ -1,12 +1,15 @@
 package agent
 
 import (
+	"crypto/md5"
+	"encoding/hex"
 	"encoding/json"
-	"github.com/fsnotify/fsnotify"
-	"github.com/jodevsa/wireguard-operator/pkg/api/v1alpha1"
 	"log"
 	"os"
 	"path/filepath"
+
+	"github.com/fsnotify/fsnotify"
+	"github.com/jodevsa/wireguard-operator/pkg/api/v1alpha1"
 )
 
 type State struct {
@@ -18,7 +21,6 @@ type State struct {
 func OnStateChange(path string, onFileChange func(State)) (func(), error) {
 
 	dir := filepath.Dir(path)
-	filename := filepath.Base(path)
 
 	watcher, err := fsnotify.NewWatcher()
 	if err != nil {
@@ -29,7 +31,7 @@ func OnStateChange(path string, onFileChange func(State)) (func(), error) {
 		watcher.Close()
 	}
 
-	state, err := GetDesiredState(path)
+	state, hash, err := GetDesiredState(path)
 
 	if err == nil {
 		onFileChange(state)
@@ -43,17 +45,20 @@ func OnStateChange(path string, onFileChange func(State)) (func(), error) {
 				if !ok {
 					return
 				}
-				print(event.Name)
-				print(event.Op)
-				print(event.String())
-				if (event.Has(fsnotify.Write) || event.Has(fsnotify.Create)) && event.Name == filename {
+				if event.Has(fsnotify.Write) || event.Has(fsnotify.Create) {
 					if err != nil {
 						log.Println(err)
 					} else {
-						state, err := GetDesiredState(path)
+						state, newHash, err := GetDesiredState(path)
+
 						if err != nil {
 							log.Println(err)
 						}
+
+						if newHash == hash {
+							continue
+						}
+						hash = newHash
 
 						onFileChange(state)
 					}
@@ -75,15 +80,17 @@ func OnStateChange(path string, onFileChange func(State)) (func(), error) {
 	return close, nil
 }
 
-func GetDesiredState(path string) (State, error) {
+func GetDesiredState(path string) (State, string, error) {
 	var state State
 	jsonFile, err := os.ReadFile(path)
 	if err != nil {
-		return State{}, err
+		return State{}, "", err
 	}
 	err = json.Unmarshal(jsonFile, &state)
 	if err != nil {
-		return State{}, err
+		return State{}, "", err
 	}
-	return state, nil
+	hash := md5.Sum(jsonFile)
+
+	return state, hex.EncodeToString(hash[:]), nil
 }

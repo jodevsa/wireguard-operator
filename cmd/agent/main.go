@@ -15,7 +15,7 @@ func main() {
 	var wireguardListenPort int
 	flag.StringVar(&configFilePath, "state", "./state.json", "The location of the file that states the desired state")
 	flag.StringVar(&iface, "iface", "wg0", "the wg device name. Default is wg0")
-	flag.IntVar(&wireguardListenPort,  "wg-listen-port", 51820, "the UDP port wireguard is listening on")
+	flag.IntVar(&wireguardListenPort, "wg-listen-port", 51820, "the UDP port wireguard is listening on")
 	flag.Parse()
 
 	println(

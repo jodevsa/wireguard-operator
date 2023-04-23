@@ -16,12 +16,13 @@ func ApplyRules(rules string) error {
 	}
 	defer os.RemoveAll(file.Name())
 
-	err = os.WriteFile(file.Name(), []byte(rules), 0644)
+	err = os.WriteFile(file.Name(), []byte(rules), 0640)
+
 	if err != nil {
 		return err
 	}
 
-	bashCommand := fmt.Sprintf("iptables-restore > %s", file.Name())
+	bashCommand := fmt.Sprintf("iptables-restore < %s", file.Name())
 	cmd := exec.Command("bash", "-c", bashCommand)
 
 	err = cmd.Run()
