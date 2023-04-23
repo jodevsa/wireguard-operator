@@ -43,6 +43,9 @@ func OnStateChange(path string, onFileChange func(State)) (func(), error) {
 				if !ok {
 					return
 				}
+				print(event.Name)
+				print(event.Op)
+				print(event.String())
 				if (event.Has(fsnotify.Write) || event.Has(fsnotify.Create)) && event.Name == filename {
 					if err != nil {
 						log.Println(err)

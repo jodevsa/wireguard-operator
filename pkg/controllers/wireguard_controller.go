@@ -468,8 +468,9 @@ func (r *WireguardReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 
 		if !bytes.Equal(b, secret.Data["state.json"]) {
 			log.Info("Updating secret with new config")
+			publicKey := string(secret.Data["publicKey"])
 
-			err := r.Update(ctx, r.secretForWireguard(wireguard, b, privateKey))
+			err := r.Update(ctx, r.secretForWireguard(wireguard, b, privateKey, publicKey))
 			if err != nil {
 				log.Error(err, "Failed to update secret with new config")
 				return ctrl.Result{}, err
@@ -504,6 +505,7 @@ func (r *WireguardReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 		key, err := wgtypes.GeneratePrivateKey()
 
 		privateKey := key.String()
+		publicKey := key.PublicKey().String()
 
 		if err != nil {
 			log.Error(err, "Failed to generate private key")
@@ -523,7 +525,7 @@ func (r *WireguardReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 
 		bytes.Equal(b, secret.Data["state"])
 
-		secret := r.secretForWireguard(wireguard, b, privateKey)
+		secret := r.secretForWireguard(wireguard, b, privateKey, publicKey)
 
 		log.Info("Creating a new secret", "secret.Namespace", secret.Namespace, "secret.Name", secret.Name)
 		err = r.Create(ctx, secret)
@@ -684,7 +686,7 @@ func (r *WireguardReconciler) serviceForWireguardMetrics(m *v1alpha1.Wireguard) 
 	return dep
 }
 
-func (r *WireguardReconciler) secretForWireguard(m *v1alpha1.Wireguard, state []byte, privateKey string) *corev1.Secret {
+func (r *WireguardReconciler) secretForWireguard(m *v1alpha1.Wireguard, state []byte, privateKey string, publicKey string) *corev1.Secret {
 
 	ls := labelsForWireguard(m.Name)
 	dep := &corev1.Secret{
@@ -693,7 +695,7 @@ func (r *WireguardReconciler) secretForWireguard(m *v1alpha1.Wireguard, state []
 			Namespace: m.Namespace,
 			Labels:    ls,
 		},
-		Data: map[string][]byte{"state.json": state, "privateKey": []byte(privateKey)},
+		Data: map[string][]byte{"state.json": state, "privateKey": []byte(privateKey), "publicKey": []byte(publicKey)},
 	}
 
 	ctrl.SetControllerReference(m, dep, r.Scheme)
@@ -785,7 +787,7 @@ func (r *WireguardReconciler) deploymentForWireguard(m *v1alpha1.Wireguard, imag
 							},
 							Image:           image,
 							ImagePullPolicy: "IfNotPresent",
-							Name:            "wireguard",
+							Name:            "agent",
 							Command:         []string{"agent", "--iface", "wg0", "--state", "/tmp/wireguard/state.json"},
 							Ports: []corev1.ContainerPort{
 								{
