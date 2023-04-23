@@ -32,4 +32,4 @@ spec:
         - "--health-probe-bind-address=:8081"
         - "--metrics-bind-address=127.0.0.1:8080"
         - "--leader-elect"
-        - "--wireguard-container-image=ghcr.io/jodevsa/wireguard-operator/wireguard:sha-3ca8e8f7b2c7573f0980648c0244667cd84ad577"
+        - "--wireguard-container-image=ghcr.io/jodevsa/wireguard-operator/wireguard:sha-3750b97ec6d5684076f510966f5948aa886364bd"
