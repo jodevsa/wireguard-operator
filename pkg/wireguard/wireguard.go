@@ -140,6 +140,7 @@ func CreateWireguardConfiguration(state agent.State, listenPort int) (wgtypes.Co
 	cfg.PrivateKey = &key
 
 	cfg.ReplacePeers = true
+	cfg.ListenPort = &listenPort
 
 	var peers []wgtypes.PeerConfig
 
@@ -162,10 +163,7 @@ func CreateWireguardConfiguration(state agent.State, listenPort int) (wgtypes.Co
 			return wgtypes.Config{}, err
 		}
 		peerCfg.PublicKey = key
-
 		peerCfg.ReplaceAllowedIPs = true
-		endpoint := net.UDPAddr{IP: net.ParseIP(state.Server.Status.Address), Port: listenPort}
-		peerCfg.Endpoint = &endpoint
 
 		peers = append(peers, peerCfg)
 	}

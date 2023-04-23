@@ -28,7 +28,7 @@ func main() {
        \/          \/             \/             \/     \/
 `)
 
-	log.Print(fmt.Sprintf("parameters - iface: %s state:%s", iface, configFilePath))
+	log.Print(fmt.Sprintf("parameters - iface: %s state:%s wg-listen-port: %d", iface, configFilePath, wireguardListenPort))
 
 	close, err := agent.OnStateChange(configFilePath, func(state agent.State) {
 		log.Println("Syncing wireguard")
