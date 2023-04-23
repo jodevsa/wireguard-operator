@@ -38,19 +38,21 @@ type WireguardPeerSpec struct {
 	// The address of the peer.
 	Address string `json:"address,omitempty"`
 	// Set to true to temporarily disable the peer.
-	Disabled   bool       `json:"disabled,omitempty"`
+	Disabled bool `json:"disabled,omitempty"`
 	// The DNS configuration for the peer.
-	Dns        string     `json:"dns,omitempty"`
+	Dns string `json:"dns,omitempty"`
 	// The private key of the peer
 	PrivateKey PrivateKey `json:"PrivateKeyRef,omitempty"`
 	// The key used by the peer to authenticate with the wg server.
-	PublicKey  string     `json:"publicKey,omitempty"`
+	PublicKey string `json:"publicKey,omitempty"`
 	// The name of the Wireguard instance in k8s that the peer belongs to. The wg instance should be in the same namespace as the peer.
 	//+kubebuilder:validation:Required
 	//+kubebuilder:validation:MinLength=1
 	WireguardRef string `json:"wireguardRef"`
 	// Egress network policies for the peer.
 	EgressNetworkPolicies EgressNetworkPolicies `json:"egressNetworkPolicies,omitempty"`
+	DownloadSpeed         Speed                 `json:"downloadSpeed,omitempty"`
+	UploadSpeed           Speed                 `json:"uploadSpeed,omitempty"`
 }
 
 type EgressNetworkPolicies []EgressNetworkPolicy
@@ -73,18 +75,18 @@ const (
 
 type EgressNetworkPolicy struct {
 	// Specifies the action to take when outgoing traffic from a Wireguard peer matches the policy. This could be 'Accept' or 'Reject'.
-	Action   EgressNetworkPolicyAction   `json:"action,omitempty"`
+	Action EgressNetworkPolicyAction `json:"action,omitempty"`
 	// A struct that specifies the destination address and port for the traffic. This could include IP addresses or hostnames, as well as specific port numbers or port ranges.
-	To       EgressNetworkPolicyTo       `json:"to,omitempty"`
+	To EgressNetworkPolicyTo `json:"to,omitempty"`
 	// Specifies the protocol to match for this policy. This could be TCP, UDP, or ICMP.
 	Protocol EgressNetworkPolicyProtocol `json:"protocol,omitempty"`
 }
 
 type EgressNetworkPolicyTo struct {
 	// A string field that specifies the destination IP address for traffic that matches the policy.
-	Ip   string `json:"ip,omitempty"`
+	Ip string `json:"ip,omitempty"`
 	// An integer field that specifies the destination port number for traffic that matches the policy.
-	Port int32  `json:"port,omitempty" protobuf:"varint,3,opt,name=port"`
+	Port int32 `json:"port,omitempty" protobuf:"varint,3,opt,name=port"`
 }
 
 // WireguardPeerStatus defines the observed state of WireguardPeer
@@ -92,11 +94,18 @@ type WireguardPeerStatus struct {
 	// INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
 	// Important: Run "make" to regenerate code after modifying this file
 	// A string field that contains the current configuration for the Wireguard peer.
-	Config  string `json:"config,omitempty"`
+	Config string `json:"config,omitempty"`
 	// A string field that represents the current status of the Wireguard peer. This could include values like ready, pending, or error.
-	Status  string `json:"status,omitempty"`
+	Status string `json:"status,omitempty"`
 	// A string field that provides additional information about the status of the Wireguard peer. This could include error messages or other information that helps to diagnose issues with the peer.
 	Message string `json:"message,omitempty"`
+}
+
+type Speed struct {
+	Value int `json:"config,omitempty"`
+
+	// +kubebuilder:validation:Enum=mbps;kbps
+	Unit string `json:"unit,omitempty"`
 }
 
 //+kubebuilder:object:root=true
@@ -107,7 +116,7 @@ type WireguardPeer struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 	// The desired state of the peer.
-	Spec   WireguardPeerSpec   `json:"spec,omitempty"`
+	Spec WireguardPeerSpec `json:"spec,omitempty"`
 	// A field that defines the observed state of the Wireguard peer. This includes fields like the current configuration and status of the peer.
 	Status WireguardPeerStatus `json:"status,omitempty"`
 }

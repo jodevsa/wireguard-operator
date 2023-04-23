@@ -67,6 +67,16 @@ spec:
               dns:
                 description: The DNS configuration for the peer.
                 type: string
+              downloadSpeed:
+                properties:
+                  config:
+                    type: integer
+                  unit:
+                    enum:
+                    - mbps
+                    - kbps
+                    type: string
+                type: object
               egressNetworkPolicies:
                 description: Egress network policies for the peer.
                 items:
@@ -102,6 +112,16 @@ spec:
               publicKey:
                 description: The key used by the peer to authenticate with the wg server.
                 type: string
+              uploadSpeed:
+                properties:
+                  config:
+                    type: integer
+                  unit:
+                    enum:
+                    - mbps
+                    - kbps
+                    type: string
+                type: object
               wireguardRef:
                 description: The name of the Wireguard instance in k8s that the peer belongs to. The wg instance should be in the same namespace as the peer.
                 minLength: 1
@@ -187,6 +207,8 @@ spec:
             properties:
               address:
                 description: A string field that specifies the address for the Wireguard VPN server that is currently being used.
+                type: string
+              dns:
                 type: string
               message:
                 description: A string field that provides additional information about the status of Wireguard. This could include error messages or other information that helps to diagnose issues with the wg instance.
@@ -537,10 +559,10 @@ spec:
         - --health-probe-bind-address=:8081
         - --metrics-bind-address=127.0.0.1:8080
         - --leader-elect
-        - --wireguard-container-image=ghcr.io/jodevsa/wireguard-operator/wireguard:sha-3ca8e8f7b2c7573f0980648c0244667cd84ad577
+        - --wireguard-container-image=ghcr.io/jodevsa/wireguard-operator/wireguard:sha-3750b97ec6d5684076f510966f5948aa886364bd
         command:
         - /manager
-        image: ghcr.io/jodevsa/wireguard-operator/operator:sha-3ca8e8f7b2c7573f0980648c0244667cd84ad577
+        image: ghcr.io/jodevsa/wireguard-operator/operator:sha-3750b97ec6d5684076f510966f5948aa886364bd
         livenessProbe:
           httpGet:
             path: /healthz
