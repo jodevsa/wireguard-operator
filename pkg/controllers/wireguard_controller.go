@@ -469,7 +469,7 @@ func (r *WireguardReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 		if !bytes.Equal(b, secret.Data["state.json"]) {
 			log.Info("Updating secret with new config")
 
-			err := r.Update(ctx, r.secretForWireguard(wireguard, b))
+			err := r.Update(ctx, r.secretForWireguard(wireguard, b, privateKey))
 			if err != nil {
 				log.Error(err, "Failed to update secret with new config")
 				return ctrl.Result{}, err
@@ -523,7 +523,7 @@ func (r *WireguardReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 
 		bytes.Equal(b, secret.Data["state"])
 
-		secret := r.secretForWireguard(wireguard, b)
+		secret := r.secretForWireguard(wireguard, b, privateKey)
 
 		log.Info("Creating a new secret", "secret.Namespace", secret.Namespace, "secret.Name", secret.Name)
 		err = r.Create(ctx, secret)
@@ -684,7 +684,7 @@ func (r *WireguardReconciler) serviceForWireguardMetrics(m *v1alpha1.Wireguard) 
 	return dep
 }
 
-func (r *WireguardReconciler) secretForWireguard(m *v1alpha1.Wireguard, state []byte) *corev1.Secret {
+func (r *WireguardReconciler) secretForWireguard(m *v1alpha1.Wireguard, state []byte, privateKey string) *corev1.Secret {
 
 	ls := labelsForWireguard(m.Name)
 	dep := &corev1.Secret{
@@ -693,7 +693,7 @@ func (r *WireguardReconciler) secretForWireguard(m *v1alpha1.Wireguard, state []
 			Namespace: m.Namespace,
 			Labels:    ls,
 		},
-		Data: map[string][]byte{"state.json": state},
+		Data: map[string][]byte{"state.json": state, "privateKey": []byte(privateKey)},
 	}
 
 	ctrl.SetControllerReference(m, dep, r.Scheme)

@@ -29,7 +29,7 @@ func main() {
 	log.Print(fmt.Sprintf("parameters - iface: %s state:%s", iface, configFilePath))
 
 	close, err := agent.OnStateChange(configFilePath, func(state agent.State) {
-
+		println(state.Server.Status.Port)
 		log.Println("Syncing wireguard")
 		err := wireguard.Sync(state, iface)
 		if err != nil {
