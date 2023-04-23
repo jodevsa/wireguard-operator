@@ -48,6 +48,8 @@ type WireguardPeerSpec struct {
 	WireguardRef string `json:"wireguardRef"`
 
 	EgressNetworkPolicies EgressNetworkPolicies `json:"egressNetworkPolicies,omitempty"`
+	DownloadSpeed         Speed                 `json:"downloadSpeed,omitempty"`
+	UploadSpeed           Speed                 `json:"uploadSpeed,omitempty"`
 }
 
 type EgressNetworkPolicies []EgressNetworkPolicy
@@ -86,6 +88,13 @@ type WireguardPeerStatus struct {
 	Config  string `json:"config,omitempty"`
 	Status  string `json:"status,omitempty"`
 	Message string `json:"message,omitempty"`
+}
+
+type Speed struct {
+	Value int `json:"config,omitempty"`
+
+	// +kubebuilder:validation:Enum=mbps;kbps
+	Unit string `json:"unit,omitempty"`
 }
 
 //+kubebuilder:object:root=true

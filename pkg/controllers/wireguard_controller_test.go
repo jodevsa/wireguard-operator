@@ -3,12 +3,12 @@ package controllers
 import (
 	"context"
 	"fmt"
+	"github.com/jodevsa/wireguard-operator/pkg/api/v1alpha1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"strconv"
 	"strings"
 	"time"
 
-	vpnv1alpha1 "github.com/jodevsa/wireguard-operator/api/v1alpha1"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	appsv1 "k8s.io/api/apps/v1"
@@ -63,115 +63,6 @@ func reconcileServiceWithTypeLoadBalancer(svcKey client.ObjectKey, hostname stri
 }
 
 var _ = Describe("wireguard controller", func() {
-	Context("Egress Network Policy", func() {
-		tests := []struct {
-			name                 string
-			peerIp               string
-			kubeDnsIp            string
-			wgServerIp           string
-			networkPolicies      vpnv1alpha1.EgressNetworkPolicies
-			expectedIptableRules string
-		}{
-			{
-				name:       "EgressNetworkPolicy with destination IP address filter",
-				peerIp:     "192.168.1.115",
-				kubeDnsIp:  "69.96.1.42",
-				wgServerIp: "192.168.1.1",
-				networkPolicies: vpnv1alpha1.EgressNetworkPolicies{
-					vpnv1alpha1.EgressNetworkPolicy{
-						Action: vpnv1alpha1.EgressNetworkPolicyActionAccept,
-						To:     vpnv1alpha1.EgressNetworkPolicyTo{Ip: "8.8.8.8"}},
-				},
-				expectedIptableRules: `# start of rules for peer 192.168.1.115
-:192-168-1-115 - [0:0]
--A FORWARD -s 192.168.1.115 -j 192-168-1-115
--A 192-168-1-115 -d 192.168.1.1 -p icmp -j ACCEPT
--A 192-168-1-115 -d 192.168.1.115 -j ACCEPT
--A 192-168-1-115 -d 69.96.1.42 -p UDP --dport 53 -j ACCEPT
--A 192-168-1-115 -d 8.8.8.8 -j ACCEPT
--A 192-168-1-115 -j REJECT --reject-with icmp-port-unreachable
-# end of rules for peer 192.168.1.115`,
-			},
-			{
-				name:       "Able to filter egress by UDP",
-				peerIp:     "10.8.0.9",
-				kubeDnsIp:  "100.64.0.10",
-				wgServerIp: "10.8.0.1",
-				networkPolicies: vpnv1alpha1.EgressNetworkPolicies{
-					vpnv1alpha1.EgressNetworkPolicy{
-						Action:   vpnv1alpha1.EgressNetworkPolicyActionAccept,
-						Protocol: "UDP",
-						To:       vpnv1alpha1.EgressNetworkPolicyTo{}},
-				},
-				expectedIptableRules: `# start of rules for peer 10.8.0.9
-:10-8-0-9 - [0:0]
--A FORWARD -s 10.8.0.9 -j 10-8-0-9
--A 10-8-0-9 -d 10.8.0.1 -p icmp -j ACCEPT
--A 10-8-0-9 -d 10.8.0.9 -j ACCEPT
--A 10-8-0-9 -d 100.64.0.10 -p UDP --dport 53 -j ACCEPT
--A 10-8-0-9 -p UDP -j ACCEPT
--A 10-8-0-9 -j REJECT --reject-with icmp-port-unreachable
-# end of rules for peer 10.8.0.9`,
-			},
-			{
-				name:            "Empty networkPolicies",
-				peerIp:          "10.8.0.9",
-				kubeDnsIp:       "100.64.0.10",
-				wgServerIp:      "10.8.0.1",
-				networkPolicies: vpnv1alpha1.EgressNetworkPolicies{},
-				expectedIptableRules: `# start of rules for peer 10.8.0.9
-:10-8-0-9 - [0:0]
--A FORWARD -s 10.8.0.9 -j 10-8-0-9
--A 10-8-0-9 -d 10.8.0.1 -p icmp -j ACCEPT
--A 10-8-0-9 -d 10.8.0.9 -j ACCEPT
--A 10-8-0-9 -d 100.64.0.10 -p UDP --dport 53 -j ACCEPT
-# end of rules for peer 10.8.0.9`,
-			},
-			{
-				name:            "networkPolicies with 1 empty networkPolicy",
-				peerIp:          "10.8.0.11",
-				kubeDnsIp:       "100.64.0.21",
-				wgServerIp:      "10.7.0.1",
-				networkPolicies: vpnv1alpha1.EgressNetworkPolicies{vpnv1alpha1.EgressNetworkPolicy{}},
-				expectedIptableRules: `# start of rules for peer 10.8.0.11
-:10-8-0-11 - [0:0]
--A FORWARD -s 10.8.0.11 -j 10-8-0-11
--A 10-8-0-11 -d 10.7.0.1 -p icmp -j ACCEPT
--A 10-8-0-11 -d 10.8.0.11 -j ACCEPT
--A 10-8-0-11 -d 100.64.0.21 -p UDP --dport 53 -j ACCEPT
--A 10-8-0-11 -j Reject
--A 10-8-0-11 -j REJECT --reject-with icmp-port-unreachable
-# end of rules for peer 10.8.0.11`,
-			},
-			{
-				name:       "EgressNetworkPolicy with destination port Allowed",
-				peerIp:     "10.8.0.9",
-				kubeDnsIp:  "100.64.0.10",
-				wgServerIp: "10.8.0.1",
-				networkPolicies: vpnv1alpha1.EgressNetworkPolicies{vpnv1alpha1.EgressNetworkPolicy{
-					Protocol: vpnv1alpha1.EgressNetworkPolicyProtocolTCP,
-					Action:   vpnv1alpha1.EgressNetworkPolicyActionAccept,
-					To:       vpnv1alpha1.EgressNetworkPolicyTo{Port: 8080},
-				}},
-				expectedIptableRules: `# start of rules for peer 10.8.0.9
-:10-8-0-9 - [0:0]
--A FORWARD -s 10.8.0.9 -j 10-8-0-9
--A 10-8-0-9 -d 10.8.0.1 -p icmp -j ACCEPT
--A 10-8-0-9 -d 10.8.0.9 -j ACCEPT
--A 10-8-0-9 -d 100.64.0.10 -p UDP --dport 53 -j ACCEPT
--A 10-8-0-9 -p TCP --dport 8080 -j ACCEPT
--A 10-8-0-9 -j REJECT --reject-with icmp-port-unreachable
-# end of rules for peer 10.8.0.9`,
-			},
-		}
-
-		for _, test := range tests {
-
-			It(test.name, func() {
-				Expect(EgressNetworkPoliciestoIptableRules(test.networkPolicies, test.peerIp, test.kubeDnsIp, test.wgServerIp)).Should(Equal(test.expectedIptableRules))
-			})
-		}
-	})
 
 	// Define utility constants for object names and testing timeouts/durations and intervals.
 	const (
@@ -191,13 +82,13 @@ var _ = Describe("wireguard controller", func() {
 		var listOpts []client.ListOption
 
 		// delete all wg resources
-		wgList := &vpnv1alpha1.WireguardList{}
+		wgList := &v1alpha1.WireguardList{}
 		k8sClient.List(context.Background(), wgList, listOpts...)
 		for _, wg := range wgList.Items {
 			k8sClient.Delete(context.Background(), &wg)
 		}
 		// delete all wg-peer resources
-		peerList := &vpnv1alpha1.WireguardPeerList{}
+		peerList := &v1alpha1.WireguardPeerList{}
 		k8sClient.List(context.Background(), peerList, listOpts...)
 		for _, peer := range peerList.Items {
 			k8sClient.Delete(context.Background(), &peer)
@@ -250,12 +141,12 @@ var _ = Describe("wireguard controller", func() {
 			expectedAddress := "test-address"
 			var expectedPort = "30000"
 
-			wgServer := &vpnv1alpha1.Wireguard{
+			wgServer := &v1alpha1.Wireguard{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      wgKey.Name,
 					Namespace: wgKey.Namespace,
 				},
-				Spec: vpnv1alpha1.WireguardSpec{
+				Spec: v1alpha1.WireguardSpec{
 					ServiceType: corev1.ServiceTypeNodePort,
 					Address:     expectedAddress,
 				},
@@ -267,12 +158,12 @@ var _ = Describe("wireguard controller", func() {
 				Namespace: wgNamespace,
 			}
 
-			wgPeer := &vpnv1alpha1.WireguardPeer{
+			wgPeer := &v1alpha1.WireguardPeer{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      wgPeerKey.Name,
 					Namespace: wgPeerKey.Namespace,
 				},
-				Spec: vpnv1alpha1.WireguardPeerSpec{
+				Spec: v1alpha1.WireguardPeerSpec{
 					WireguardRef: wgName,
 				},
 			}
@@ -295,7 +186,7 @@ var _ = Describe("wireguard controller", func() {
 			Expect(reconcileServiceWithTypeNodePort(serviceKey, expectedPort, 51820)).Should(Succeed())
 
 			Eventually(func() string {
-				wgPeer := &vpnv1alpha1.WireguardPeer{}
+				wgPeer := &v1alpha1.WireguardPeer{}
 				k8sClient.Get(context.Background(), wgPeerKey, wgPeer)
 				for _, line := range strings.Split(wgPeer.Status.Config, "\n") {
 					if strings.Contains(line, "Endpoint") {
@@ -309,12 +200,12 @@ var _ = Describe("wireguard controller", func() {
 		It("sets Custom DNS through Wireguard.Spec.DNS", func() {
 
 			expectedDNS := "3.3.3.3"
-			wgServer := &vpnv1alpha1.Wireguard{
+			wgServer := &v1alpha1.Wireguard{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      wgKey.Name,
 					Namespace: wgKey.Namespace,
 				},
-				Spec: vpnv1alpha1.WireguardSpec{
+				Spec: v1alpha1.WireguardSpec{
 					Dns: expectedDNS,
 				},
 			}
@@ -325,12 +216,12 @@ var _ = Describe("wireguard controller", func() {
 				Namespace: wgNamespace,
 			}
 
-			wgPeer := &vpnv1alpha1.WireguardPeer{
+			wgPeer := &v1alpha1.WireguardPeer{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      wgPeerKey.Name,
 					Namespace: wgPeerKey.Namespace,
 				},
-				Spec: vpnv1alpha1.WireguardPeerSpec{
+				Spec: v1alpha1.WireguardPeerSpec{
 					WireguardRef: wgName,
 				},
 			}
@@ -354,7 +245,7 @@ var _ = Describe("wireguard controller", func() {
 			Expect(reconcileServiceWithTypeLoadBalancer(serviceKey, "test-address")).Should(Succeed())
 
 			Eventually(func() string {
-				wgPeer := &vpnv1alpha1.WireguardPeer{}
+				wgPeer := &v1alpha1.WireguardPeer{}
 				k8sClient.Get(context.Background(), wgPeerKey, wgPeer)
 				for _, line := range strings.Split(wgPeer.Status.Config, "\n") {
 					if strings.Contains(line, "DNS") {
@@ -375,12 +266,12 @@ var _ = Describe("wireguard controller", func() {
 				Name:      wgName,
 				Namespace: wgNamespace,
 			}
-			created := &vpnv1alpha1.Wireguard{
+			created := &v1alpha1.Wireguard{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      wgKey.Name,
 					Namespace: wgKey.Namespace,
 				},
-				Spec: vpnv1alpha1.WireguardSpec{
+				Spec: v1alpha1.WireguardSpec{
 					ServiceType: corev1.ServiceTypeNodePort,
 				},
 			}
@@ -411,13 +302,14 @@ var _ = Describe("wireguard controller", func() {
 			Expect(reconcileServiceWithTypeNodePort(serviceKey, expectedNodePort, 5182)).Should(Succeed())
 
 			// check that wireguard resource got the right status after the service is ready
-			wg := &vpnv1alpha1.Wireguard{}
-			Eventually(func() vpnv1alpha1.WireguardStatus {
+			wg := &v1alpha1.Wireguard{}
+			Eventually(func() v1alpha1.WireguardStatus {
 				Expect(k8sClient.Get(context.Background(), wgKey, wg)).Should(Succeed())
 				return wg.Status
-			}, Timeout, Interval).Should(Equal(vpnv1alpha1.WireguardStatus{
+			}, Timeout, Interval).Should(Equal(v1alpha1.WireguardStatus{
 				Address: expectedAddress,
 				Port:    expectedNodePort,
+				Dns:     dnsServiceIp,
 				Status:  "ready",
 				Message: "VPN is active!",
 			}))
@@ -439,12 +331,12 @@ var _ = Describe("wireguard controller", func() {
 				Name:      wgKey.Name + "peer",
 				Namespace: wgKey.Namespace,
 			}
-			peer := &vpnv1alpha1.WireguardPeer{
+			peer := &v1alpha1.WireguardPeer{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      peerKey.Name,
 					Namespace: peerKey.Namespace,
 				},
-				Spec: vpnv1alpha1.WireguardPeerSpec{
+				Spec: v1alpha1.WireguardPeerSpec{
 					WireguardRef: wgKey.Name,
 				},
 			}
@@ -466,10 +358,10 @@ var _ = Describe("wireguard controller", func() {
 				return peer.Spec.Address
 			}, Timeout, Interval).Should(Equal("10.8.0.2"))
 
-			Eventually(func() vpnv1alpha1.WireguardPeerStatus {
+			Eventually(func() v1alpha1.WireguardPeerStatus {
 				Expect(k8sClient.Get(context.Background(), peerKey, peer)).Should(Succeed())
 				return peer.Status
-			}, Timeout, Interval).Should(Equal(vpnv1alpha1.WireguardPeerStatus{
+			}, Timeout, Interval).Should(Equal(v1alpha1.WireguardPeerStatus{
 				Config: fmt.Sprintf(`
 echo "
 [Interface]
@@ -492,7 +384,7 @@ Endpoint = %s:%s"`, peerKey.Name, peer.Spec.Address, dnsServiceIp, peer.Namespac
 				Name:      wgName,
 				Namespace: wgNamespace,
 			}
-			created := &vpnv1alpha1.Wireguard{
+			created := &v1alpha1.Wireguard{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      wgKey.Name,
 					Namespace: wgKey.Namespace,
@@ -524,11 +416,11 @@ Endpoint = %s:%s"`, peerKey.Name, peer.Spec.Address, dnsServiceIp, peer.Namespac
 				return svc.Spec.Type
 			}, Timeout, Interval).Should(Equal(corev1.ServiceTypeLoadBalancer))
 
-			Eventually(func() vpnv1alpha1.WireguardStatus {
-				wg := &vpnv1alpha1.Wireguard{}
+			Eventually(func() v1alpha1.WireguardStatus {
+				wg := &v1alpha1.Wireguard{}
 				k8sClient.Get(context.Background(), wgKey, wg)
 				return wg.Status
-			}, Timeout, Interval).Should(Equal(vpnv1alpha1.WireguardStatus{
+			}, Timeout, Interval).Should(Equal(v1alpha1.WireguardStatus{
 				Address: "",
 				Status:  "pending",
 				Message: "Waiting for service to be ready",
@@ -538,14 +430,15 @@ Endpoint = %s:%s"`, peerKey.Name, peer.Spec.Address, dnsServiceIp, peer.Namespac
 			Expect(reconcileServiceWithTypeLoadBalancer(serviceKey, expectedExternalHostName)).Should(Succeed())
 
 			// check that wireguard resource got the right status after the service is ready
-			wg := &vpnv1alpha1.Wireguard{}
-			Eventually(func() vpnv1alpha1.WireguardStatus {
+			wg := &v1alpha1.Wireguard{}
+			Eventually(func() v1alpha1.WireguardStatus {
 				Expect(k8sClient.Get(context.Background(), wgKey, wg)).Should(Succeed())
 				return wg.Status
-			}, Timeout, Interval).Should(Equal(vpnv1alpha1.WireguardStatus{
+			}, Timeout, Interval).Should(Equal(v1alpha1.WireguardStatus{
 				Address: expectedExternalHostName,
 				Port:    "51820",
 				Status:  "ready",
+				Dns:     dnsServiceIp,
 				Message: "VPN is active!",
 			}))
 
@@ -566,12 +459,12 @@ Endpoint = %s:%s"`, peerKey.Name, peer.Spec.Address, dnsServiceIp, peer.Namespac
 				Name:      wgKey.Name + "peer",
 				Namespace: wgKey.Namespace,
 			}
-			peer := &vpnv1alpha1.WireguardPeer{
+			peer := &v1alpha1.WireguardPeer{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      peerKey.Name,
 					Namespace: peerKey.Namespace,
 				},
-				Spec: vpnv1alpha1.WireguardPeerSpec{
+				Spec: v1alpha1.WireguardPeerSpec{
 					WireguardRef: wgKey.Name,
 				},
 			}
@@ -594,10 +487,10 @@ Endpoint = %s:%s"`, peerKey.Name, peer.Spec.Address, dnsServiceIp, peer.Namespac
 				return peer.Spec.Address
 			}, Timeout, Interval).Should(Equal("10.8.0.2"))
 
-			Eventually(func() vpnv1alpha1.WireguardPeerStatus {
+			Eventually(func() v1alpha1.WireguardPeerStatus {
 				Expect(k8sClient.Get(context.Background(), peerKey, peer)).Should(Succeed())
 				return peer.Status
-			}, Timeout, Interval).Should(Equal(vpnv1alpha1.WireguardPeerStatus{
+			}, Timeout, Interval).Should(Equal(v1alpha1.WireguardPeerStatus{
 				Config: fmt.Sprintf(`
 echo "
 [Interface]
@@ -617,29 +510,6 @@ Endpoint = %s:%s"`, peerKey.Name, peer.Spec.Address, dnsServiceIp, peer.Namespac
 				return k8sClient.Get(context.Background(), wgSecretKeyName, wgSecret)
 			}, Timeout, Interval).Should(Succeed())
 
-			Expect(string(wgSecret.Data["iptable"])).Should(Equal(
-				`
-*nat
-:PREROUTING ACCEPT [0:0]
-:INPUT ACCEPT [0:0]
-:OUTPUT ACCEPT [0:0]
-:POSTROUTING ACCEPT [0:0]
--A POSTROUTING -s 10.8.0.0/24 -o eth0 -j MASQUERADE
-COMMIT
-
-*filter
-:INPUT ACCEPT [0:0]
-:FORWARD ACCEPT [0:0]
-:OUTPUT ACCEPT [0:0]
-# start of rules for peer 10.8.0.2
-:10-8-0-2 - [0:0]
--A FORWARD -s 10.8.0.2 -j 10-8-0-2
--A 10-8-0-2 -d test-host-name -p icmp -j ACCEPT
--A 10-8-0-2 -d 10.8.0.2 -j ACCEPT
--A 10-8-0-2 -d 10.0.0.42 -p UDP --dport 53 -j ACCEPT
-# end of rules for peer 10.8.0.2
-COMMIT
-`))
 		})
 
 	})

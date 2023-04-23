@@ -19,6 +19,7 @@ package controllers
 import (
 	"context"
 	"fmt"
+	"github.com/jodevsa/wireguard-operator/pkg/api/v1alpha1"
 
 	wgtypes "golang.zx2c4.com/wireguard/wgctrl/wgtypes"
 	corev1 "k8s.io/api/core/v1"
@@ -29,8 +30,6 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	ctrllog "sigs.k8s.io/controller-runtime/pkg/log"
-
-	vpnv1alpha1 "github.com/jodevsa/wireguard-operator/api/v1alpha1"
 )
 
 // WireguardPeerReconciler reconciles a WireguardPeer object
@@ -39,7 +38,7 @@ type WireguardPeerReconciler struct {
 	Scheme *runtime.Scheme
 }
 
-func (r *WireguardPeerReconciler) updateStatus(ctx context.Context, peer *vpnv1alpha1.WireguardPeer, status string, message string) error {
+func (r *WireguardPeerReconciler) updateStatus(ctx context.Context, peer *v1alpha1.WireguardPeer, status string, message string) error {
 	newPeer := peer.DeepCopy()
 	if newPeer.Status.Status != status || newPeer.Status.Message != message {
 		newPeer.Status.Status = status
@@ -52,7 +51,7 @@ func (r *WireguardPeerReconciler) updateStatus(ctx context.Context, peer *vpnv1a
 	return nil
 }
 
-func (r *WireguardPeerReconciler) secretForPeer(m *vpnv1alpha1.WireguardPeer, privateKey string, publicKey string) *corev1.Secret {
+func (r *WireguardPeerReconciler) secretForPeer(m *v1alpha1.WireguardPeer, privateKey string, publicKey string) *corev1.Secret {
 	ls := labelsForWireguard(m.Name)
 	dep := &corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
@@ -85,7 +84,7 @@ func (r *WireguardPeerReconciler) secretForPeer(m *vpnv1alpha1.WireguardPeer, pr
 
 func (r *WireguardPeerReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	log := ctrllog.FromContext(ctx)
-	peer := &vpnv1alpha1.WireguardPeer{}
+	peer := &v1alpha1.WireguardPeer{}
 	err := r.Get(ctx, req.NamespacedName, peer)
 	if err != nil {
 		if errors.IsNotFound(err) {
@@ -108,7 +107,7 @@ func (r *WireguardPeerReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 
 	newPeer := peer.DeepCopy()
 	if newPeer.Status.Status == "" {
-		err = r.updateStatus(ctx, newPeer, vpnv1alpha1.Pending, "Waiting for wireguard peer to be created")
+		err = r.updateStatus(ctx, newPeer, v1alpha1.Pending, "Waiting for wireguard peer to be created")
 
 		if err != nil {
 			return ctrl.Result{}, err
@@ -131,7 +130,7 @@ func (r *WireguardPeerReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 		}
 
 		newPeer.Spec.PublicKey = publicKey
-		newPeer.Spec.PrivateKey = vpnv1alpha1.PrivateKey{
+		newPeer.Spec.PrivateKey = v1alpha1.PrivateKey{
 			SecretKeyRef: corev1.SecretKeySelector{LocalObjectReference: corev1.LocalObjectReference{Name: peer.Name + "-peer"}, Key: "privateKey"}}
 		err = r.Update(ctx, newPeer)
 
@@ -144,12 +143,12 @@ func (r *WireguardPeerReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 
 	}
 
-	wireguard := &vpnv1alpha1.Wireguard{}
+	wireguard := &v1alpha1.Wireguard{}
 	err = r.Get(ctx, types.NamespacedName{Name: newPeer.Spec.WireguardRef, Namespace: newPeer.Namespace}, wireguard)
 
 	if err != nil {
 		if errors.IsNotFound(err) {
-			err = r.updateStatus(ctx, newPeer, vpnv1alpha1.Error, fmt.Sprintf("Waiting for wireguard resource '%s' to be created", newPeer.Spec.WireguardRef))
+			err = r.updateStatus(ctx, newPeer, v1alpha1.Error, fmt.Sprintf("Waiting for wireguard resource '%s' to be created", newPeer.Spec.WireguardRef))
 
 			if err != nil {
 				return ctrl.Result{}, err
@@ -164,10 +163,10 @@ func (r *WireguardPeerReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 
 	}
 
-	if wireguard.Status.Status != vpnv1alpha1.Ready {
+	if wireguard.Status.Status != v1alpha1.Ready {
 		log.Info("Waiting for wireguard to be ready")
 
-		err = r.updateStatus(ctx, newPeer, vpnv1alpha1.Error, fmt.Sprintf("Waiting for %s to be ready", wireguard.Name))
+		err = r.updateStatus(ctx, newPeer, v1alpha1.Error, fmt.Sprintf("Waiting for %s to be ready", wireguard.Name))
 
 		if err != nil {
 			return ctrl.Result{}, err
@@ -194,7 +193,7 @@ func (r *WireguardPeerReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 	}
 
 	if newPeer.Status.Config == "" {
-		err = r.updateStatus(ctx, newPeer, vpnv1alpha1.Pending, "Waiting config to be updated")
+		err = r.updateStatus(ctx, newPeer, v1alpha1.Pending, "Waiting config to be updated")
 
 		if err != nil {
 			return ctrl.Result{}, err
@@ -208,6 +207,6 @@ func (r *WireguardPeerReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 // SetupWithManager sets up the controller with the Manager.
 func (r *WireguardPeerReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
-		For(&vpnv1alpha1.WireguardPeer{}).
+		For(&v1alpha1.WireguardPeer{}).
 		Complete(r)
 }

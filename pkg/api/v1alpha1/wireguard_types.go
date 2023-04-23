@@ -53,6 +53,7 @@ type WireguardStatus struct {
 	// INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
 	// Important: Run "make" to regenerate code after modifying this file
 	Address string `json:"address,omitempty"`
+	Dns     string `json:"dns,omitempty"`
 	Port    string `json:"port,omitempty"`
 	Status  string `json:"status,omitempty"`
 	Message string `json:"message,omitempty"`

@@ -65,6 +65,16 @@ spec:
                 type: boolean
               dns:
                 type: string
+              downloadSpeed:
+                properties:
+                  config:
+                    type: integer
+                  unit:
+                    enum:
+                    - mbps
+                    - kbps
+                    type: string
+                type: object
               egressNetworkPolicies:
                 items:
                   properties:
@@ -92,6 +102,16 @@ spec:
                 type: array
               publicKey:
                 type: string
+              uploadSpeed:
+                properties:
+                  config:
+                    type: integer
+                  unit:
+                    enum:
+                    - mbps
+                    - kbps
+                    type: string
+                type: object
               wireguardRef:
                 description: the name of the active wireguard instance
                 minLength: 1
