@@ -12,8 +12,11 @@ import (
 func main() {
 	var configFilePath string
 	var iface string
+	var wireguardListenPort int
 	flag.StringVar(&configFilePath, "state", "./state.json", "The location of the file that states the desired state")
 	flag.StringVar(&iface, "iface", "wg0", "the wg device name. Default is wg0")
+	flag.StringVar(&iface, "iface", "wg0", "the wg device name. Default is wg0")
+	flag.IntVar(&wireguardListenPort,  "wg-listen-port", 51820, "the UDP port wireguard is listening on")
 	flag.Parse()
 
 	println(
@@ -30,7 +33,7 @@ func main() {
 
 	close, err := agent.OnStateChange(configFilePath, func(state agent.State) {
 		log.Println("Syncing wireguard")
-		err := wireguard.Sync(state, iface)
+		err := wireguard.Sync(state, iface, wireguardListenPort)
 		if err != nil {
 			log.Println(err)
 		}

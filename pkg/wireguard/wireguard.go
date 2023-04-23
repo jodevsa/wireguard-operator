@@ -6,7 +6,6 @@ import (
 	"golang.zx2c4.com/wireguard/wgctrl"
 	"golang.zx2c4.com/wireguard/wgctrl/wgtypes"
 	"net"
-	"strconv"
 	"syscall"
 )
 
@@ -93,9 +92,9 @@ func SyncLink(_ agent.State, iface string) error {
 	return nil
 }
 
-func syncWireguard(state agent.State, iface string) error {
+func syncWireguard(state agent.State, iface string, listenPort int) error {
 	c, _ := wgctrl.New()
-	cfg, err := CreateWireguardConfiguration(state)
+	cfg, err := CreateWireguardConfiguration(state, listenPort)
 	if err != nil {
 		return err
 	}
@@ -107,7 +106,7 @@ func syncWireguard(state agent.State, iface string) error {
 	return nil
 }
 
-func Sync(state agent.State, iface string) error {
+func Sync(state agent.State, iface string, listenPort int) error {
 	// create wg0 link
 	err := SyncLink(state, iface)
 	if err != nil {
@@ -121,7 +120,7 @@ func Sync(state agent.State, iface string) error {
 	}
 
 	// sync wg configuration
-	err = syncWireguard(state, iface)
+	err = syncWireguard(state, iface, listenPort)
 	return nil
 }
 
@@ -131,13 +130,8 @@ func getAllowedIP(ip string) []net.IPNet {
 	return []net.IPNet{*ipnet}
 }
 
-func CreateWireguardConfiguration(state agent.State) (wgtypes.Config, error) {
+func CreateWireguardConfiguration(state agent.State, listenPort int) (wgtypes.Config, error) {
 	cfg := wgtypes.Config{}
-	listenPort, err := strconv.Atoi(state.Server.Status.Port)
-	if err != nil {
-		return wgtypes.Config{}, err
-	}
-	cfg.ListenPort = &listenPort
 
 	key, err := wgtypes.ParseKey(state.ServerPrivateKey)
 	if err != nil {
