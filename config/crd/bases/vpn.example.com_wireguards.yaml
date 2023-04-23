@@ -36,32 +36,51 @@ spec:
             description: WireguardSpec defines the desired state of Wireguard
             properties:
               address:
+                description: A string field that specifies the address for the Wireguard
+                  VPN server. This is the public IP address or hostname that peers
+                  will use to connect to the VPN.
                 type: string
               dns:
+                description: A string field that specifies the DNS server(s) to be
+                  used by the peers.
                 type: string
               enableIpForwardOnPodInit:
+                description: A boolean field that specifies whether IP forwarding
+                  should be enabled on the Wireguard VPN pod at startup. This can
+                  be useful to enable if the peers are having problems with sending
+                  traffic to the internet.
                 type: boolean
               mtu:
+                description: A string field that specifies the maximum transmission
+                  unit (MTU) size for Wireguard packets for all peers.
                 type: string
               serviceType:
-                description: Service Type string describes ingress methods for a service
+                description: A field that specifies the type of Kubernetes service
+                  that should be used for the Wireguard VPN. This could be NodePort
+                  or LoadBalancer, depending on the needs of the deployment.
                 type: string
             type: object
           status:
             description: WireguardStatus defines the observed state of Wireguard
             properties:
               address:
-                description: 'INSERT ADDITIONAL STATUS FIELD - define observed state
-                  of cluster Important: Run "make" to regenerate code after modifying
-                  this file'
+                description: A string field that specifies the address for the Wireguard
+                  VPN server that is currently being used.
                 type: string
               dns:
                 type: string
               message:
+                description: A string field that provides additional information about
+                  the status of Wireguard. This could include error messages or other
+                  information that helps to diagnose issues with the wg instance.
                 type: string
               port:
+                description: A string field that specifies the port for the Wireguard
+                  VPN server that is currently being used.
                 type: string
               status:
+                description: A string field that represents the current status of
+                  Wireguard. This could include values like ready, pending, or error.
                 type: string
             type: object
         type: object

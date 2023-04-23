@@ -642,6 +642,7 @@ func (r *WireguardReconciler) serviceForWireguard(m *v1alpha1.Wireguard, service
 				"service.beta.kubernetes.io/aws-load-balancer-nlb-target-type": "ip",
 				"service.beta.kubernetes.io/aws-load-balancer-scheme":          "internet-facing",
 			},
+			Labels: labels,
 		},
 		Spec: corev1.ServiceSpec{
 			Selector: labels,
