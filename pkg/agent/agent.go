@@ -6,6 +6,7 @@ import (
 	"github.com/jodevsa/wireguard-operator/pkg/api/v1alpha1"
 	"log"
 	"os"
+	"path/filepath"
 )
 
 type State struct {
@@ -15,6 +16,10 @@ type State struct {
 }
 
 func OnStateChange(path string, onFileChange func(State)) (func(), error) {
+
+	dir := filepath.Dir(path)
+	filename := filepath.Base(path)
+
 	watcher, err := fsnotify.NewWatcher()
 	if err != nil {
 		return nil, err
@@ -25,10 +30,10 @@ func OnStateChange(path string, onFileChange func(State)) (func(), error) {
 	}
 
 	state, err := GetDesiredState(path)
-	if err != nil {
-		log.Println(err)
+
+	if err == nil {
+		onFileChange(state)
 	}
-	onFileChange(state)
 
 	// Start listening for events.
 	go func() {
@@ -38,8 +43,7 @@ func OnStateChange(path string, onFileChange func(State)) (func(), error) {
 				if !ok {
 					return
 				}
-				log.Println("event:", event)
-				if event.Has(fsnotify.Write) {
+				if (event.Has(fsnotify.Write) || event.Has(fsnotify.Create)) && event.Name == filename {
 					if err != nil {
 						log.Println(err)
 					} else {
@@ -60,8 +64,9 @@ func OnStateChange(path string, onFileChange func(State)) (func(), error) {
 		}
 	}()
 
-	err = watcher.Add(path)
+	err = watcher.Add(dir)
 	if err != nil {
+		println(".....")
 		return close, err
 	}
 	return close, nil

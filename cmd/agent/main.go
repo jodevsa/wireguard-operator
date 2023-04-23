@@ -26,9 +26,7 @@ func main() {
        \/          \/             \/             \/     \/
 `)
 
-	flag.VisitAll(func(f *flag.Flag) {
-		log.Println(fmt.Sprintf("parameters - %s: %s\n", f.Name, f.Value))
-	})
+	log.Print(fmt.Sprintf("parameters - iface: %s state:%s", iface, configFilePath))
 
 	close, err := agent.OnStateChange(configFilePath, func(state agent.State) {
 

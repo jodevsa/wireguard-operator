@@ -464,9 +464,9 @@ func (r *WireguardReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 			return ctrl.Result{}, err
 		}
 
-		bytes.Equal(b, secret.Data["state"])
+		bytes.Equal(b, secret.Data["state.json"])
 
-		if !bytes.Equal(b, secret.Data["state"]) {
+		if !bytes.Equal(b, secret.Data["state.json"]) {
 			log.Info("Updating secret with new config")
 
 			err := r.Update(ctx, r.secretForWireguard(wireguard, b))
@@ -693,7 +693,7 @@ func (r *WireguardReconciler) secretForWireguard(m *v1alpha1.Wireguard, state []
 			Namespace: m.Namespace,
 			Labels:    ls,
 		},
-		Data: map[string][]byte{"state": state},
+		Data: map[string][]byte{"state.json": state},
 	}
 
 	ctrl.SetControllerReference(m, dep, r.Scheme)
@@ -786,6 +786,7 @@ func (r *WireguardReconciler) deploymentForWireguard(m *v1alpha1.Wireguard, imag
 							Image:           image,
 							ImagePullPolicy: "IfNotPresent",
 							Name:            "wireguard",
+							Command:         []string{"agent", "--iface", "wg0", "--state", "/tmp/wireguard/state.json"},
 							Ports: []corev1.ContainerPort{
 								{
 									ContainerPort: port,
