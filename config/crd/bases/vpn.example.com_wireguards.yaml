@@ -67,6 +67,8 @@ spec:
                 description: A string field that specifies the address for the Wireguard
                   VPN server that is currently being used.
                 type: string
+              dns:
+                type: string
               message:
                 description: A string field that provides additional information about
                   the status of Wireguard. This could include error messages or other
