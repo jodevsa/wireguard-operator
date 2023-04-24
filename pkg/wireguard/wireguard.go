@@ -2,6 +2,7 @@ package wireguard
 
 import (
 	"github.com/jodevsa/wireguard-operator/pkg/agent"
+	"github.com/jodevsa/wireguard-operator/pkg/api/v1alpha1"
 	"github.com/vishvananda/netlink"
 	"golang.zx2c4.com/wireguard/wgctrl"
 	"golang.zx2c4.com/wireguard/wgctrl/wgtypes"
@@ -124,10 +125,13 @@ func SyncLink(_ agent.State, iface string) error {
 
 func syncWireguard(state agent.State, iface string, listenPort int) error {
 	c, _ := wgctrl.New()
-	cfg, err := CreateWireguardConfiguration(state, listenPort)
+	cfg, err := CreateWireguardConfiguration(state, iface, listenPort)
 	if err != nil {
 		return err
 	}
+
+
+
 	err = c.ConfigureDevice(iface, cfg)
 	if err != nil {
 		return err
@@ -171,20 +175,58 @@ func getIP(ip string) []net.IPNet {
 	return []net.IPNet{*ipnet}
 }
 
-func CreateWireguardConfiguration(state agent.State, listenPort int) (wgtypes.Config, error) {
-	cfg := wgtypes.Config{}
 
-	key, err := wgtypes.ParseKey(state.ServerPrivateKey)
-	if err != nil {
-		return wgtypes.Config{}, err
+func getPeersConfig(state agent.State, iface string) ([]wgtypes.PeerConfig, error){
+	var peersState = make(map[string]v1alpha1.WireguardPeer)
+	for _, peer := range state.Peers {
+		peersState[peer.Spec.PublicKey] = peer
 	}
-	cfg.PrivateKey = &key
 
-	cfg.ReplacePeers = true
-	cfg.ListenPort = &listenPort
+	c, err := wgctrl.New()
 
-	var peers []wgtypes.PeerConfig
+	if err != nil {
+		return []wgtypes.PeerConfig{}, err
+	}
 
+
+	device, err := c.Device(iface)
+	if err != nil {
+		return []wgtypes.PeerConfig{}, err
+	}
+
+	var peerConfigArray []wgtypes.PeerConfig
+
+
+	for _, peer := range device.Peers {
+
+		peerState, ok := peersState[peer.PublicKey.String()]
+		if !ok {
+			// delete peer
+			p := wgtypes.PeerConfig{
+				Remove: true,
+				AllowedIPs: peer.AllowedIPs,
+				PublicKey: peer.PublicKey,
+
+			}
+			peerConfigArray = append(peerConfigArray, p)
+
+		} else {
+			if peer.AllowedIPs[0].String() != peerState.Spec.Address {
+				// update peer
+				p := wgtypes.PeerConfig{
+					UpdateOnly: true,
+					AllowedIPs: getIP(peerState.Spec.Address + "/32"),
+					PublicKey: peer.PublicKey,
+					ReplaceAllowedIPs: true,
+
+				}
+				peerConfigArray = append(peerConfigArray, p)
+			}
+		}
+	}
+
+	// add new peers
+	println("229")
 	for _, peer := range state.Peers {
 		if peer.Spec.Disabled == true {
 			continue
@@ -197,17 +239,49 @@ func CreateWireguardConfiguration(state agent.State, listenPort int) (wgtypes.Co
 			continue
 		}
 
-		peerCfg := wgtypes.PeerConfig{AllowedIPs: getIP(peer.Spec.Address + "/32")}
-
-		key, err := wgtypes.ParseKey(peer.Spec.PublicKey)
-		if err != nil {
-			return wgtypes.Config{}, err
+		var found = false
+		for _, config := range peerConfigArray {
+			if config.PublicKey.String() == peer.Spec.PublicKey{
+				found = true
+			}
 		}
-		peerCfg.PublicKey = key
-		peerCfg.ReplaceAllowedIPs = true
+		print("248")
+		if !found {
+			key, err := wgtypes.ParseKey(peer.Spec.PublicKey)
+			if err != nil {
+				return []wgtypes.PeerConfig{}, err
+			}
+			println("add new peer")
+			// create peer
+			p := wgtypes.PeerConfig{
+				UpdateOnly: true,
+				AllowedIPs: getIP(peer.Spec.Address + "/32"),
+				PublicKey: key,
 
-		peers = append(peers, peerCfg)
+			}
+			peerConfigArray = append(peerConfigArray, p)
+		}
+
 	}
+
+	return peerConfigArray, nil
+}
+
+
+func CreateWireguardConfiguration(state agent.State, iface string, listenPort int) (wgtypes.Config, error) {
+	cfg := wgtypes.Config{}
+
+	key, err := wgtypes.ParseKey(state.ServerPrivateKey)
+	if err != nil {
+		return wgtypes.Config{}, err
+	}
+	cfg.PrivateKey = &key
+
+	// make sure we do not interrupt existing sessions
+	cfg.ReplacePeers = false
+	cfg.ListenPort = &listenPort
+
+	peers, err := getPeersConfig(state, iface)
 
 	cfg.Peers = peers
 
