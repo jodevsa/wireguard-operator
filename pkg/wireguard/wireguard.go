@@ -130,8 +130,6 @@ func syncWireguard(state agent.State, iface string, listenPort int) error {
 		return err
 	}
 
-
-
 	err = c.ConfigureDevice(iface, cfg)
 	if err != nil {
 		return err
@@ -175,8 +173,7 @@ func getIP(ip string) []net.IPNet {
 	return []net.IPNet{*ipnet}
 }
 
-
-func getPeersConfig(state agent.State, iface string) ([]wgtypes.PeerConfig, error){
+func getPeersConfig(state agent.State, iface string) ([]wgtypes.PeerConfig, error) {
 	var peersState = make(map[string]v1alpha1.WireguardPeer)
 	for _, peer := range state.Peers {
 		peersState[peer.Spec.PublicKey] = peer
@@ -188,13 +185,13 @@ func getPeersConfig(state agent.State, iface string) ([]wgtypes.PeerConfig, erro
 		return []wgtypes.PeerConfig{}, err
 	}
 
-
 	device, err := c.Device(iface)
+
 	if err != nil {
 		return []wgtypes.PeerConfig{}, err
 	}
 
-	var peerConfigArray []wgtypes.PeerConfig
+	var peerConfigurationByPublicKey = make(map[string]wgtypes.PeerConfig)
 
 
 	for _, peer := range device.Peers {
@@ -203,24 +200,22 @@ func getPeersConfig(state agent.State, iface string) ([]wgtypes.PeerConfig, erro
 		if !ok {
 			// delete peer
 			p := wgtypes.PeerConfig{
-				Remove: true,
+				Remove:     true,
 				AllowedIPs: peer.AllowedIPs,
-				PublicKey: peer.PublicKey,
-
+				PublicKey:  peer.PublicKey,
 			}
-			peerConfigArray = append(peerConfigArray, p)
+			peerConfigurationByPublicKey[p.PublicKey.String()] = p
 
 		} else {
 			if peer.AllowedIPs[0].String() != peerState.Spec.Address {
 				// update peer
 				p := wgtypes.PeerConfig{
-					UpdateOnly: true,
-					AllowedIPs: getIP(peerState.Spec.Address + "/32"),
-					PublicKey: peer.PublicKey,
+					UpdateOnly:        true,
+					AllowedIPs:        getIP(peerState.Spec.Address + "/32"),
+					PublicKey:         peer.PublicKey,
 					ReplaceAllowedIPs: true,
-
 				}
-				peerConfigArray = append(peerConfigArray, p)
+				peerConfigurationByPublicKey[p.PublicKey.String()] = p
 			}
 		}
 	}
@@ -238,35 +233,35 @@ func getPeersConfig(state agent.State, iface string) ([]wgtypes.PeerConfig, erro
 		if peer.Spec.Address == "" {
 			continue
 		}
-
-		var found = false
-		for _, config := range peerConfigArray {
-			if config.PublicKey.String() == peer.Spec.PublicKey{
-				found = true
-			}
-		}
-		print("248")
-		if !found {
-			key, err := wgtypes.ParseKey(peer.Spec.PublicKey)
-			if err != nil {
-				return []wgtypes.PeerConfig{}, err
-			}
-			println("add new peer")
-			// create peer
-			p := wgtypes.PeerConfig{
-				UpdateOnly: true,
-				AllowedIPs: getIP(peer.Spec.Address + "/32"),
-				PublicKey: key,
-
-			}
-			peerConfigArray = append(peerConfigArray, p)
+		key, err := wgtypes.ParseKey(peer.Spec.PublicKey)
+		if err != nil {
+			return []wgtypes.PeerConfig{}, err
 		}
 
+		_, ok := peerConfigurationByPublicKey[key.String()]
+		if ok {
+			continue
+		}
+
+		println("add new peer")
+		// create peer
+		p := wgtypes.PeerConfig{
+			AllowedIPs: getIP(peer.Spec.Address + "/32"),
+			PublicKey:  key,
+		}
+		peerConfigurationByPublicKey[p.PublicKey.String()] = p
 	}
 
-	return peerConfigArray, nil
-}
 
+
+	l := make([]wgtypes.PeerConfig, 0, len(peerConfigurationByPublicKey))
+
+	for  _, value := range peerConfigurationByPublicKey {
+		l = append(l, value)
+	}
+
+	return l, nil
+}
 
 func CreateWireguardConfiguration(state agent.State, iface string, listenPort int) (wgtypes.Config, error) {
 	cfg := wgtypes.Config{}
