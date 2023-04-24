@@ -17,12 +17,14 @@ limitations under the License.
 package controllers
 
 import (
+	"bytes"
 	"context"
+	"encoding/json"
 	"fmt"
-	"strings"
+	"github.com/jodevsa/wireguard-operator/pkg/agent"
+	"github.com/jodevsa/wireguard-operator/pkg/api/v1alpha1"
 	"time"
 
-	vpnv1alpha1 "github.com/jodevsa/wireguard-operator/api/v1alpha1"
 	"github.com/korylprince/ipnetgen"
 	wgtypes "golang.zx2c4.com/wireguard/wgctrl/wgtypes"
 	appsv1 "k8s.io/api/apps/v1"
@@ -53,120 +55,7 @@ func labelsForWireguard(name string) map[string]string {
 	return map[string]string{"app": "wireguard", "instance": name}
 }
 
-func createIptableRulesforWireguard(wgHostName string, dns string, peers []vpnv1alpha1.WireguardPeer) string {
-	var rules []string
-
-	var natTableRules = fmt.Sprintf(`
-*nat
-:PREROUTING ACCEPT [0:0]
-:INPUT ACCEPT [0:0]
-:OUTPUT ACCEPT [0:0]
-:POSTROUTING ACCEPT [0:0]
--A POSTROUTING -s 10.8.0.0/24 -o eth0 -j MASQUERADE
-COMMIT`)
-
-	for _, peer := range peers {
-		rules = append(rules, EgressNetworkPoliciestoIptableRules(peer.Spec.EgressNetworkPolicies, peer.Spec.Address, dns, wgHostName))
-	}
-
-	var filterTableRules = fmt.Sprintf(`
-*filter
-:INPUT ACCEPT [0:0]
-:FORWARD ACCEPT [0:0]
-:OUTPUT ACCEPT [0:0]
-%s
-COMMIT
-`, strings.Join(rules, "\n"))
-
-	return fmt.Sprintf("%s\n%s", natTableRules, filterTableRules)
-}
-
-func EgressNetworkPoliciestoIptableRules(policies vpnv1alpha1.EgressNetworkPolicies, peerIp string, kubeDnsIp string, wgServerIp string) string {
-	var rules []string
-
-	// add a comment
-	rules = append(rules, fmt.Sprintf("# start of rules for peer %s", peerIp))
-
-	peerChain := strings.ReplaceAll(peerIp, ".", "-")
-
-	// create chain for peer
-	rules = append(rules, fmt.Sprintf(":%s - [0:0]", peerChain))
-	// associate peer chain to FORWARD chain
-	rules = append(rules, fmt.Sprintf("-A FORWARD -s %s -j %s", peerIp, peerChain))
-
-	// allow peer to ping (ICMP) wireguard server for debugging purposes
-	rules = append(rules, fmt.Sprintf("-A %s -d %s -p icmp -j ACCEPT", peerChain, wgServerIp))
-	// allow peer to communicate with itself
-	rules = append(rules, fmt.Sprintf("-A %s -d %s -j ACCEPT", peerChain, peerIp))
-	// allow peer to communicate with kube-dns
-	rules = append(rules, fmt.Sprintf("-A %s -d %s -p UDP --dport 53 -j ACCEPT", peerChain, kubeDnsIp))
-
-	for _, policy := range policies {
-		for _, rule := range EgressNetworkPolicyToIpTableRules(policy, peerChain) {
-			rules = append(rules, rule)
-		}
-	}
-
-	// if policies are defined impose an implicit deny all
-	if len(policies) != 0 {
-		rules = append(rules, fmt.Sprintf("-A %s -j REJECT --reject-with icmp-port-unreachable", peerChain))
-	}
-
-	// add a comment
-	rules = append(rules, fmt.Sprintf("# end of rules for peer %s", peerIp))
-
-	return strings.Join(rules, "\n")
-}
-
-func EgressNetworkPolicyToIpTableRules(policy vpnv1alpha1.EgressNetworkPolicy, peerChain string) []string {
-
-	var rules []string
-
-	if policy.Protocol == "" && policy.To.Port != 0 {
-		policy.Protocol = "TCP"
-		rules = append(rules, EgressNetworkPolicyToIpTableRules(policy, peerChain)[0])
-		policy.Protocol = "UDP"
-		rules = append(rules, EgressNetworkPolicyToIpTableRules(policy, peerChain)[0])
-		return rules
-	}
-
-	// customer rules
-	var rulePeerChain = "-A " + peerChain
-	var ruleAction = string("-j " + vpnv1alpha1.EgressNetworkPolicyActionDeny)
-	var ruleProtocol = ""
-	var ruleDestIp = ""
-	var ruleDestPort = ""
-
-	if policy.To.Ip != "" {
-		ruleDestIp = "-d " + policy.To.Ip
-	}
-
-	if policy.Protocol != "" {
-		ruleProtocol = "-p " + strings.ToUpper(string(policy.Protocol))
-	}
-
-	if policy.To.Port != 0 {
-		ruleDestPort = "--dport " + fmt.Sprint(policy.To.Port)
-	}
-
-	if policy.Action != "" {
-		ruleAction = "-j " + strings.ToUpper(string(policy.Action))
-	}
-
-	var options = []string{rulePeerChain, ruleDestIp, ruleProtocol, ruleDestPort, ruleAction}
-	var filteredOptions []string
-	for _, option := range options {
-		if len(option) != 0 {
-			filteredOptions = append(filteredOptions, option)
-		}
-	}
-	rules = append(rules, strings.Join(filteredOptions, " "))
-
-	return rules
-
-}
-
-func (r *WireguardReconciler) ConfigmapForWireguard(m *vpnv1alpha1.Wireguard, hostname string) *corev1.ConfigMap {
+func (r *WireguardReconciler) ConfigmapForWireguard(m *v1alpha1.Wireguard, hostname string) *corev1.ConfigMap {
 	ls := labelsForWireguard(m.Name)
 	dep := &corev1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{
@@ -180,13 +69,13 @@ func (r *WireguardReconciler) ConfigmapForWireguard(m *vpnv1alpha1.Wireguard, ho
 	return dep
 }
 
-func (r *WireguardReconciler) getWireguardPeers(ctx context.Context, req ctrl.Request) (*vpnv1alpha1.WireguardPeerList, error) {
-	peers := &vpnv1alpha1.WireguardPeerList{}
+func (r *WireguardReconciler) getWireguardPeers(ctx context.Context, req ctrl.Request) (*v1alpha1.WireguardPeerList, error) {
+	peers := &v1alpha1.WireguardPeerList{}
 	if err := r.List(ctx, peers, client.InNamespace(req.Namespace)); err != nil {
 		return nil, err
 	}
 
-	relatedPeers := &vpnv1alpha1.WireguardPeerList{}
+	relatedPeers := &v1alpha1.WireguardPeerList{}
 
 	for _, peer := range peers.Items {
 		if peer.Spec.WireguardRef == req.Name {
@@ -226,7 +115,7 @@ func (r *WireguardReconciler) getNodeIps(ctx context.Context, req ctrl.Request) 
 	return ips, nil
 }
 
-func (r *WireguardReconciler) updateStatus(ctx context.Context, req ctrl.Request, wireguard *vpnv1alpha1.Wireguard, status vpnv1alpha1.WgStatusReport) error {
+func (r *WireguardReconciler) updateStatus(ctx context.Context, req ctrl.Request, wireguard *v1alpha1.Wireguard, status v1alpha1.WgStatusReport) error {
 	newWireguard := wireguard.DeepCopy()
 	if newWireguard.Status.Status != status.Status || newWireguard.Status.Message != status.Message {
 		newWireguard.Status.Status = status.Status
@@ -260,7 +149,7 @@ func getAvaialbleIp(cidr string, usedIps []string) (string, error) {
 	return "", fmt.Errorf("No available ip found in %s", cidr)
 }
 
-func (r *WireguardReconciler) getUsedIps(peers *vpnv1alpha1.WireguardPeerList) []string {
+func (r *WireguardReconciler) getUsedIps(peers *v1alpha1.WireguardPeerList) []string {
 	usedIps := []string{"10.8.0.0", "10.8.0.1"}
 	for _, p := range peers.Items {
 		usedIps = append(usedIps, p.Spec.Address)
@@ -270,7 +159,7 @@ func (r *WireguardReconciler) getUsedIps(peers *vpnv1alpha1.WireguardPeerList) [
 	return usedIps
 }
 
-func (r *WireguardReconciler) updateWireguardPeers(ctx context.Context, req ctrl.Request, wireguard *vpnv1alpha1.Wireguard, serverAddress string, dns string, dnsSearchDomain string, serverPublicKey string, serverMtu string) error {
+func (r *WireguardReconciler) updateWireguardPeers(ctx context.Context, req ctrl.Request, wireguard *v1alpha1.Wireguard, serverAddress string, dns string, dnsSearchDomain string, serverPublicKey string, serverMtu string) error {
 
 	peers, err := r.getWireguardPeers(ctx, req)
 	if err != nil {
@@ -318,9 +207,9 @@ DNS = %s`, peer.Name, peer.Namespace, peer.Spec.Address, dnsConfiguration)
 PublicKey = %s
 AllowedIPs = 0.0.0.0/0
 Endpoint = %s:%s"`, serverPublicKey, serverAddress, wireguard.Status.Port)
-		if peer.Status.Config != newConfig || peer.Status.Status != vpnv1alpha1.Ready {
+		if peer.Status.Config != newConfig || peer.Status.Status != v1alpha1.Ready {
 			peer.Status.Config = newConfig
-			peer.Status.Status = vpnv1alpha1.Ready
+			peer.Status.Status = v1alpha1.Ready
 			peer.Status.Message = "Peer configured"
 			if err := r.Status().Update(ctx, &peer); err != nil {
 				return err
@@ -357,7 +246,7 @@ func (r *WireguardReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 
 	log.Info("loaded the following wireguard image:" + r.WireguardContainerImage)
 
-	wireguard := &vpnv1alpha1.Wireguard{}
+	wireguard := &v1alpha1.Wireguard{}
 	log.Info(req.NamespacedName.Name)
 	err := r.Get(ctx, req.NamespacedName, wireguard)
 	if err != nil {
@@ -376,7 +265,7 @@ func (r *WireguardReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 	log.Info("processing " + wireguard.Name)
 
 	if wireguard.Status.Status == "" {
-		err = r.updateStatus(ctx, req, wireguard, vpnv1alpha1.WgStatusReport{Status: vpnv1alpha1.Pending, Message: "Fetching Wireguard status"})
+		err = r.updateStatus(ctx, req, wireguard, v1alpha1.WgStatusReport{Status: v1alpha1.Pending, Message: "Fetching Wireguard status"})
 
 		if err != nil {
 			return ctrl.Result{}, err
@@ -388,14 +277,14 @@ func (r *WireguardReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 	wgConfig := ""
 
 	// wireguardpeer
-	peers := &vpnv1alpha1.WireguardPeerList{}
+	peers := &v1alpha1.WireguardPeerList{}
 	// TODO add a label to wireguardpeers and then filter by label here to only get peers of the wg instance we need.
 	if err := r.List(ctx, peers, client.InNamespace(req.Namespace)); err != nil {
 		log.Error(err, "Failed to fetch list of peers")
 		return ctrl.Result{}, err
 	}
 
-	var filteredPeers []vpnv1alpha1.WireguardPeer
+	var filteredPeers []v1alpha1.WireguardPeer
 	for _, peer := range peers.Items {
 		if peer.Spec.Disabled == true {
 			continue
@@ -428,7 +317,7 @@ func (r *WireguardReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 		}
 		// svc created successfully - return and requeue
 
-		err = r.updateStatus(ctx, req, wireguard, vpnv1alpha1.WgStatusReport{Status: vpnv1alpha1.Pending, Message: "Waiting for metrics service to be created"})
+		err = r.updateStatus(ctx, req, wireguard, v1alpha1.WgStatusReport{Status: v1alpha1.Pending, Message: "Waiting for metrics service to be created"})
 
 		if err != nil {
 			return ctrl.Result{}, err
@@ -474,7 +363,7 @@ func (r *WireguardReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 		}
 		// svc created successfully - return and requeue
 
-		err = r.updateStatus(ctx, req, wireguard, vpnv1alpha1.WgStatusReport{Status: vpnv1alpha1.Pending, Message: "Waiting for service to be created"})
+		err = r.updateStatus(ctx, req, wireguard, v1alpha1.WgStatusReport{Status: v1alpha1.Pending, Message: "Waiting for service to be created"})
 
 		if err != nil {
 			log.Error(err, "Failed to update wireguard status", "service.Namespace", svc.Namespace, "service.Name", svc.Name)
@@ -493,7 +382,7 @@ func (r *WireguardReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 		ingressList := svcFound.Status.LoadBalancer.Ingress
 		log.Info("Found ingress", "ingress", ingressList)
 		if len(ingressList) == 0 {
-			err = r.updateStatus(ctx, req, wireguard, vpnv1alpha1.WgStatusReport{Status: vpnv1alpha1.Pending, Message: "Waiting for service to be ready"})
+			err = r.updateStatus(ctx, req, wireguard, v1alpha1.WgStatusReport{Status: v1alpha1.Pending, Message: "Waiting for service to be ready"})
 			if err != nil {
 				return ctrl.Result{}, err
 			}
@@ -511,7 +400,7 @@ func (r *WireguardReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 	}
 	if serviceType == corev1.ServiceTypeNodePort {
 		if len(svcFound.Spec.Ports) == 0 {
-			err = r.updateStatus(ctx, req, wireguard, vpnv1alpha1.WgStatusReport{Status: vpnv1alpha1.Pending, Message: "Waiting for service with type NodePort to be ready"})
+			err = r.updateStatus(ctx, req, wireguard, v1alpha1.WgStatusReport{Status: v1alpha1.Pending, Message: "Waiting for service with type NodePort to be ready"})
 			if err != nil {
 				return ctrl.Result{}, err
 			}
@@ -519,6 +408,7 @@ func (r *WireguardReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 			return ctrl.Result{}, nil
 		}
 
+		port = fmt.Sprint(svcFound.Spec.Ports[0].NodePort)
 		port = fmt.Sprint(svcFound.Spec.Ports[0].NodePort)
 
 		ips, err := r.getNodeIps(ctx, req)
@@ -528,7 +418,7 @@ func (r *WireguardReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 		}
 		if address == "" {
 			if len(ips) == 0 {
-				err = r.updateStatus(ctx, req, wireguard, vpnv1alpha1.WgStatusReport{Status: vpnv1alpha1.Pending, Message: "Unable to determine WG address though nodes addresses. Please set Wireguard.Spec.Address if necessary."})
+				err = r.updateStatus(ctx, req, wireguard, v1alpha1.WgStatusReport{Status: v1alpha1.Pending, Message: "Unable to determine WG address though nodes addresses. Please set Wireguard.Spec.Address if necessary."})
 				if err != nil {
 					return ctrl.Result{}, err
 				}
@@ -539,22 +429,21 @@ func (r *WireguardReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 
 	}
 
-	if wireguard.Status.Address != address || port != wireguard.Status.Port {
+	if wireguard.Status.Address != address || port != wireguard.Status.Port || dnsAddress != wireguard.Status.Dns {
 		updateWireguard := wireguard.DeepCopy()
 		updateWireguard.Status.Address = address
 		updateWireguard.Status.Port = port
+		updateWireguard.Status.Dns = dnsAddress
 
 		err = r.Status().Update(ctx, updateWireguard)
 
 		if err != nil {
-			log.Error(err, "Failed to update wireguard manifest host and port")
+			log.Error(err, "Failed to update wireguard manifest address, port, and dns")
 			return ctrl.Result{}, err
 		}
 
 		return ctrl.Result{}, nil
 	}
-
-	iptableRules := createIptableRulesforWireguard(address, dnsAddress, filteredPeers)
 
 	// fetch secret
 	secret := &corev1.Secret{}
@@ -563,19 +452,25 @@ func (r *WireguardReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 	if err == nil {
 		privateKey := string(secret.Data["privateKey"])
 
-		wgConfig = fmt.Sprintf(`
-[Interface]
-PrivateKey = %s
-Address = 10.8.0.1/24
-ListenPort = 51820
-`, privateKey) + wgConfig
+		state := agent.State{
+			Server:           *wireguard.DeepCopy(),
+			ServerPrivateKey: privateKey,
+			Peers:            peers.Items,
+		}
 
-		if string(secret.Data["config"]) != wgConfig || string(secret.Data["iptable"]) != iptableRules {
+		b, err := json.Marshal(state)
+		if err != nil {
+			log.Error(err, "Failed to save state to secret")
+			return ctrl.Result{}, err
+		}
+
+		bytes.Equal(b, secret.Data["state.json"])
+
+		if !bytes.Equal(b, secret.Data["state.json"]) {
 			log.Info("Updating secret with new config")
-
 			publicKey := string(secret.Data["publicKey"])
 
-			err := r.Update(ctx, r.secretForWireguard(wireguard, privateKey, publicKey, wgConfig, iptableRules))
+			err := r.Update(ctx, r.secretForWireguard(wireguard, b, privateKey, publicKey))
 			if err != nil {
 				log.Error(err, "Failed to update secret with new config")
 				return ctrl.Result{}, err
@@ -616,8 +511,21 @@ ListenPort = 51820
 			log.Error(err, "Failed to generate private key")
 			return ctrl.Result{}, err
 		}
+		state := agent.State{
+			Server:           *wireguard.DeepCopy(),
+			ServerPrivateKey: privateKey,
+			Peers:            peers.Items,
+		}
 
-		secret := r.secretForWireguard(wireguard, privateKey, publicKey, wgConfig, iptableRules)
+		b, err := json.Marshal(state)
+		if err != nil {
+			log.Error(err, "Failed to save state to secret")
+			return ctrl.Result{}, err
+		}
+
+		bytes.Equal(b, secret.Data["state"])
+
+		secret := r.secretForWireguard(wireguard, b, privateKey, publicKey)
 
 		log.Info("Creating a new secret", "secret.Namespace", secret.Namespace, "secret.Name", secret.Name)
 		err = r.Create(ctx, secret)
@@ -661,7 +569,7 @@ ListenPort = 51820
 			return ctrl.Result{}, err
 		}
 
-		err = r.updateStatus(ctx, req, wireguard, vpnv1alpha1.WgStatusReport{Status: vpnv1alpha1.Pending, Message: "Waiting for configmap to be created"})
+		err = r.updateStatus(ctx, req, wireguard, v1alpha1.WgStatusReport{Status: v1alpha1.Pending, Message: "Waiting for configmap to be created"})
 
 		return ctrl.Result{}, err
 	} else if err != nil {
@@ -703,7 +611,7 @@ ListenPort = 51820
 
 	log.Info("Updated related peers", "wireguard.Namespace", wireguard.Namespace, "wireguard.Name", wireguard.Name)
 
-	err = r.updateStatus(ctx, req, wireguard, vpnv1alpha1.WgStatusReport{Status: vpnv1alpha1.Ready, Message: "VPN is active!"})
+	err = r.updateStatus(ctx, req, wireguard, v1alpha1.WgStatusReport{Status: v1alpha1.Ready, Message: "VPN is active!"})
 
 	if err != nil {
 		return ctrl.Result{}, err
@@ -715,8 +623,8 @@ ListenPort = 51820
 // SetupWithManager sets up the controller with the Manager.
 func (r *WireguardReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
-		For(&vpnv1alpha1.Wireguard{}).
-		Owns(&vpnv1alpha1.WireguardPeer{}).
+		For(&v1alpha1.Wireguard{}).
+		Owns(&v1alpha1.WireguardPeer{}).
 		Owns(&corev1.Service{}).
 		Owns(&corev1.ConfigMap{}).
 		Owns(&appsv1.Deployment{}).
@@ -724,7 +632,7 @@ func (r *WireguardReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		Complete(r)
 }
 
-func (r *WireguardReconciler) serviceForWireguard(m *vpnv1alpha1.Wireguard, serviceType corev1.ServiceType) *corev1.Service {
+func (r *WireguardReconciler) serviceForWireguard(m *v1alpha1.Wireguard, serviceType corev1.ServiceType) *corev1.Service {
 	labels := labelsForWireguard(m.Name)
 
 	dep := &corev1.Service{
@@ -736,7 +644,7 @@ func (r *WireguardReconciler) serviceForWireguard(m *vpnv1alpha1.Wireguard, serv
 				"service.beta.kubernetes.io/aws-load-balancer-nlb-target-type": "ip",
 				"service.beta.kubernetes.io/aws-load-balancer-scheme":          "internet-facing",
 			},
-			Labels:    labels,
+			Labels: labels,
 		},
 		Spec: corev1.ServiceSpec{
 			Selector: labels,
@@ -753,7 +661,7 @@ func (r *WireguardReconciler) serviceForWireguard(m *vpnv1alpha1.Wireguard, serv
 	return dep
 }
 
-func (r *WireguardReconciler) serviceForWireguardMetrics(m *vpnv1alpha1.Wireguard) *corev1.Service {
+func (r *WireguardReconciler) serviceForWireguardMetrics(m *v1alpha1.Wireguard) *corev1.Service {
 	labels := labelsForWireguard(m.Name)
 
 	dep := &corev1.Service{
@@ -778,7 +686,8 @@ func (r *WireguardReconciler) serviceForWireguardMetrics(m *vpnv1alpha1.Wireguar
 	return dep
 }
 
-func (r *WireguardReconciler) secretForWireguard(m *vpnv1alpha1.Wireguard, privateKey string, publicKey string, config string, iptableConfig string) *corev1.Secret {
+func (r *WireguardReconciler) secretForWireguard(m *v1alpha1.Wireguard, state []byte, privateKey string, publicKey string) *corev1.Secret {
+
 	ls := labelsForWireguard(m.Name)
 	dep := &corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
@@ -786,7 +695,7 @@ func (r *WireguardReconciler) secretForWireguard(m *vpnv1alpha1.Wireguard, priva
 			Namespace: m.Namespace,
 			Labels:    ls,
 		},
-		Data: map[string][]byte{"iptable": []byte(iptableConfig), "config": []byte(config), "privateKey": []byte(privateKey), "publicKey": []byte(publicKey)},
+		Data: map[string][]byte{"state.json": state, "privateKey": []byte(privateKey), "publicKey": []byte(publicKey)},
 	}
 
 	ctrl.SetControllerReference(m, dep, r.Scheme)
@@ -795,7 +704,7 @@ func (r *WireguardReconciler) secretForWireguard(m *vpnv1alpha1.Wireguard, priva
 
 }
 
-func (r *WireguardReconciler) secretForClient(m *vpnv1alpha1.Wireguard, privateKey string, publicKey string) *corev1.Secret {
+func (r *WireguardReconciler) secretForClient(m *v1alpha1.Wireguard, privateKey string, publicKey string) *corev1.Secret {
 	ls := labelsForWireguard(m.Name)
 	dep := &corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
@@ -812,7 +721,7 @@ func (r *WireguardReconciler) secretForClient(m *vpnv1alpha1.Wireguard, privateK
 
 }
 
-func (r *WireguardReconciler) deploymentForWireguard(m *vpnv1alpha1.Wireguard, image string) *appsv1.Deployment {
+func (r *WireguardReconciler) deploymentForWireguard(m *v1alpha1.Wireguard, image string) *appsv1.Deployment {
 	ls := labelsForWireguard(m.Name)
 	replicas := int32(1)
 
@@ -878,7 +787,8 @@ func (r *WireguardReconciler) deploymentForWireguard(m *vpnv1alpha1.Wireguard, i
 							},
 							Image:           image,
 							ImagePullPolicy: "IfNotPresent",
-							Name:            "wireguard",
+							Name:            "agent",
+							Command:         []string{"agent", "--wg-iface", "wg0", "--wg-listen-port", "51820", "--state", "/tmp/wireguard/state.json", "--wgUserspaceImplementationFallback", "wireguard-go", "--wg-use-userspace-implementation"},
 							Ports: []corev1.ContainerPort{
 								{
 									ContainerPort: port,
