@@ -70,6 +70,16 @@ spec:
               dns:
                 description: The DNS configuration for the peer.
                 type: string
+              downloadSpeed:
+                properties:
+                  config:
+                    type: integer
+                  unit:
+                    enum:
+                    - mbps
+                    - kbps
+                    type: string
+                type: object
               egressNetworkPolicies:
                 description: Egress network policies for the peer.
                 items:
@@ -113,6 +123,16 @@ spec:
                 description: The key used by the peer to authenticate with the wg
                   server.
                 type: string
+              uploadSpeed:
+                properties:
+                  config:
+                    type: integer
+                  unit:
+                    enum:
+                    - mbps
+                    - kbps
+                    type: string
+                type: object
               wireguardRef:
                 description: The name of the Wireguard instance in k8s that the peer
                   belongs to. The wg instance should be in the same namespace as the
