@@ -69,8 +69,9 @@ func syncAddress(_ agent.State, iface string) error {
 	return nil
 }
 
-func createLinkUsingUserspaceImpl(iface string) error {
-	bashCommand := fmt.Sprintf("mkdir -p /dev/net && if [ ! -c /dev/net/tun ]; then\n    mknod /dev/net/tun c 10 200\nfi && wireguard-go " + iface)
+func createLinkUsingUserspaceImpl(iface string, wgUserspaceImplementationFallback string) error {
+
+	bashCommand := fmt.Sprintf("mkdir -p /dev/net && if [ ! -c /dev/net/tun ]; then\n    mknod /dev/net/tun c 10 200\nfi && %s %s", wgUserspaceImplementationFallback, iface)
 	cmd := exec.Command("bash", "-c", bashCommand)
 
 	err := cmd.Run()
@@ -98,7 +99,7 @@ func createLinkUsingKernalModule(iface string) error {
 	return nil
 }
 
-func SyncLink(_ agent.State, iface string) error {
+func SyncLink(_ agent.State, iface string, wgUserspaceImplementationFallback string, wgUseUserspaceImpl bool) error {
 	link, err := netlink.LinkByName(iface)
 	if err != nil {
 		if _, ok := err.(netlink.LinkNotFoundError); !ok {
@@ -107,10 +108,23 @@ func SyncLink(_ agent.State, iface string) error {
 	}
 
 	if _, ok := err.(netlink.LinkNotFoundError); ok {
-		err = createLinkUsingUserspaceImpl(iface)
+		if wgUseUserspaceImpl {
+			err = createLinkUsingUserspaceImpl(iface, wgUserspaceImplementationFallback)
 
-		if err != nil {
-			return err
+			if err != nil {
+				return err
+			}
+
+		} else {
+			err = createLinkUsingKernalModule(iface)
+
+			if err != nil {
+				err = createLinkUsingUserspaceImpl(iface, wgUserspaceImplementationFallback)
+
+				if err != nil {
+					return err
+				}
+			}
 		}
 
 		link, err = netlink.LinkByName(iface)
@@ -162,9 +176,9 @@ func syncWireguard(state agent.State, iface string, listenPort int) error {
 	return nil
 }
 
-func Sync(state agent.State, iface string, listenPort int) error {
+func Sync(state agent.State, iface string, listenPort int, wgUserspaceImplementationFallback string, wgUseUserspaceImpl bool) error {
 	// create wg0 link
-	err := SyncLink(state, iface)
+	err := SyncLink(state, iface, wgUserspaceImplementationFallback, wgUseUserspaceImpl)
 	if err != nil {
 		return err
 	}
