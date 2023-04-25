@@ -102,8 +102,9 @@ func OnStateChange(path string, logger logr.Logger, onFileChange func(State)) (f
 							hash = newHash
 
 							err = isStateValid(state)
-
+							print("here.....")
 							if err != nil {
+								println(err.Error())
 								logger.Error(err, "State is not valid")
 							} else {
 								onFileChange(state)
