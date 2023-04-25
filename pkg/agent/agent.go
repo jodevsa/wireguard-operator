@@ -4,6 +4,7 @@ import (
 	"crypto/md5"
 	"encoding/hex"
 	"encoding/json"
+	"fmt"
 	"log"
 	"os"
 	"path/filepath"
@@ -16,6 +17,37 @@ type State struct {
 	Server           v1alpha1.Wireguard
 	ServerPrivateKey string
 	Peers            []v1alpha1.WireguardPeer
+}
+
+func isStateValid(state State) error {
+
+	if state.ServerPrivateKey == "" {
+		return fmt.Errorf("server private key is not defined")
+	}
+
+	if len(state.ServerPrivateKey) != 44 {
+		return fmt.Errorf("server private key should be of length 44")
+	}
+
+	if state.Server.Status.Address == "" {
+		return fmt.Errorf("server address is not defined")
+	}
+
+	if state.Server.Status.Dns == "" {
+		return fmt.Errorf("dns is not defined")
+	}
+
+	for i, peer := range state.Peers {
+		if peer.Spec.Address == "" {
+			return fmt.Errorf("peer with index %d does not have the address defined", i)
+		}
+
+		if peer.Spec.PublicKey == "" {
+			return fmt.Errorf("peer with index %d does not have a public key defined", i)
+		}
+	}
+
+	return nil
 }
 
 func OnStateChange(path string, onFileChange func(State)) (func(), error) {
@@ -34,7 +66,13 @@ func OnStateChange(path string, onFileChange func(State)) (func(), error) {
 	state, hash, err := GetDesiredState(path)
 
 	if err == nil {
-		onFileChange(state)
+		err := isStateValid(state)
+
+		if err != nil {
+			log.Println("State is not valid: " + err.Error())
+		} else {
+			onFileChange(state)
+		}
 	}
 
 	// Start listening for events.
@@ -60,7 +98,13 @@ func OnStateChange(path string, onFileChange func(State)) (func(), error) {
 						}
 						hash = newHash
 
-						onFileChange(state)
+						err = isStateValid(state)
+
+						if err != nil {
+							log.Println("State is not valid: " + err.Error())
+						} else {
+							onFileChange(state)
+						}
 					}
 				}
 			case err, ok := <-watcher.Errors:

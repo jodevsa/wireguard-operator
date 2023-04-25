@@ -2,6 +2,7 @@ package wireguard
 
 import (
 	"fmt"
+	"github.com/go-logr/logr"
 	"net"
 	"os/exec"
 	"syscall"
@@ -176,28 +177,37 @@ func syncWireguard(state agent.State, iface string, listenPort int) error {
 	return nil
 }
 
-func Sync(state agent.State, iface string, listenPort int, wgUserspaceImplementationFallback string, wgUseUserspaceImpl bool) error {
+type Wireguard struct {
+	Logger                            logr.Logger
+	Iface                             string
+	ListenPort                        int
+	WgUserspaceImplementationFallback string
+	WgUseUserspaceImpl                bool
+}
+
+func (wg *Wireguard) Sync(state agent.State) error {
+	wg.Logger.Info("syncing Wireguard")
 	// create wg0 link
-	err := SyncLink(state, iface, wgUserspaceImplementationFallback, wgUseUserspaceImpl)
+	err := SyncLink(state, wg.Iface, wg.WgUserspaceImplementationFallback, wg.WgUseUserspaceImpl)
 	if err != nil {
 		return err
 	}
 
 	// route all traffic coming from 10.8.0.0/24 via gateway 10.8.0.1 on wg0
-	err = syncRoute(state, iface)
+	err = syncRoute(state, wg.Iface)
 
 	if err != nil {
 		return err
 	}
 
 	// set wg0 gateway as 10.8.0.1/32
-	err = syncAddress(state, iface)
+	err = syncAddress(state, wg.Iface)
 	if err != nil {
 		return err
 	}
 
 	// sync wg configuration
-	err = syncWireguard(state, iface, listenPort)
+	err = syncWireguard(state, wg.Iface, wg.ListenPort)
 	if err != nil {
 		return err
 	}

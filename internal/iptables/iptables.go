@@ -2,6 +2,7 @@ package iptables
 
 import (
 	"fmt"
+	"github.com/go-logr/logr"
 	"github.com/jodevsa/wireguard-operator/pkg/agent"
 	"github.com/jodevsa/wireguard-operator/pkg/api/v1alpha1"
 	"os"
@@ -33,7 +34,12 @@ func ApplyRules(rules string) error {
 	return nil
 }
 
-func Sync(state agent.State) error {
+type Iptables struct {
+	Logger logr.Logger
+}
+
+func (it *Iptables) Sync(state agent.State) error {
+	it.Logger.Info("syncing network policies")
 	wgHostName := state.Server.Status.Address
 	dns := state.Server.Status.Dns
 	peers := state.Peers

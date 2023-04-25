@@ -3,15 +3,18 @@ package main
 import (
 	"flag"
 	"fmt"
+	"github.com/go-logr/stdr"
 	"github.com/jodevsa/wireguard-operator/internal/iptables"
 	"github.com/jodevsa/wireguard-operator/pkg/agent"
 	"github.com/jodevsa/wireguard-operator/pkg/wireguard"
 	"log"
+	"os"
 )
 
 func main() {
 	var configFilePath string
 	var iface string
+	var verbosity int
 	var wgUserspaceImplementationFallback string
 	var wireguardListenPort int
 	var wgUseUserspaceImpl bool
@@ -19,10 +22,11 @@ func main() {
 	flag.StringVar(&iface, "wg-iface", "wg0", "the wg device name. Default is wg0")
 	flag.StringVar(&wgUserspaceImplementationFallback, "wg-userspace-implementation-fallback", "wireguard-go", "The userspace implementation of wireguard to fallback to")
 	flag.IntVar(&wireguardListenPort, "wg-listen-port", 51820, "the UDP port wireguard is listening on")
+	flag.IntVar(&verbosity, "v", 1, "the verbosity level")
 	flag.BoolVar(&wgUseUserspaceImpl, "wg-use-userspace-implementation", false, "Use userspace implementation")
 	flag.Parse()
 
-	print(fmt.Sprintf(
+	println(fmt.Sprintf(
 		`	
                .:::::::::::::::::::::::::...::::::::::::::::::::.               
              .::::::::::::::::::::.:^7J5PBGY!^::::::::::::::::::::.             
@@ -56,27 +60,40 @@ func main() {
 	 \        /\    \_\  \    /    |    \\___  /\  ___/|   |  |  |   
 	  \__/\  /  \______  /    \____|__  /_____/  \___  |___|  |__|   
 		   \/          \/             \/             \/     \/
-`, iface,configFilePath, wireguardListenPort, wgUseUserspaceImpl, wgUserspaceImplementationFallback))
+`, iface, configFilePath, wireguardListenPort, wgUseUserspaceImpl, wgUserspaceImplementationFallback))
 
+	stdr.SetVerbosity(verbosity)
+	log := stdr.NewWithOptions(log.New(os.Stderr, "", log.LstdFlags), stdr.Options{LogCaller: stdr.All})
+	log = log.WithName("agent")
 
+	wg := wireguard.Wireguard{
+		Logger:                            log.WithName("wireguard"),
+		Iface:                             iface,
+		ListenPort:                        wireguardListenPort,
+		WgUserspaceImplementationFallback: wgUserspaceImplementationFallback,
+		WgUseUserspaceImpl:                wgUseUserspaceImpl,
+	}
+	it := iptables.Iptables{
+		Logger: log.WithName("iptables"),
+	}
 
 	close, err := agent.OnStateChange(configFilePath, func(state agent.State) {
-		log.Println("Syncing wireguard")
-		err := wireguard.Sync(state, iface, wireguardListenPort, wgUserspaceImplementationFallback, wgUseUserspaceImpl)
+		log.Info("Received a new state")
+		err := wg.Sync(state)
 		if err != nil {
-			log.Println(err)
+			log.Error(err, "Error while sycncing wireguard")
 		}
 
-		log.Println("Syncing iptables rules")
-		err = iptables.Sync(state)
+		err = it.Sync(state)
 		if err != nil {
-			log.Println(err)
+			log.Error(err, "Error while syncing network policies")
 		}
-		log.Println("finished syncing iptables..")
+
 	})
 
 	if err != nil {
-		log.Fatal(err)
+		log.Error(err, "Error while watching changes")
+		os.Exit(1)
 	}
 
 	defer close()

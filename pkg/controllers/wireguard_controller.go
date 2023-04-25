@@ -376,7 +376,7 @@ func (r *WireguardReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 		return ctrl.Result{}, err
 	}
 	address := wireguard.Spec.Address
-	var port = "51820"
+	var port = fmt.Sprintf("%d", port)
 
 	if serviceType == corev1.ServiceTypeLoadBalancer {
 		ingressList := svcFound.Status.LoadBalancer.Ingress
@@ -788,7 +788,7 @@ func (r *WireguardReconciler) deploymentForWireguard(m *v1alpha1.Wireguard, imag
 							Image:           image,
 							ImagePullPolicy: "IfNotPresent",
 							Name:            "agent",
-							Command:         []string{"agent", "--wg-iface", "wg0", "--wg-listen-port", "51820", "--state", "/tmp/wireguard/state.json", "--wg-userspace-implementation-fallback", "wireguard-go", "--wg-use-userspace-implementation"},
+							Command:         []string{"agent", "--wg-iface", "wg0", "--wg-listen-port", fmt.Sprintf("%d", port), "--state", "/tmp/wireguard/state.json", "--wg-userspace-implementation-fallback", "wireguard-go", "--wg-use-userspace-implementation"},
 							Ports: []corev1.ContainerPort{
 								{
 									ContainerPort: port,
