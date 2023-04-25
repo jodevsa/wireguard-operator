@@ -274,7 +274,7 @@ func (r *WireguardReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 		return ctrl.Result{}, nil
 	}
 
-	wgConfig := ""
+
 
 	// wireguardpeer
 	peers := &v1alpha1.WireguardPeerList{}
@@ -286,9 +286,6 @@ func (r *WireguardReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 
 	var filteredPeers []v1alpha1.WireguardPeer
 	for _, peer := range peers.Items {
-		if peer.Spec.Disabled == true {
-			continue
-		}
 		if peer.Spec.WireguardRef != wireguard.Name {
 			continue
 		}
@@ -301,7 +298,6 @@ func (r *WireguardReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 		}
 
 		filteredPeers = append(filteredPeers, peer)
-		wgConfig = wgConfig + fmt.Sprintf("\n[Peer]\nPublicKey = %s\nallowedIps = %s\n\n", peer.Spec.PublicKey, peer.Spec.Address)
 	}
 
 	svcFound := &corev1.Service{}
@@ -455,7 +451,7 @@ func (r *WireguardReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 		state := agent.State{
 			Server:           *wireguard.DeepCopy(),
 			ServerPrivateKey: privateKey,
-			Peers:            peers.Items,
+			Peers:            filteredPeers,
 		}
 
 		b, err := json.Marshal(state)
@@ -514,7 +510,7 @@ func (r *WireguardReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 		state := agent.State{
 			Server:           *wireguard.DeepCopy(),
 			ServerPrivateKey: privateKey,
-			Peers:            peers.Items,
+			Peers:            filteredPeers,
 		}
 
 		b, err := json.Marshal(state)

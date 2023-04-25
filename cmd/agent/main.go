@@ -77,7 +77,7 @@ func main() {
 		Logger: log.WithName("iptables"),
 	}
 
-	close, err := agent.OnStateChange(configFilePath, func(state agent.State) {
+	close, err := agent.OnStateChange(configFilePath, log.WithName("onStateChange"), func(state agent.State) {
 		log.Info("Received a new state")
 		err := wg.Sync(state)
 		if err != nil {

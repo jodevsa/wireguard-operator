@@ -5,6 +5,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"github.com/go-logr/logr"
 	"log"
 	"os"
 	"path/filepath"
@@ -50,7 +51,7 @@ func isStateValid(state State) error {
 	return nil
 }
 
-func OnStateChange(path string, onFileChange func(State)) (func(), error) {
+func OnStateChange(path string, logger logr.Logger, onFileChange func(State)) (func(), error) {
 
 	dir := filepath.Dir(path)
 
@@ -83,27 +84,30 @@ func OnStateChange(path string, onFileChange func(State)) (func(), error) {
 				if !ok {
 					return
 				}
+				logger.V(7).Info("Received a new event", "filename", event.Name, "operation", event.Op.String())
 				if event.Has(fsnotify.Write) || event.Has(fsnotify.Create) {
 					if err != nil {
 						log.Println(err)
 					} else {
 						state, newHash, err := GetDesiredState(path)
+						logger.V(9).Info("State content changed", "oldHash", hash, "newHash", newHash)
 
 						if err != nil {
 							log.Println(err)
-						}
 
-						if newHash == hash {
-							continue
-						}
-						hash = newHash
+							if newHash == hash {
+								continue
+							}
+							logger.V(7).Info("State content changed", "oldHash", hash, "newHash", newHash)
+							hash = newHash
 
-						err = isStateValid(state)
+							err = isStateValid(state)
 
-						if err != nil {
-							log.Println("State is not valid: " + err.Error())
-						} else {
-							onFileChange(state)
+							if err != nil {
+								logger.Error(err, "State is not valid")
+							} else {
+								onFileChange(state)
+							}
 						}
 					}
 				}
