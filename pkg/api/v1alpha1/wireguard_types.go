@@ -30,7 +30,7 @@ const (
 
 type WgStatusReport struct {
 	// A string field that represents the current status of Wireguard. This could include values like ready, pending, or error.
-	Status  string `json:"status,omitempty"`
+	Status string `json:"status,omitempty"`
 	// A string field that provides additional information about the status of Wireguard. This could include error messages or other information that helps to diagnose issues with the wg instance.
 	Message string `json:"message,omitempty"`
 }
@@ -38,25 +38,26 @@ type WgStatusReport struct {
 // WireguardSpec defines the desired state of Wireguard
 type WireguardSpec struct {
 	// A string field that specifies the maximum transmission unit (MTU) size for Wireguard packets for all peers.
-	Mtu                      string             `json:"mtu,omitempty"`
+	Mtu string `json:"mtu,omitempty"`
 	// A string field that specifies the address for the Wireguard VPN server. This is the public IP address or hostname that peers will use to connect to the VPN.
-	Address                  string             `json:"address,omitempty"`
+	Address string `json:"address,omitempty"`
 	// A string field that specifies the DNS server(s) to be used by the peers.
-	Dns                      string             `json:"dns,omitempty"`
+	Dns string `json:"dns,omitempty"`
 	// A field that specifies the type of Kubernetes service that should be used for the Wireguard VPN. This could be NodePort or LoadBalancer, depending on the needs of the deployment.
-	ServiceType              corev1.ServiceType `json:"serviceType,omitempty"`
+	ServiceType corev1.ServiceType `json:"serviceType,omitempty"`
 	// A boolean field that specifies whether IP forwarding should be enabled on the Wireguard VPN pod at startup. This can be useful to enable if the peers are having problems with sending traffic to the internet.
-	EnableIpForwardOnPodInit bool               `json:"enableIpForwardOnPodInit,omitempty"`
+	EnableIpForwardOnPodInit bool `json:"enableIpForwardOnPodInit,omitempty"`
 }
 
 // WireguardStatus defines the observed state of Wireguard
 type WireguardStatus struct {
 	// A string field that specifies the address for the Wireguard VPN server that is currently being used.
 	Address string `json:"address,omitempty"`
+	Dns     string `json:"dns,omitempty"`
 	// A string field that specifies the port for the Wireguard VPN server that is currently being used.
-	Port    string `json:"port,omitempty"`
+	Port string `json:"port,omitempty"`
 	// A string field that represents the current status of Wireguard. This could include values like ready, pending, or error.
-	Status  string `json:"status,omitempty"`
+	Status string `json:"status,omitempty"`
 	// A string field that provides additional information about the status of Wireguard. This could include error messages or other information that helps to diagnose issues with the wg instance.
 	Message string `json:"message,omitempty"`
 }
