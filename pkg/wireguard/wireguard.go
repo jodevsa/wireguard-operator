@@ -272,7 +272,7 @@ func createPeersConfiguration(state agent.State, iface string) ([]wgtypes.PeerCo
 					PublicKey:  peer.PublicKey,
 				}
 				peerConfigurationByPublicKey[p.PublicKey.String()] = p
-			} else if peer.AllowedIPs[0].String() != peerState.Spec.Address {
+			} else if peer.AllowedIPs[0].IP.String() != peerState.Spec.Address {
 				// update peer
 				p := wgtypes.PeerConfig{
 					UpdateOnly:        true,
