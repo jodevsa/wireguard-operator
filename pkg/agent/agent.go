@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/go-logr/logr"
-	"log"
 	"os"
 	"path/filepath"
 
@@ -70,7 +69,7 @@ func OnStateChange(path string, logger logr.Logger, onFileChange func(State)) (f
 		err := isStateValid(state)
 
 		if err != nil {
-			log.Println("State is not valid: " + err.Error())
+			logger.Error(err, "State is not valid")
 		} else {
 			onFileChange(state)
 		}
@@ -84,39 +83,37 @@ func OnStateChange(path string, logger logr.Logger, onFileChange func(State)) (f
 				if !ok {
 					return
 				}
-				logger.V(7).Info("Received a new event", "filename", event.Name, "operation", event.Op.String())
+				logger.V(9).Info("Received a new event", "filename", event.Name, "operation", event.Op.String())
 				if event.Has(fsnotify.Write) || event.Has(fsnotify.Create) {
+
+					state, newHash, err := GetDesiredState(path)
 					if err != nil {
-						log.Println(err)
-					} else {
-						state, newHash, err := GetDesiredState(path)
-						logger.V(9).Info("State content changed", "oldHash", hash, "newHash", newHash)
-
-						if err != nil {
-							log.Println(err)
-
-							if newHash == hash {
-								continue
-							}
-							logger.V(7).Info("State content changed", "oldHash", hash, "newHash", newHash)
-							hash = newHash
-
-							err = isStateValid(state)
-							print("here.....")
-							if err != nil {
-								println(err.Error())
-								logger.Error(err, "State is not valid")
-							} else {
-								onFileChange(state)
-							}
-						}
+						logger.Error(err, "unable to read or parse state")
+						continue
 					}
+
+					if newHash == hash {
+						logger.V(9).Info("Received a new event but state content did not change")
+						continue
+					}
+
+					logger.V(9).Info("State content changed", "oldHash", hash, "newHash", newHash)
+					hash = newHash
+
+					err = isStateValid(state)
+
+					if err != nil {
+						logger.Error(err, "State is not valid")
+						continue
+					}
+
+					onFileChange(state)
 				}
 			case err, ok := <-watcher.Errors:
 				if !ok {
 					return
 				}
-				log.Println("error:", err)
+				logger.Error(err, "watcher error")
 			}
 		}
 	}()

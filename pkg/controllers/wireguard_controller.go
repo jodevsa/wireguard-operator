@@ -274,8 +274,6 @@ func (r *WireguardReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 		return ctrl.Result{}, nil
 	}
 
-
-
 	// wireguardpeer
 	peers := &v1alpha1.WireguardPeerList{}
 	// TODO add a label to wireguardpeers and then filter by label here to only get peers of the wg instance we need.
@@ -784,7 +782,7 @@ func (r *WireguardReconciler) deploymentForWireguard(m *v1alpha1.Wireguard, imag
 							Image:           image,
 							ImagePullPolicy: "IfNotPresent",
 							Name:            "agent",
-							Command:         []string{"agent", "--v", "5", "--wg-iface", "wg0", "--wg-listen-port", fmt.Sprintf("%d", port), "--state", "/tmp/wireguard/state.json", "--wg-userspace-implementation-fallback", "wireguard-go", "--wg-use-userspace-implementation"},
+							Command:         []string{"agent", "--v", "11", "--wg-iface", "wg0", "--wg-listen-port", fmt.Sprintf("%d", port), "--state", "/tmp/wireguard/state.json", "--wg-userspace-implementation-fallback", "wireguard-go", "--wg-use-userspace-implementation"},
 							Ports: []corev1.ContainerPort{
 								{
 									ContainerPort: port,
