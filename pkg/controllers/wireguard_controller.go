@@ -788,7 +788,7 @@ func (r *WireguardReconciler) deploymentForWireguard(m *v1alpha1.Wireguard, imag
 							Image:           image,
 							ImagePullPolicy: "IfNotPresent",
 							Name:            "agent",
-							Command:         []string{"agent", "--wg-iface", "wg0", "--wg-listen-port", fmt.Sprintf("%d", port), "--state", "/tmp/wireguard/state.json", "--wg-userspace-implementation-fallback", "wireguard-go", "--wg-use-userspace-implementation"},
+							Command:         []string{"agent", "--v", "5", "--wg-iface", "wg0", "--wg-listen-port", fmt.Sprintf("%d", port), "--state", "/tmp/wireguard/state.json", "--wg-userspace-implementation-fallback", "wireguard-go", "--wg-use-userspace-implementation"},
 							Ports: []corev1.ContainerPort{
 								{
 									ContainerPort: port,

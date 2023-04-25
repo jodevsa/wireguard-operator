@@ -162,7 +162,7 @@ func SyncLink(_ agent.State, iface string, wgUserspaceImplementationFallback str
 	return nil
 }
 
-func syncWireguard(state agent.State, iface string, listenPort int) error {
+func (wg *Wireguard) syncWireguard(state agent.State, iface string, listenPort int) error {
 	c, _ := wgctrl.New()
 	cfg, err := CreateWireguardConfiguration(state, iface, listenPort)
 	if err != nil {
@@ -172,6 +172,16 @@ func syncWireguard(state agent.State, iface string, listenPort int) error {
 	err = c.ConfigureDevice(iface, cfg)
 	if err != nil {
 		return err
+	}
+
+	for _, peer := range cfg.Peers {
+		if peer.Remove {
+			wg.Logger.V(2).Info("Removed peer", "peerIP",peer.AllowedIPs[0].String(), "peerPublicKey", peer.PublicKey.String())
+		} else if peer.UpdateOnly {
+			wg.Logger.V(2).Info("Updated peer", "peerIP",peer.AllowedIPs[0].String(), "peerPublicKey", peer.PublicKey.String())
+		} else {
+			wg.Logger.V(2).Info("Added peer", "peerIP",peer.AllowedIPs[0].String(), "peerPublicKey", peer.PublicKey.String())
+		}
 	}
 
 	return nil
@@ -207,7 +217,7 @@ func (wg *Wireguard) Sync(state agent.State) error {
 	}
 
 	// sync wg configuration
-	err = syncWireguard(state, wg.Iface, wg.ListenPort)
+	err = wg.syncWireguard(state, wg.Iface, wg.ListenPort)
 	if err != nil {
 		return err
 	}
