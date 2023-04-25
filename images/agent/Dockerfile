@@ -21,7 +21,7 @@ RUN go mod download
 
 
 
-RUN go build -o agent cmd/agent/main.go
+RUN go build -o agent -x cmd/agent/main.go
 
 ARG WIREGUARD_GO_SRC
 
