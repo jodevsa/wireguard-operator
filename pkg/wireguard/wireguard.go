@@ -176,11 +176,11 @@ func (wg *Wireguard) syncWireguard(state agent.State, iface string, listenPort i
 
 	for _, peer := range cfg.Peers {
 		if peer.Remove {
-			wg.Logger.V(2).Info("Removed peer", "peerIP",peer.AllowedIPs[0].String(), "peerPublicKey", peer.PublicKey.String())
+			wg.Logger.V(2).Info("Removed peer", "peerIP", peer.AllowedIPs[0].String(), "peerPublicKey", peer.PublicKey.String())
 		} else if peer.UpdateOnly {
-			wg.Logger.V(2).Info("Updated peer", "peerIP",peer.AllowedIPs[0].String(), "peerPublicKey", peer.PublicKey.String())
+			wg.Logger.V(2).Info("Updated peer", "peerIP", peer.AllowedIPs[0].String(), "peerPublicKey", peer.PublicKey.String())
 		} else {
-			wg.Logger.V(2).Info("Added peer", "peerIP",peer.AllowedIPs[0].String(), "peerPublicKey", peer.PublicKey.String())
+			wg.Logger.V(2).Info("Added peer", "peerIP", peer.AllowedIPs[0].String(), "peerPublicKey", peer.PublicKey.String())
 		}
 	}
 
@@ -250,8 +250,11 @@ func createPeersConfiguration(state agent.State, iface string) ([]wgtypes.PeerCo
 	}
 
 	var peerConfigurationByPublicKey = make(map[string]wgtypes.PeerConfig)
+	var existingConfgiuredPeersByPublicKey = make(map[string]bool)
 
 	for _, peer := range device.Peers {
+
+		existingConfgiuredPeersByPublicKey[peer.PublicKey.String()] = true
 
 		peerState, ok := peersState[peer.PublicKey.String()]
 		if !ok {
@@ -302,7 +305,7 @@ func createPeersConfiguration(state agent.State, iface string) ([]wgtypes.PeerCo
 			return []wgtypes.PeerConfig{}, err
 		}
 
-		_, ok := peerConfigurationByPublicKey[key.String()]
+		_, ok := existingConfgiuredPeersByPublicKey[key.String()]
 		if ok {
 			continue
 		}
