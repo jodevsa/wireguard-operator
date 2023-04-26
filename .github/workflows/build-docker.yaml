@@ -1,8 +1,6 @@
 name: Build Docker Images
 
 on: [push, pull_request]
-env:
-  TARGET_PLATFORMS: linux/amd64,linux/arm64
 
 jobs: 
   build-agent-docker:
