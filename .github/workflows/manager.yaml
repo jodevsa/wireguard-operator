@@ -37,13 +37,13 @@ jobs:
       id: manager-meta
       uses: docker/metadata-action@v4
       with:
-        images: ghcr.io/${{ github.repository_owner }}/wireguard-operator-manager
+        images: ghcr.io/${{ github.repository_owner }}/wireguard-operator/manager
 
     - uses: actions/setup-go@v3
       with:
         go-version: '^1.19'
 
-    - name: Build and push manager for arm64
+    - name: Build and push manager
       uses: docker/build-push-action@v3
       with:
         context: .

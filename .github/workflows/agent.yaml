@@ -37,13 +37,13 @@ jobs:
       id: agent-meta
       uses: docker/metadata-action@v4
       with:
-        images: ghcr.io/${{ github.repository_owner }}/wireguard-operator-agent
+        images: ghcr.io/${{ github.repository_owner }}/wireguard-operator/agent
 
     - uses: actions/setup-go@v3
       with:
         go-version: '^1.19'
 
-    - name: Build and push agent for arm64
+    - name: Build and push agent
       uses: docker/build-push-action@v3
       with:
         context: .
