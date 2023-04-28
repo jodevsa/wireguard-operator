@@ -1,8 +1,4 @@
 name: DEV Release
-env:
-  TARGET_PLATFORMS: linux/amd64
-  REGISTRY: ghcr.io
-  IMAGE_NAME: ${{ github.repository }}
 on:
   workflow_dispatch:
     inputs:
@@ -16,6 +12,16 @@ on:
         required: true
         default: 'jodevsa/wireguard-operator'
         type: string
+      platforms:
+        description: 'Docker image platforms'
+        required: true
+        default: 'linux/amd64, linux/arm64'
+        type: string
+
+env:
+  TARGET_PLATFORMS: ${{ inputs.platfroms }}
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
 
 permissions:
   contents: read
