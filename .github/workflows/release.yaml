@@ -2,15 +2,15 @@ name: DEV Release
 on:
   workflow_dispatch:
     inputs:
-      branch:
-        description: 'The branch, tag or SHA to checkout.'
-        required: true
-        default: 'main'
-        type: string
       repository:
         description: 'Repository name with owner.'
         required: true
         default: 'jodevsa/wireguard-operator'
+        type: string
+      branch:
+        description: 'The branch, tag or SHA to checkout.'
+        required: true
+        default: 'main'
         type: string
       platforms:
         description: 'Docker image platforms'
@@ -61,6 +61,7 @@ jobs:
           file: ./images/manager/Dockerfile
           context: ./
           push: true
+          platforms: ${{ env.TARGET_PLATFORMS }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
 
@@ -106,6 +107,7 @@ jobs:
           file: ./images/agent/Dockerfile
           context: ./
           push: true
+          platforms: ${{ env.TARGET_PLATFORMS }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
 
