@@ -60,7 +60,7 @@ jobs:
           file: ./images/manager/Dockerfile
           context: ./
           push: true
-          platforms: ${{ inputs.platfroms }}
+          platforms: ${{ inputs.platforms }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
 
@@ -106,7 +106,7 @@ jobs:
           file: ./images/agent/Dockerfile
           context: ./
           push: true
-          platforms: ${{ inputs.platfroms }}
+          platforms: ${{ inputs.platforms }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
 
