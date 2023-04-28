@@ -26,7 +26,6 @@ ARG WIREGUARD_GO_SRC
 WORKDIR $WIREGUARD_GO_SRC
 RUN set -eux; \
     git clone https://github.com/WireGuard/wireguard-go.git . ;\
-    make generate-version-and-build ;\
     CGO_ENABLED=0 GOOS=${TARGETOS} GOARCH=${TARGETARCH} go build -o wireguard-go ;
 # end of step 2
 
