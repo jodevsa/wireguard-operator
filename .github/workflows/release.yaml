@@ -19,7 +19,6 @@ on:
         type: string
 
 env:
-  TARGET_PLATFORMS: ${{ inputs.platfroms }}
   REGISTRY: ghcr.io
   IMAGE_NAME: ${{ github.repository }}
 
@@ -61,7 +60,7 @@ jobs:
           file: ./images/manager/Dockerfile
           context: ./
           push: true
-          platforms: ${{ env.TARGET_PLATFORMS }}
+          platforms: ${{ inputs.platfroms }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
 
@@ -107,7 +106,7 @@ jobs:
           file: ./images/agent/Dockerfile
           context: ./
           push: true
-          platforms: ${{ env.TARGET_PLATFORMS }}
+          platforms: ${{ inputs.platfroms }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
 
