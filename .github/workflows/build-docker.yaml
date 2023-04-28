@@ -1,14 +1,22 @@
 name: Build Docker Images
+env:
+  TARGET_PLATFORMS: linux/amd64,linux/arm64
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+on:
+  pull_request: {}
+  push:
+    branches:
+      - 'main'
 
-on: [push, pull_request]
+permissions:
+  contents: read
+  packages: write
 
 jobs: 
-  build-agent-docker:
+  build-images:
     strategy:
       matrix:
-        platform:
-          - linux/amd64
-          - linux/arm64
         image:
           - manager
           - agent
@@ -41,18 +49,18 @@ jobs:
       id: image-meta
       uses: docker/metadata-action@v4
       with:
-        images: ghcr.io/${{ github.repository_owner }}/wireguard-operator/${{ matrix.image }}
+        images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/${{ matrix.image }}
 
     - uses: actions/setup-go@v3
       with:
-        go-version: '^1.19'
+        go-version: '^1.20'
 
     - name: Build and push docker image
       uses: docker/build-push-action@v3
       with:
         context: .
         file: images/${{ matrix.image }}/Dockerfile
-        platforms: ${{ matrix.platform }}
+        platforms: ${{ env.TARGET_PLATFORMS }}
         push: ${{ github.event_name != 'pull_request' }}
         tags: ${{ steps.image-meta.outputs.tags }}
         labels: ${{ steps.image-meta.outputs.labels }}
