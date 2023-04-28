@@ -1,4 +1,4 @@
-name: release
+name: DEV Release
 env:
   TARGET_PLATFORMS: linux/amd64
   REGISTRY: ghcr.io
@@ -12,7 +12,7 @@ on:
         default: 'main'
         type: string
       repository:
-        description: 'Repository name with owner. For example, jodevsa/wireguard-operator'
+        description: 'Repository name with owner.'
         required: true
         default: 'jodevsa/wireguard-operator'
         type: string
@@ -124,8 +124,8 @@ jobs:
 
       - name: prepare new release
         env:
-          OPERATOR_IMAGE: ${{ needs.build-agent.outputs.image }}
-          WIREGUARD_IMAGE: ${{ needs.build-manager.outputs.image }}
+          OPERATOR_IMAGE: ${{ needs.build-manager.outputs.image }}
+          WIREGUARD_IMAGE: ${{ needs.build-agent.outputs.image }}
         run : |
           printf "WIREGUARD_IMAGE: \"$WIREGUARD_IMAGE\"\nOPERATOR_IMAGE: \"$OPERATOR_IMAGE\"" > release-config.yaml
           envsubst < ./config/default/manager_auth_proxy_patch.yaml.template > ./config/default/manager_auth_proxy_patch.yaml
