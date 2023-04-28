@@ -1,0 +1,108 @@
+name: Build Docker Images
+env:
+  TARGET_PLATFORMS: linux/amd64,linux/arm64
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+on:
+  workflow_dispatch
+  inputs:
+    branch:
+      description: 'The branch, tag or SHA to checkout.'
+      required: true
+      default: 'wireguard-operator'
+      type: string
+    repository:
+      description: 'Repository name with owner. For example, jodevsa/wireguard-operator'
+      required: true
+      default: 'jodevsa/wireguard-operator'
+      type: string
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  build-images:
+    strategy:
+      matrix:
+        image:
+          - manager
+          - agent
+    runs-on: ubuntu-latest
+
+    steps:
+
+      - uses: actions/checkout@v3
+        name: Checkout repository
+        with:
+          repository: ${{ inputs.repository }}
+          ref: ${{ inputs.branch }}
+          submodules: true
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v2
+
+      - name: Set up Docker Buildx
+        id: buildx
+        uses: docker/setup-buildx-action@v2
+        with:
+          install: true
+
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v2
+        with:
+          registry: ghcr.io
+          username: ${{ github.repository_owner }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Generate docker metadata
+        id: image-meta
+        uses: docker/metadata-action@v4
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/${{ matrix.image }}
+
+      - uses: actions/setup-go@v3
+        with:
+          go-version: '^1.20'
+
+      - name: Build and push docker image
+        uses: docker/build-push-action@v3
+        with:
+          context: .
+          file: images/${{ matrix.image }}/Dockerfile
+          platforms: ${{ env.TARGET_PLATFORMS }}
+          push: true
+          tags: ${{ steps.image-meta.outputs.tags }}
+          labels: ${{ steps.image-meta.outputs.labels }}
+
+save-release:
+  needs: [build-images]
+  runs-on: ubuntu-latest
+  steps:
+    - name: Set up Go
+      uses: actions/setup-go@v2
+      with:
+        go-version: 1.20
+
+    - name: Checkout repository
+      uses: actions/checkout@v3
+      with:
+        repository: ${{ inputs.repository }}
+        ref: ${{ inputs.branch }}
+        submodules: true
+
+    - name: prepare new release
+      env:
+        OPERATOR_IMAGE: ${{ needs.build-operator.outputs.image }}
+        WIREGUARD_IMAGE: ${{ needs.build-wireguard.outputs.image }}
+      run : |
+        printf "WIREGUARD_IMAGE: \"$WIREGUARD_IMAGE\"\nOPERATOR_IMAGE: \"$OPERATOR_IMAGE\"" > release-config.yaml
+        envsubst < ./config/default/manager_auth_proxy_patch.yaml.template > ./config/default/manager_auth_proxy_patch.yaml
+        make update-controller-image
+        make update-installation-yaml
+
+    - name: upload release
+      uses: actions/upload-artifact@v3
+      with:
+        name: my-artifact
+        path: path/to/artifact/world.txt
