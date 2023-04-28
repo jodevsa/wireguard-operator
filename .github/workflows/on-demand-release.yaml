@@ -1,4 +1,4 @@
-name: Build Docker Images
+name: release
 env:
   TARGET_PLATFORMS: linux/amd64,linux/arm64
   REGISTRY: ghcr.io
