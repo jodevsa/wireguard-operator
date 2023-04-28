@@ -24,9 +24,7 @@ permissions:
 jobs:
   build-manager:
     runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      packages: write
+
     steps:
 
       - name: Checkout repository
@@ -35,6 +33,13 @@ jobs:
           repository: ${{ inputs.repository }}
           ref: ${{ inputs.branch }}
           submodules: true
+  
+      - name: Log in to the Container registry
+        uses: docker/login-action@f054a8b539a109f9f41c372932f1ae047eff08c9
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Extract metadata (tags, labels) for Docker
         id: meta
@@ -42,7 +47,7 @@ jobs:
         with:
           tags: |
             type=sha,format=long
-          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/operator
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/manager
 
       - name: Build and push Docker image
         uses: docker/build-push-action@ad44023a93711e3deb337508980b4b5e9bcdc5dc
@@ -58,9 +63,6 @@ jobs:
 
   build-agent:
     runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      packages: write
 
     steps:
       - name: Checkout repository
@@ -90,7 +92,7 @@ jobs:
         with:
           tags: |
             type=sha,format=long
-          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/wireguard
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/agent
 
       - name: Build and push Docker image
         uses: docker/build-push-action@ad44023a93711e3deb337508980b4b5e9bcdc5dc
