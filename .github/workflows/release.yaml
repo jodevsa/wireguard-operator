@@ -1,6 +1,6 @@
 name: release
 env:
-  TARGET_PLATFORMS: linux/amd64,linux/arm64
+  TARGET_PLATFORMS: linux/amd64
   REGISTRY: ghcr.io
   IMAGE_NAME: ${{ github.repository }}
 on:
@@ -9,7 +9,7 @@ on:
       branch:
         description: 'The branch, tag or SHA to checkout.'
         required: true
-        default: 'wireguard-operator'
+        default: 'main'
         type: string
       repository:
         description: 'Repository name with owner. For example, jodevsa/wireguard-operator'
@@ -22,62 +22,77 @@ permissions:
   packages: write
 
 jobs:
-  build-images:
-    strategy:
-      matrix:
-        image:
-          - manager
-          - agent
+  build-manager:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
 
-    steps:
-
-      - uses: actions/checkout@v3
-        name: Checkout repository
-        with:
-          repository: ${{ inputs.repository }}
-          ref: ${{ inputs.branch }}
-          submodules: true
-
-      - name: Set up QEMU
-        uses: docker/setup-qemu-action@v2
-
-      - name: Set up Docker Buildx
-        id: buildx
-        uses: docker/setup-buildx-action@v2
-        with:
-          install: true
-
-      - name: Login to GitHub Container Registry
-        uses: docker/login-action@v2
-        with:
-          registry: ghcr.io
-          username: ${{ github.repository_owner }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Generate docker metadata
-        id: image-meta
-        uses: docker/metadata-action@v4
-        with:
-          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/${{ matrix.image }}
-
-      - uses: actions/setup-go@v3
-        with:
-          go-version: '^1.20'
-
-      - name: Build and push docker image
-        uses: docker/build-push-action@v3
+      - name: Extract metadata (tags, labels) for Docker
+        id: meta
+        uses: docker/metadata-action@98669ae865ea3cffbcbaa878cf57c20bbf1c6c38
         with:
           tags: |
             type=sha,format=long
-          context: .
-          file: images/${{ matrix.image }}/Dockerfile
-          platforms: ${{ env.TARGET_PLATFORMS }}
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/operator
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@ad44023a93711e3deb337508980b4b5e9bcdc5dc
+        with:
+          file: ./images/manager/Dockerfile
+          context: ./
           push: true
-          labels: ${{ steps.image-meta.outputs.labels }}
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+    outputs:
+      image: ${{ steps.meta.outputs.tags }}
+
+  build-agent:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v2
+
+      - name: Log in to the Container registry
+        uses: docker/login-action@f054a8b539a109f9f41c372932f1ae047eff08c9
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Log in to the Container registry
+        uses: docker/login-action@f054a8b539a109f9f41c372932f1ae047eff08c9
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract metadata (tags, labels) for Docker
+        id: meta
+        uses: docker/metadata-action@98669ae865ea3cffbcbaa878cf57c20bbf1c6c38
+        with:
+          tags: |
+            type=sha,format=long
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/wireguard
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@ad44023a93711e3deb337508980b4b5e9bcdc5dc
+        with:
+          file: ./images/agent/Dockerfile
+          context: ./
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+
+    outputs:
+      image: ${{ steps.meta.outputs.tags }}
 
   save-release:
-    needs: [build-images]
+    needs: [build-agent, build-manager]
     runs-on: ubuntu-latest
     steps:
       - name: Set up Go
@@ -94,16 +109,17 @@ jobs:
 
       - name: prepare new release
         env:
-          OPERATOR_IMAGE: ${{ needs.build-operator.outputs.image }}
-          WIREGUARD_IMAGE: ${{ needs.build-wireguard.outputs.image }}
+          OPERATOR_IMAGE: ${{ needs.build-agent.outputs.image }}
+          WIREGUARD_IMAGE: ${{ needs.build-manager.outputs.image }}
         run : |
           printf "WIREGUARD_IMAGE: \"$WIREGUARD_IMAGE\"\nOPERATOR_IMAGE: \"$OPERATOR_IMAGE\"" > release-config.yaml
           envsubst < ./config/default/manager_auth_proxy_patch.yaml.template > ./config/default/manager_auth_proxy_patch.yaml
           make update-controller-image
           make update-installation-yaml
+          mv ./release.yaml /tmp/release.yaml
 
       - name: upload release
         uses: actions/upload-artifact@v3
         with:
-          name: my-artifact
-          path: path/to/artifact/world.txt
+          name: release.yaml
+          path: /tmp/release.yaml
