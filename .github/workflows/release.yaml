@@ -76,34 +76,34 @@ jobs:
           push: true
           labels: ${{ steps.image-meta.outputs.labels }}
 
-save-release:
-  needs: [build-images]
-  runs-on: ubuntu-latest
-  steps:
-    - name: Set up Go
-      uses: actions/setup-go@v2
-      with:
-        go-version: 1.20
+  save-release:
+    needs: [build-images]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Set up Go
+        uses: actions/setup-go@v2
+        with:
+          go-version: 1.20
 
-    - name: Checkout repository
-      uses: actions/checkout@v3
-      with:
-        repository: ${{ inputs.repository }}
-        ref: ${{ inputs.branch }}
-        submodules: true
+      - name: Checkout repository
+        uses: actions/checkout@v3
+        with:
+          repository: ${{ inputs.repository }}
+          ref: ${{ inputs.branch }}
+          submodules: true
 
-    - name: prepare new release
-      env:
-        OPERATOR_IMAGE: ${{ needs.build-operator.outputs.image }}
-        WIREGUARD_IMAGE: ${{ needs.build-wireguard.outputs.image }}
-      run : |
-        printf "WIREGUARD_IMAGE: \"$WIREGUARD_IMAGE\"\nOPERATOR_IMAGE: \"$OPERATOR_IMAGE\"" > release-config.yaml
-        envsubst < ./config/default/manager_auth_proxy_patch.yaml.template > ./config/default/manager_auth_proxy_patch.yaml
-        make update-controller-image
-        make update-installation-yaml
+      - name: prepare new release
+        env:
+          OPERATOR_IMAGE: ${{ needs.build-operator.outputs.image }}
+          WIREGUARD_IMAGE: ${{ needs.build-wireguard.outputs.image }}
+        run : |
+          printf "WIREGUARD_IMAGE: \"$WIREGUARD_IMAGE\"\nOPERATOR_IMAGE: \"$OPERATOR_IMAGE\"" > release-config.yaml
+          envsubst < ./config/default/manager_auth_proxy_patch.yaml.template > ./config/default/manager_auth_proxy_patch.yaml
+          make update-controller-image
+          make update-installation-yaml
 
-    - name: upload release
-      uses: actions/upload-artifact@v3
-      with:
-        name: my-artifact
-        path: path/to/artifact/world.txt
+      - name: upload release
+        uses: actions/upload-artifact@v3
+        with:
+          name: my-artifact
+          path: path/to/artifact/world.txt
