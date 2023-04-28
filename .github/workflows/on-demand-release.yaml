@@ -4,18 +4,18 @@ env:
   REGISTRY: ghcr.io
   IMAGE_NAME: ${{ github.repository }}
 on:
-  workflow_dispatch
-  inputs:
-    branch:
-      description: 'The branch, tag or SHA to checkout.'
-      required: true
-      default: 'wireguard-operator'
-      type: string
-    repository:
-      description: 'Repository name with owner. For example, jodevsa/wireguard-operator'
-      required: true
-      default: 'jodevsa/wireguard-operator'
-      type: string
+  workflow_dispatch:
+    inputs:
+      branch:
+        description: 'The branch, tag or SHA to checkout.'
+        required: true
+        default: 'wireguard-operator'
+        type: string
+      repository:
+        description: 'Repository name with owner. For example, jodevsa/wireguard-operator'
+        required: true
+        default: 'jodevsa/wireguard-operator'
+        type: string
 
 permissions:
   contents: read
