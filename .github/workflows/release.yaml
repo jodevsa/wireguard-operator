@@ -68,11 +68,12 @@ jobs:
       - name: Build and push docker image
         uses: docker/build-push-action@v3
         with:
+          tags: |
+            type=sha,format=long
           context: .
           file: images/${{ matrix.image }}/Dockerfile
           platforms: ${{ env.TARGET_PLATFORMS }}
           push: true
-          tags: ${{ steps.image-meta.outputs.tags }}
           labels: ${{ steps.image-meta.outputs.labels }}
 
 save-release:
