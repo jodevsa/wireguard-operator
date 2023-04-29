@@ -73,7 +73,7 @@ COPY --from=golang-builder $WIREGUARD_GO_SRC/wireguard-go /usr/local/bin
 COPY --from=golang-builder $WIREGUARD_AGENT_SRC/agent /usr/local/bin
 COPY --from=rust-builder $PROMETHEUS_WIREGUARD_EXPORTER_SRC/prometheus_wireguard_exporter /usr/local/bin
 
-WORKDIR /etc/wireguard
+WORKDIR /
 
 ENTRYPOINT ["agent"]
 # end of step 4
