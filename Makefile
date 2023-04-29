@@ -83,7 +83,6 @@ all: build
 # https://en.wikipedia.org/wiki/ANSI_escape_code#SGR_parameters
 # More info on the awk command:
 # http://linuxcommand.org/lc3_adv_awk.php
-subhi:
 
 help: ## Display this help.
 	@awk 'BEGIN {FS = ":.*##"; printf "\nUsage:\n  make \033[36m<target>\033[0m\n"} /^[a-zA-Z_0-9-]+:.*?##/ { printf "  \033[36m%-15s\033[0m %s\n", $$1, $$2 } /^##@/ { printf "\n\033[1m%s\033[0m\n", substr($$0, 5) } ' $(MAKEFILE_LIST)
@@ -142,7 +141,6 @@ update-manager-image: kustomize
 
 generate-release-file: kustomize update-agent-image update-manager-image
 	$(KUSTOMIZE) build config/default > release.yaml
-	git checkout ./config/default/manager_auth_proxy_patch.yaml.template
 	git checkout ./config/default/manager_auth_proxy_patch.yaml
 	git checkout ./config/manager/kustomization.yaml
 

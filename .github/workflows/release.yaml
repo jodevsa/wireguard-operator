@@ -141,8 +141,8 @@ jobs:
 
       - name: prepare new release
         env:
-          OPERATOR_IMAGE: ${{ needs.build-manager.outputs.image }}
-          WIREGUARD_IMAGE: ${{ needs.build-agent.outputs.image }}
+          MANAGER_IMAGE: ${{ needs.build-manager.outputs.image }}
+          AGENT_IMAGE: ${{ needs.build-agent.outputs.image }}
         run : |
           make generate-release-file AGENT_IMAGE="$(AGENT_IMAGE)" MANAGER_IMAGE="$(MANAGER_IMAGE)"
           mv ./release.yaml /tmp/release.yaml
