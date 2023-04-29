@@ -144,10 +144,7 @@ jobs:
           OPERATOR_IMAGE: ${{ needs.build-manager.outputs.image }}
           WIREGUARD_IMAGE: ${{ needs.build-agent.outputs.image }}
         run : |
-          printf "WIREGUARD_IMAGE: \"$WIREGUARD_IMAGE\"\nOPERATOR_IMAGE: \"$OPERATOR_IMAGE\"" > release-config.yaml
-          envsubst < ./config/default/manager_auth_proxy_patch.yaml.template > ./config/default/manager_auth_proxy_patch.yaml
-          make update-controller-image
-          make update-installation-yaml
+          make generate-release-file AGENT_IMAGE="$(AGENT_IMAGE)" MANAGER_IMAGE="$(MANAGER_IMAGE)"
           mv ./release.yaml /tmp/release.yaml
 
       - name: upload release
