@@ -634,11 +634,7 @@ func (r *WireguardReconciler) serviceForWireguard(m *v1alpha1.Wireguard, service
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      m.Name + "-svc",
 			Namespace: m.Namespace,
-			Annotations: map[string]string{
-				"service.beta.kubernetes.io/aws-load-balancer-type":            "external",
-				"service.beta.kubernetes.io/aws-load-balancer-nlb-target-type": "ip",
-				"service.beta.kubernetes.io/aws-load-balancer-scheme":          "internet-facing",
-			},
+			Annotations: m.Spec.ServiceAnnotations,
 			Labels: labels,
 		},
 		Spec: corev1.ServiceSpec{
