@@ -15,6 +15,7 @@ require (
 	github.com/mdlayher/netlink v1.7.1 // indirect
 	github.com/onsi/ginkgo v1.16.4
 	github.com/onsi/gomega v1.24.1
+	github.com/pkg/errors v0.9.1
 	github.com/vishvananda/netlink v1.1.0
 	go.opentelemetry.io/contrib v0.20.0 // indirect
 	go.opentelemetry.io/otel/exporters/otlp v0.20.0 // indirect
