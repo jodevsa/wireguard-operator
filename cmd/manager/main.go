@@ -21,6 +21,7 @@ import (
 	"fmt"
 	vpnv1alpha1 "github.com/jodevsa/wireguard-operator/pkg/api/v1alpha1"
 	"github.com/jodevsa/wireguard-operator/pkg/controllers"
+	v1 "k8s.io/api/core/v1"
 	"os"
 
 	// Import all Kubernetes client auth plugins (e.g. Azure, GCP, OIDC, etc.)
@@ -49,16 +50,18 @@ func init() {
 }
 
 func main() {
+	var agentImagePullPolicy string
 	var metricsAddr string
 	var enableLeaderElection bool
 	var probeAddr string
 	var wgImage string
 	flag.StringVar(&metricsAddr, "metrics-bind-address", ":8080", "The address the metric endpoint binds to.")
 	flag.StringVar(&probeAddr, "health-probe-bind-address", ":8081", "The address the probe endpoint binds to.")
-	flag.StringVar(&wgImage, "wireguard-container-image", "", "The image used for wireguard server")
+	flag.StringVar(&wgImage, "agent-image", "", "The image used for wireguard server")
 	flag.BoolVar(&enableLeaderElection, "leader-elect", false,
 		"Enable leader election for controller manager. "+
 			"Enabling this will ensure there is only one active controller manager.")
+	flag.StringVar(&agentImagePullPolicy, "agent-image-pull-policy", "IfNotPresent", "Use userspace implementation")
 	opts := zap.Options{
 		Development: true,
 	}
@@ -86,9 +89,10 @@ func main() {
 	}
 
 	if err = (&controllers.WireguardReconciler{
-		Client:                  mgr.GetClient(),
-		Scheme:                  mgr.GetScheme(),
-		WireguardContainerImage: wgImage,
+		Client:               mgr.GetClient(),
+		Scheme:               mgr.GetScheme(),
+		AgentImage:           wgImage,
+		AgentImagePullPolicy: v1.PullPolicy(agentImagePullPolicy),
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "Wireguard")
 		os.Exit(1)

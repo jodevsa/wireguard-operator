@@ -1,13 +1,25 @@
 name: Build Docker Images
-
-on: [push, pull_request]
 env:
-  TARGET_PLATFORMS: linux/arm64
+  TARGET_PLATFORMS: linux/amd64,linux/arm64
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+on:
+  pull_request: {}
+  push:
+    branches:
+      - 'main'
 
-jobs:
+permissions:
+  contents: read
+  packages: write
 
-  build-agent-docker:
-
+jobs: 
+  build-images:
+    strategy:
+      matrix:
+        image:
+          - manager
+          - agent
     runs-on: ubuntu-latest
 
     steps:
@@ -33,22 +45,22 @@ jobs:
         username: ${{ github.repository_owner }}
         password: ${{ secrets.GITHUB_TOKEN }}
 
-    - name: Docker meta for agent
-      id: agent-meta
+    - name: Generate docker metadata
+      id: image-meta
       uses: docker/metadata-action@v4
       with:
-        images: ghcr.io/${{ github.repository_owner }}/wireguard-operator-agent
+        images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/${{ matrix.image }}
 
     - uses: actions/setup-go@v3
       with:
-        go-version: '^1.19'
+        go-version: '^1.20'
 
-    - name: Build and push agent for arm64
+    - name: Build and push docker image
       uses: docker/build-push-action@v3
       with:
         context: .
-        file: images/agent/Dockerfile
+        file: images/${{ matrix.image }}/Dockerfile
         platforms: ${{ env.TARGET_PLATFORMS }}
         push: ${{ github.event_name != 'pull_request' }}
-        tags: ${{ steps.agent-meta.outputs.tags }}
-        labels: ${{ steps.agent-meta.outputs.labels }}
+        tags: ${{ steps.image-meta.outputs.tags }}
+        labels: ${{ steps.image-meta.outputs.labels }}
