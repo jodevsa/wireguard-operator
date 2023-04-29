@@ -47,8 +47,9 @@ const metricsPort = 9586
 
 type WireguardReconciler struct {
 	client.Client
-	Scheme                  *runtime.Scheme
-	WireguardContainerImage string
+	Scheme               *runtime.Scheme
+	AgentImage           string
+	AgentImagePullPolicy corev1.PullPolicy
 }
 
 func labelsForWireguard(name string) map[string]string {
@@ -244,7 +245,7 @@ Endpoint = %s:%s"`, serverPublicKey, serverAddress, wireguard.Status.Port)
 func (r *WireguardReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	log := ctrllog.FromContext(ctx)
 
-	log.Info("loaded the following wireguard image:" + r.WireguardContainerImage)
+	log.Info("loaded the following wireguard image:" + r.AgentImage)
 
 	wireguard := &v1alpha1.Wireguard{}
 	log.Info(req.NamespacedName.Name)
@@ -576,7 +577,7 @@ func (r *WireguardReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 	deploymentFound := &appsv1.Deployment{}
 	err = r.Get(ctx, types.NamespacedName{Name: wireguard.Name + "-dep", Namespace: wireguard.Namespace}, deploymentFound)
 	if err != nil && errors.IsNotFound(err) {
-		dep := r.deploymentForWireguard(wireguard, r.WireguardContainerImage)
+		dep := r.deploymentForWireguard(wireguard)
 		log.Info("Creating a new dep", "dep.Namespace", dep.Namespace, "dep.Name", dep.Name)
 		err = r.Create(ctx, dep)
 		if err != nil {
@@ -590,8 +591,8 @@ func (r *WireguardReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 		return ctrl.Result{}, err
 	}
 
-	if deploymentFound.Spec.Template.Spec.Containers[0].Image != r.WireguardContainerImage {
-		dep := r.deploymentForWireguard(wireguard, r.WireguardContainerImage)
+	if deploymentFound.Spec.Template.Spec.Containers[0].Image != r.AgentImage {
+		dep := r.deploymentForWireguard(wireguard)
 		err = r.Update(ctx, dep)
 		if err != nil {
 			log.Error(err, "unable to update deployment image", "dep.Namespace", dep.Namespace, "dep.Name", dep.Name)
@@ -715,7 +716,7 @@ func (r *WireguardReconciler) secretForClient(m *v1alpha1.Wireguard, privateKey 
 
 }
 
-func (r *WireguardReconciler) deploymentForWireguard(m *v1alpha1.Wireguard, image string) *appsv1.Deployment {
+func (r *WireguardReconciler) deploymentForWireguard(m *v1alpha1.Wireguard) *appsv1.Deployment {
 	ls := labelsForWireguard(m.Name)
 	replicas := int32(1)
 
@@ -758,8 +759,8 @@ func (r *WireguardReconciler) deploymentForWireguard(m *v1alpha1.Wireguard, imag
 							SecurityContext: &corev1.SecurityContext{
 								Capabilities: &corev1.Capabilities{Add: []corev1.Capability{"NET_ADMIN"}},
 							},
-							Image:           image,
-							ImagePullPolicy: "IfNotPresent",
+							Image:           r.AgentImage,
+							ImagePullPolicy: r.AgentImagePullPolicy,
 							Name:            "metrics",
 							Command:         []string{"/usr/local/bin/prometheus_wireguard_exporter"},
 							Ports: []corev1.ContainerPort{
@@ -779,8 +780,8 @@ func (r *WireguardReconciler) deploymentForWireguard(m *v1alpha1.Wireguard, imag
 							SecurityContext: &corev1.SecurityContext{
 								Capabilities: &corev1.Capabilities{Add: []corev1.Capability{"NET_ADMIN"}},
 							},
-							Image:           image,
-							ImagePullPolicy: "IfNotPresent",
+							Image:           r.AgentImage,
+							ImagePullPolicy: r.AgentImagePullPolicy,
 							Name:            "agent",
 							Command:         []string{"agent", "--v", "11", "--wg-iface", "wg0", "--wg-listen-port", fmt.Sprintf("%d", port), "--state", "/tmp/wireguard/state.json", "--wg-userspace-implementation-fallback", "wireguard-go", "--wg-use-userspace-implementation"},
 							Ports: []corev1.ContainerPort{
@@ -816,8 +817,8 @@ func (r *WireguardReconciler) deploymentForWireguard(m *v1alpha1.Wireguard, imag
 				SecurityContext: &corev1.SecurityContext{
 					Privileged: &privileged,
 				},
-				Image:           image,
-				ImagePullPolicy: "IfNotPresent",
+				Image:           r.AgentImage,
+				ImagePullPolicy: r.AgentImagePullPolicy,
 				Name:            "sysctl",
 				Command:         []string{"/bin/sh"},
 				Args:            []string{"-c", "echo 1 > /proc/sys/net/ipv4/ip_forward"},

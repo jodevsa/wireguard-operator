@@ -79,9 +79,10 @@ var _ = BeforeSuite(func() {
 	Expect(err).ToNot(HaveOccurred())
 
 	err = (&WireguardReconciler{
-		Client:                  k8sManager.GetClient(),
-		Scheme:                  k8sManager.GetScheme(),
-		WireguardContainerImage: wgTestImage,
+		Client:               k8sManager.GetClient(),
+		Scheme:               k8sManager.GetScheme(),
+		AgentImagePullPolicy: "IfNotPresent",
+		AgentImage:           wgTestImage,
 	}).SetupWithManager(k8sManager)
 	Expect(err).ToNot(HaveOccurred())
 
