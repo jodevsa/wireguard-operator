@@ -1,2 +1,0 @@
-WIREGUARD_IMAGE: "ghcr.io/jodevsa/wireguard-operator/agent:main"
-OPERATOR_IMAGE: "ghcr.io/jodevsa/wireguard-operator/manager:main"
