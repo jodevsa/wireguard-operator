@@ -89,12 +89,15 @@ func (r *WireguardSidecarReconciler) hasAnnotationSidecar(obj runtime.Object) bo
 
     wgRef, ok := pod.Annotations["vpn.example.com/sidecar-wireguard-ref"]
     if !ok || wgRef == "" {
+		wireguardObj := &v1alpha1.Wireguard{}
+		err := r.Client.Get(context.Background(), types.NamespacedName{Name: wgRef}, wireguardObj)
+		if err != nil {
+			r.Log.Error(err, fmt.Sprintf("failed to get Wireguard object %s", wireguardName))
+			return false
+		}
         r.Log.Error(fmt.Errorf("missing or empty vpn.example.com/sidecar-wireguard-ref annotation for pod %s/%s", pod.Namespace, pod.Name), "failed to reconcile pod")
         return false
     }
-
-    // Validate the wireguard reference here
-    // ...
 
     // Create the wireguard peer object
     peer := &v1alpha1.WireguardPeer{
