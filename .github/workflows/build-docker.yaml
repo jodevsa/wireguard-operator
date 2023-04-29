@@ -20,6 +20,7 @@ jobs:
         image:
           - manager
           - agent
+          - sidecar
     runs-on: ubuntu-latest
 
     steps:
