@@ -24,6 +24,7 @@ import (
 	"github.com/jodevsa/wireguard-operator/pkg/api/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -103,16 +104,63 @@ func (r *WireguardSidecarReconciler) Reconcile(ctx context.Context, req ctrl.Req
 			return ctrl.Result{}, err
 		}
 
-		// Add the sidecar container to the pod spec
-		pod.Spec.Containers = append(pod.Spec.Containers, corev1.Container{
-			Name:            "wireagurd-sidecar",
-			Image:           r.SidecarImage,
-			ImagePullPolicy: r.SidecarImagePullPolicy,
+		peer := &v1alpha1.WireguardPeer{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      fmt.Sprintf("%s-sidecar", pod.Name),
+				Namespace: pod.Namespace,
+			},
+			Spec: v1alpha1.WireguardPeerSpec{
+				WireguardRef: ref,
+			},
+		}
+
+		err = r.Client.Create(context.Background(), peer)
+		if err != nil {
+			return ctrl.Result{}, fmt.Errorf("Unable to create peer %s", peer.Name)
+		}
+
+		// Create the configmap for the peer status config
+		configMapName := fmt.Sprintf("%s-sidecar", pod.Name)
+		configMap := &corev1.ConfigMap{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      configMapName,
+				Namespace: pod.Namespace,
+			},
+			Data: map[string]string{
+				"wg0.conf": peer.Status.Config,
+			},
+		}
+
+		err = r.Client.Create(context.Background(), configMap)
+		if err != nil {
+			return ctrl.Result{}, fmt.Errorf("Unable to create configMap %s", configMap.Name)
+		}
+
+		// Add the configmap volume to the pod spec
+		pod.Spec.Volumes = append(pod.Spec.Volumes, corev1.Volume{
+			Name: configMap.Name,
+			VolumeSource: corev1.VolumeSource{
+				ConfigMap: &corev1.ConfigMapVolumeSource{
+					LocalObjectReference: corev1.LocalObjectReference{
+						Name: configMap.Name,
+					},
+				},
+			},
 		})
 
-		if err := r.Update(ctx, &pod); err != nil {
-			return ctrl.Result{}, err
-		}
+		// Mount the configmap in the sidecar container
+		pod.Spec.Containers = append(pod.Spec.Containers, corev1.Container{
+			Name:            "wireguard-sidecar",
+			Image:           r.SidecarImage,
+			ImagePullPolicy: r.SidecarImagePullPolicy,
+			VolumeMounts: []corev1.VolumeMount{{
+				Name:      configMap.Name,
+				MountPath: "/etc/wireguard/wg0.conf",
+				SubPath:   "wg0.conf",
+			}},
+		})
+
+		return ctrl.Result{}, nil
 	}
 
 	return ctrl.Result{}, nil
