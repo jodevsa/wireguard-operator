@@ -160,6 +160,10 @@ func (r *WireguardSidecarReconciler) Reconcile(ctx context.Context, req ctrl.Req
 			}},
 		})
 
+		if err := r.Update(ctx, &pod); err != nil {
+			return ctrl.Result{}, err
+		}
+
 		return ctrl.Result{}, nil
 	}
 
