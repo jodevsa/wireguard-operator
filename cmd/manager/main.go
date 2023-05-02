@@ -19,10 +19,11 @@ package main
 import (
 	"flag"
 	"fmt"
+	"os"
+
 	vpnv1alpha1 "github.com/jodevsa/wireguard-operator/pkg/api/v1alpha1"
 	"github.com/jodevsa/wireguard-operator/pkg/controllers"
 	v1 "k8s.io/api/core/v1"
-	"os"
 
 	// Import all Kubernetes client auth plugins (e.g. Azure, GCP, OIDC, etc.)
 	// to ensure that exec-entrypoint and run can make use of them.
@@ -53,17 +54,17 @@ func main() {
 	var wgImage string
 	var wgAgentImagePullPolicy string
 	var wgSidecarImage string
-	var wgSidecarAgentImagePullPolicy string
+	var wgSidecarImagePullPolicy string
 	var metricsAddr string
 	var enableLeaderElection bool
 	var probeAddr string
 	flag.BoolVar(&enableLeaderElection, "leader-elect", false,
+		"Enable leader election for controller manager. "+
+			"Enabling this will ensure there is only one active controller manager.")
 	flag.StringVar(&metricsAddr, "metrics-bind-address", ":8080", "The address the metric endpoint binds to.")
 	flag.StringVar(&probeAddr, "health-probe-bind-address", ":8081", "The address the probe endpoint binds to.")
 	flag.StringVar(&wgSidecarImage, "sidecar-image", "ghcr.io/jodevsa/wireguard-operator/sidecar:latest", "The image used for wireguard sidecar")
 	flag.StringVar(&wgSidecarImagePullPolicy, "sidecar-image-pull-policy", "IfNotPresent", "imagePullPolicy for wireguard sidecar")
-	"Enable leader election for controller manager. "+
-	"Enabling this will ensure there is only one active controller manager.")
 	flag.StringVar(&wgImage, "agent-image", "ghcr.io/jodevsa/wireguard-operator/agent:latest", "The image used for wireguard server")
 	flag.StringVar(&wgAgentImagePullPolicy, "agent-image-pull-policy", "IfNotPresent", "Use userspace implementation")
 	opts := zap.Options{
@@ -109,8 +110,8 @@ func main() {
 		os.Exit(1)
 	}
 	if err = (&controllers.WireguardSidecarReconciler{
-		Client: mgr.GetClient(),
-		Scheme: mgr.GetScheme(),
+		Client:                 mgr.GetClient(),
+		Scheme:                 mgr.GetScheme(),
 		SidecarImage:           wgSidecarImage,
 		SidecarImagePullPolicy: v1.PullPolicy(wgSidecarImagePullPolicy),
 	}).SetupWithManager(mgr); err != nil {
