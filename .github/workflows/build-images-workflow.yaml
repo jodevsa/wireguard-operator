@@ -13,6 +13,9 @@ on:
       new_images_tag:
         required: true
         type: string
+      push:
+        required: true
+        type: boolean
       set_new_images_as_latest:
         required: true
         type: boolean
