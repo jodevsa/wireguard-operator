@@ -12,11 +12,14 @@ jobs:
   release:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
-        uses: actions/checkout@main
+      - uses: actions/checkout@v3
+        name: Checkout repository
+        with:
+          submodules: true
+
       - name: semantic-release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run : |
           npm install @semantic-release/commit-analyzer @semantic-release/release-notes-generator @semantic-release/changelog @semantic-release/git
-          npx semantic-release
+          npx semantic-release --debug
