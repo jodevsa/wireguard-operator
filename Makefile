@@ -53,9 +53,6 @@ IMAGE_TAG_BASE ?= ghcr.io/jodevsa/wireguard-operator
 # You can use it as an arg. (E.g make bundle-build BUNDLE_IMG=<some-registry>/<project-name-bundle>:<tag>)
 BUNDLE_IMG ?= $(IMAGE_TAG_BASE)-operator-bundle:main
 
-# Image URL to use all building/pushing image targets
-IMG ?= $(shell cat release-config.yaml | awk '/OPERATOR_IMAGE:/{print $$NF}')
-
 # ENVTEST_K8S_VERSION refers to the version of kubebuilder assets to be downloaded by envtest binary.
 ENVTEST_K8S_VERSION = 1.22
 
@@ -133,11 +130,19 @@ install: manifests kustomize ## Install CRDs into the K8s cluster specified in ~
 uninstall: manifests kustomize ## Uninstall CRDs from the K8s cluster specified in ~/.kube/config.
 	$(KUSTOMIZE) build config/crd | kubectl delete -f -
 
-update-controller-image: kustomize
-	cd config/manager && $(KUSTOMIZE) edit set image controller=${IMG}
 
-update-installation-yaml: kustomize
+update-agent-image: kustomize
+	## TODO: Simplify later
+	AGENT_IMAGE=$(AGENT_IMAGE) envsubst < ./config/default/manager_auth_proxy_patch.yaml.template > ./config/default/manager_auth_proxy_patch.yaml
+
+update-manager-image: kustomize
+	$(info MANAGER_IMAGE: "$(MANAGER_IMAGE)")
+	cd config/manager && $(KUSTOMIZE) edit set image controller=${MANAGER_IMAGE}
+
+generate-release-file: kustomize update-agent-image update-manager-image
 	$(KUSTOMIZE) build config/default > release.yaml
+	git checkout ./config/default/manager_auth_proxy_patch.yaml
+	git checkout ./config/manager/kustomization.yaml
 
 deploy: manifests kustomize ## Deploy controller to the K8s cluster specified in ~/.kube/config.
 	cd config/manager && $(KUSTOMIZE) edit set image controller=${IMG}
