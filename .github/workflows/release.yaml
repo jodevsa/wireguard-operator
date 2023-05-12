@@ -27,7 +27,7 @@ jobs:
           set_new_images_as_latest: false
           push: true
           new_images_tag: ${{ steps.extract.outputs.version }}
-          ref: ${{needs.retreive-next-release-version.outputs.version}}
+          ref: ${{ steps.extract.outputs.version }}
 
   release:
     needs: [build-images]
