@@ -20,8 +20,8 @@ jobs:
         run: |
           npm install @semantic-release/commit-analyzer @semantic-release/release-notes-generator @semantic-release/changelog @semantic-release/git semantic-release/exec
           echo "version=$(npx semantic-release --dryRun grep -oP 'Published release \K.*? ')" >> "$GITHUB_OUTPUT"
-      outputs:
-        version: ${{ steps.step1.outputs.version }}
+    outputs:
+      version: ${{ steps.step1.outputs.version }}
 
   call-workflow-in-local-repo:
     needs: retreive-next-release-version
