@@ -559,12 +559,10 @@ spec:
         - --health-probe-bind-address=:8081
         - --metrics-bind-address=127.0.0.1:8080
         - --leader-elect
-        - --agent-image=ghcr.io/jodevsa/wireguard-operator/agent:main
-        - --agent-image-pull-policy=Always
+        - --agent-image=AGENT_IMAGE
         command:
         - /manager
-        image: ghcr.io/jodevsa/wireguard-operator/manager:main
-        imagePullPolicy: Always
+        image: MANAGER_IMAGE:latest
         livenessProbe:
           httpGet:
             path: /healthz
