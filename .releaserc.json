@@ -4,7 +4,7 @@
     ],
     "plugins": [
         ["@semantic-release/exec", {
-            "publishCmd": "make generate-release-file AGENT_IMAGE=\"ghcr.io/jodevsa/wireguard-operator/agent:${nextRelease.version}\" MANAGER_IMAGE=\"ghcr.io/jodevsa/wireguard-operator/manager:${nextRelease.version}\""
+            "publishCmd": "make generate-release-file AGENT_IMAGE=\"ghcr.io/jodevsa/wireguard-operator/agent:v${nextRelease.version}\" MANAGER_IMAGE=\"ghcr.io/jodevsa/wireguard-operator/manager:v${nextRelease.version}\""
           }],
         "@semantic-release/commit-analyzer",
         "@semantic-release/release-notes-generator",
