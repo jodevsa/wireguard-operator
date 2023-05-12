@@ -50,10 +50,12 @@ jobs:
       uses: docker/metadata-action@v4
       with:
         tags: |
-          # set tag with branch name
+          # set tag with branch name 'wireguard-images/manager:pr-3'
           type=ref,event=branch
-          # set latest tag for 'main' branch
-          type=raw,value=latest,enable=${{ github.event_name != 'pull_request' }}
+          # set tag with semver. example: 'wireguard-images/manager:v1.5.3'
+          type=semver,pattern={{raw}}
+          # set latest tag for 'main' branch. example: 'wireguard-images/manager:latest'
+          type=raw,value=latest,enable=${{ github.ref == format('refs/heads/{0}', 'main') }}
         images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/${{ matrix.image }}
 
     - uses: actions/setup-go@v3
