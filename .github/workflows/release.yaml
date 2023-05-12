@@ -15,9 +15,8 @@ jobs:
       - name: Checkout
         uses: actions/checkout@master
       - name: install plugins
-        run : |
-          npm install @semantic-release/commit-analyzer @semantic-release/release-notes-generator @semantic-release/changelog @semantic-release/git
-      - name: Release
-        uses: codfish/semantic-release-action@v2.0.0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run : |
+          npm install @semantic-release/commit-analyzer @semantic-release/release-notes-generator @semantic-release/changelog @semantic-release/git
+          npx semantic-release
