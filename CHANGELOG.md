@@ -1,3 +1,15 @@
+## [1.0.2](https://github.com/jodevsa/wireguard-operator/compare/v1.0.1...v1.0.2) (2023-05-12)
+
+
+### Bug Fixes
+
+* add debug mode ([19998b5](https://github.com/jodevsa/wireguard-operator/commit/19998b5252d0a821cfe91b410316b34a4d8feb08))
+* add more permissions ([2440f8d](https://github.com/jodevsa/wireguard-operator/commit/2440f8d7580928797f9496a70ec8eae5fe0665d8))
+* fix semantic-release ([8a4b13c](https://github.com/jodevsa/wireguard-operator/commit/8a4b13cf996d26703bbafb3cfc9b02d46b001ddf))
+* install semantic-release plugins in release job ([4060a84](https://github.com/jodevsa/wireguard-operator/commit/4060a84f839381b5dfa7c392e44052fc8c1fbcaf))
+* Update README.md ([9f4da9f](https://github.com/jodevsa/wireguard-operator/commit/9f4da9fe95ff614e24d868d3a4a251dabec85b2c))
+* use semantic-release directly ([74658ab](https://github.com/jodevsa/wireguard-operator/commit/74658ab502b07f81a027f3c966a8fba7d24c5ca6))
+
 ## [1.0.1](https://github.com/jodevsa/wireguard-operator/compare/v1.0.0...v1.0.1) (2023-05-12)
 
 
