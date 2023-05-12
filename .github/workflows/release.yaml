@@ -23,7 +23,7 @@ jobs:
     outputs:
       version: ${{ steps.step1.outputs.version }}
 
-  call-workflow-in-local-repo:
+  build-images:
     needs: retreive-next-release-version
     uses: ./.github/workflows/build-images-workflow.yaml
     with:

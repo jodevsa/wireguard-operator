@@ -62,7 +62,7 @@ jobs:
       with:
         tags: |
           type=raw,value=latest, enable=${{ inputs.set_new_images_as_latest}}
-          type=raw,value=${{ new_images_tag }},
+          type=raw,value=${{ inputs.new_images_tag }},
         images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/${{ matrix.image }}
 
     - uses: actions/setup-go@v3
