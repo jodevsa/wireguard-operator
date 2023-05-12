@@ -1,3 +1,14 @@
+## [1.0.6](https://github.com/jodevsa/wireguard-operator/compare/v1.0.5...v1.0.6) (2023-05-12)
+
+
+### Bug Fixes
+
+* fix release.yaml ([bcc4a2c](https://github.com/jodevsa/wireguard-operator/commit/bcc4a2c9485446650ad77d96b9de09b064432c85))
+* imporvements to workflows ([9ccdfa3](https://github.com/jodevsa/wireguard-operator/commit/9ccdfa383ab1dca8ea55b947aa4c089649480e91))
+* remove debug mode ([1356019](https://github.com/jodevsa/wireguard-operator/commit/13560190e9faa2569b4b75ecd1a896bff3497de5))
+* workfllows ([fa449a1](https://github.com/jodevsa/wireguard-operator/commit/fa449a13fd283e0142420987f407531e16146660))
+* workflow ([3361bfa](https://github.com/jodevsa/wireguard-operator/commit/3361bfa81d44c886e320d380b4a5cbc2aa43c060))
+
 ## [1.0.5](https://github.com/jodevsa/wireguard-operator/compare/v1.0.4...v1.0.5) (2023-05-12)
 
 
