@@ -49,6 +49,11 @@ jobs:
       id: image-meta
       uses: docker/metadata-action@v4
       with:
+        tags: |
+          # set tag with branch name
+          type=ref,event=branch
+          # set latest tag for 'main' branch
+          type=raw,value=latest,enable=${{ github.event_name != 'pull_request' }}
         images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/${{ matrix.image }}
 
     - uses: actions/setup-go@v3
