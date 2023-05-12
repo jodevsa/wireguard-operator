@@ -20,14 +20,14 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           npm install @semantic-release/commit-analyzer @semantic-release/release-notes-generator @semantic-release/changelog @semantic-release/git semantic-release/exec
-          echo "version=$(npx semantic-release --dryRun | grep -oP 'Published release \K.*? ')" >> "$GITHUB_OUTPUT"
+          echo "version=v$(npx semantic-release --dryRun | grep -oP 'Published release \K.*? ')" >> "$GITHUB_OUTPUT"
       - uses: ./.github/workflows/build-images-workflow.yaml
         name: build images
         with:
           set_new_images_as_latest: false
           push: true
           new_images_tag: ${{ steps.extract.outputs.version }}
-          ref: ${{ steps.extract.outputs.version }}
+          ref: main
 
   release:
     needs: [build-images]
