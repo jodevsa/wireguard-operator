@@ -22,7 +22,7 @@ jobs:
         run: |
           npm install @semantic-release/commit-analyzer @semantic-release/release-notes-generator @semantic-release/changelog @semantic-release/git semantic-release/exec
           echo "version=v$(npx semantic-release --dryRun | grep -oP 'Published release \K.*? ')" >> "$GITHUB_OUTPUT"
-          ls ./
+          ls ./.github/workflows/build-images-workflow.yaml
       - uses: ./.github/workflows/build-images-workflow.yaml
         name: build images
         with:
