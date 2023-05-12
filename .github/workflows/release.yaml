@@ -27,7 +27,6 @@ jobs:
           set_new_images_as_latest: false
           push: true
           new_images_tag: ${{ steps.extract.outputs.version }}
-          ref: main
 
   release:
     needs: [build-images]
