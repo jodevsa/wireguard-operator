@@ -7,6 +7,31 @@ on:
 permissions: write-all
 
 jobs:
+  retreive-next-release-version:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+        name: Checkout repository
+        with:
+          submodules: true
+      - name: semantic-release extract new version
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          npm install @semantic-release/commit-analyzer @semantic-release/release-notes-generator @semantic-release/changelog @semantic-release/git semantic-release/exec
+          echo "version=$(npx semantic-release --dryRun grep -oP 'Published release \K.*? ')" >> "$GITHUB_OUTPUT"
+      outputs:
+        version: ${{ steps.step1.outputs.version }}
+
+  call-workflow-in-local-repo:
+    needs: retreive-next-release-version
+    uses: ./.github/workflows/build-images-workflow.yaml
+    with:
+      set_new_images_as_latest: false
+      push: true
+      new_images_tag: ${{needs.retreive-next-release-version.outputs.version}}
+      ref: ${{needs.retreive-next-release-version.outputs.version}}
+
   release:
     runs-on: ubuntu-latest
     steps:
@@ -14,6 +39,13 @@ jobs:
         name: Checkout repository
         with:
           submodules: true
+
+      - name: semantic-release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          npm install @semantic-release/commit-analyzer @semantic-release/release-notes-generator @semantic-release/changelog @semantic-release/git semantic-release/exec
+          npx semantic-release
 
       - name: semantic-release
         env:

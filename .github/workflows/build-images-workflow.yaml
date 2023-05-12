@@ -3,13 +3,21 @@ env:
   TARGET_PLATFORMS: linux/amd64,linux/arm64
   REGISTRY: ghcr.io
   IMAGE_NAME: ${{ github.repository }}
+
 on:
-  pull_request: {}
-  push:
-    tags:  
-      - 'v*'
-    branches:
-      - 'main'
+  workflow_call:
+    inputs:
+      ref:
+        required: true
+        type: string
+      new_images_tag:
+        required: true
+        type: string
+      set_new_images_as_latest:
+        required: true
+        type: boolean
+
+
 
 permissions:
   contents: read
@@ -29,6 +37,7 @@ jobs:
     - uses: actions/checkout@v3
       name: Checkout repository
       with:
+        ref: ${{ inputs.ref }}
         submodules: true
 
     - name: Set up QEMU
@@ -52,12 +61,8 @@ jobs:
       uses: docker/metadata-action@v4
       with:
         tags: |
-          # set tag with branch name 'wireguard-images/manager:pr-3'
-          type=ref,event=branch
-          # set tag with semver. example: 'wireguard-images/manager:v1.5.3'
-          type=semver,pattern={{raw}}
-          # set latest tag for 'main' branch. example: 'wireguard-images/manager:latest'
-          type=raw,value=latest,enable=${{ github.ref == format('refs/heads/{0}', 'main') }}
+          type=raw,value=latest, enable=${{ inputs.set_new_images_as_latest}}
+          type=raw,value=${{ new_images_tag }},
         images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/${{ matrix.image }}
 
     - uses: actions/setup-go@v3
@@ -70,6 +75,6 @@ jobs:
         context: .
         file: images/${{ matrix.image }}/Dockerfile
         platforms: ${{ env.TARGET_PLATFORMS }}
-        push: ${{ github.event_name != 'pull_request' }}
+        push: ${{ inputs.push }}
         tags: ${{ steps.image-meta.outputs.tags }}
         labels: ${{ steps.image-meta.outputs.labels }}
