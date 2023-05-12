@@ -1,3 +1,10 @@
+## [1.0.3](https://github.com/jodevsa/wireguard-operator/compare/v1.0.2...v1.0.3) (2023-05-12)
+
+
+### Bug Fixes
+
+* build images on tag push ([9d12662](https://github.com/jodevsa/wireguard-operator/commit/9d126625ff35f0b2b37659333b8a5e0eb24883ed))
+
 ## [1.0.2](https://github.com/jodevsa/wireguard-operator/compare/v1.0.1...v1.0.2) (2023-05-12)
 
 
