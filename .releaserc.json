@@ -3,6 +3,9 @@
         "main"
     ],
     "plugins": [
+        ["@semantic-release/exec", {
+            "publishCmd": "make generate-release-file AGENT_IMAGE=\"ghcr.io/jodevsa/wireguard-operator/agent:${nextRelease.version}\" MANAGER_IMAGE=\"ghcr.io/jodevsa/wireguard-operator/manager:${nextRelease.version}\""
+          }],
         "@semantic-release/commit-analyzer",
         "@semantic-release/release-notes-generator",
         "@semantic-release/changelog",
