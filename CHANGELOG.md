@@ -1,3 +1,10 @@
+## [1.0.4](https://github.com/jodevsa/wireguard-operator/compare/v1.0.3...v1.0.4) (2023-05-12)
+
+
+### Bug Fixes
+
+* additions ([c98a08d](https://github.com/jodevsa/wireguard-operator/commit/c98a08dd0f4008211964e8bc9e502fdfb8b3ba44))
+
 ## [1.0.3](https://github.com/jodevsa/wireguard-operator/compare/v1.0.2...v1.0.3) (2023-05-12)
 
 
