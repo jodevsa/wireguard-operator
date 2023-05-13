@@ -1,3 +1,10 @@
+# [1.2.0](https://github.com/jodevsa/wireguard-operator/compare/v1.1.0...v1.2.0) (2023-05-13)
+
+
+### Features
+
+* create a pipeline on PR ([ba2c0d9](https://github.com/jodevsa/wireguard-operator/commit/ba2c0d9e1ef7bc2d05c75c83bc3187166c743eaa))
+
 # [1.1.0](https://github.com/jodevsa/wireguard-operator/compare/v1.0.9...v1.1.0) (2023-05-13)
 
 
