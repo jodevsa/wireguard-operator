@@ -32,7 +32,7 @@ jobs:
       set_new_images_as_latest: false
       push: true
       new_images_tag: ${{needs.generate-next-semantic-version.outputs.version}}
-      ref: main
+      ref: ${{ github.sha }}
 
   release:
     needs: [build-images]
