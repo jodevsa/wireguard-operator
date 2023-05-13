@@ -1,0 +1,16 @@
+name: Test and build docker images
+on:
+  pull_request: {}
+
+permissions:
+  contents: read
+  packages: write
+
+jobs: 
+  build-images:
+    uses: ./.github/workflows/build-images-workflow.yaml
+    with:
+      set_new_images_as_latest: false
+      push: false
+      new_images_tag: dev-${{ github.sha }}
+      ref: ${{ github.ref }}
