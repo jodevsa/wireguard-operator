@@ -20,8 +20,8 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           npm install @semantic-release/commit-analyzer @semantic-release/release-notes-generator @semantic-release/changelog @semantic-release/git semantic-release/exec
-          echo "version=v$(npx semantic-release --dryRun | grep -oP 'Published release \K.*? ')"
-          echo "version=v$(npx semantic-release --dryRun | grep -oP 'Published release \K.*? ')" >> "$GITHUB_OUTPUT"
+          echo "version=v$(npx semantic-release --dryRun | grep -oP 'Published release \K.*?')"
+          echo "version=v$(npx semantic-release --dryRun | grep -oP 'Published release \K.*?')" >> "$GITHUB_OUTPUT"
     outputs:
       version: ${{ steps.extract.outputs.version }}
 
