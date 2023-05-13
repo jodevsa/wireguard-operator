@@ -1,3 +1,24 @@
+## [1.0.7](https://github.com/jodevsa/wireguard-operator/compare/v1.0.6...v1.0.7) (2023-05-13)
+
+
+### Bug Fixes
+
+* fix ([3f33021](https://github.com/jodevsa/wireguard-operator/commit/3f33021b96cfcb04603199436a87dfc7ba79c3f9))
+* fix ([80cd65d](https://github.com/jodevsa/wireguard-operator/commit/80cd65d73bba3925229f3a700d40adfec36c80ad))
+* fix ([754b639](https://github.com/jodevsa/wireguard-operator/commit/754b639a6cf5da377ba0dac7b542eea44d95a191))
+* fix ([4236e3b](https://github.com/jodevsa/wireguard-operator/commit/4236e3bd20bf04a3c5f2d1d5196ec15847cb1f1a))
+* fix ([137c226](https://github.com/jodevsa/wireguard-operator/commit/137c22636ffa5332c91c37966f50a5837983f748))
+* fix ([849c1e1](https://github.com/jodevsa/wireguard-operator/commit/849c1e1017304109bfa8cafe238e51b477e98f99))
+* fix ([a069a6b](https://github.com/jodevsa/wireguard-operator/commit/a069a6bc23daccb87600094ec29a4e1a017e7d97))
+* fix ([7418851](https://github.com/jodevsa/wireguard-operator/commit/7418851f6f838c19b9d7712c0bbac1f50cbcd060))
+* fix ([c623979](https://github.com/jodevsa/wireguard-operator/commit/c62397923a940d7825f1ddaa14b311596c748c0b))
+* fix ([f32abaf](https://github.com/jodevsa/wireguard-operator/commit/f32abaf6b1bd643a7267b83c4733daef148aabde))
+* upload release file ([a6f1e58](https://github.com/jodevsa/wireguard-operator/commit/a6f1e588a57906476f23a781d822d09e69142ee5))
+* upload release file ([5e8cb31](https://github.com/jodevsa/wireguard-operator/commit/5e8cb313516987ca03b887581d77d02be730393e))
+* use main as ref ([d512549](https://github.com/jodevsa/wireguard-operator/commit/d512549aba2dcea11577bb2063b90d0ed08c82be))
+* workflow ([9df4c47](https://github.com/jodevsa/wireguard-operator/commit/9df4c473de0b803bea8ab21d5cc3e0f291507711))
+* workflow ([372b683](https://github.com/jodevsa/wireguard-operator/commit/372b683e0b8a43d93686a75ecddab7f417f0a8ee))
+
 ## [1.0.6](https://github.com/jodevsa/wireguard-operator/compare/v1.0.5...v1.0.6) (2023-05-12)
 
 
