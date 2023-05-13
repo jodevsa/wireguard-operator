@@ -37,7 +37,7 @@ jobs:
     with:
       push: true
       latest: false
-      ref: ${{ github.branch }}
+      ref: ${{ inputs.branch }}
       repository:  ${{ inputs.repository }}
       tag: dev-${{ inputs.tag }}
 
