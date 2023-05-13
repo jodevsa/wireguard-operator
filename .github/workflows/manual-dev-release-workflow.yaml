@@ -63,10 +63,9 @@ jobs:
           AGENT_IMAGE: ghcr.io/${{ inputs.repository }}/agent:${{ inputs.tag }}
         run : |
           make generate-release-file AGENT_IMAGE="$AGENT_IMAGE" MANAGER_IMAGE="$MANAGER_IMAGE"
-          mv ./release.yaml /tmp/release.yaml
 
       - name: upload release
         uses: actions/upload-artifact@v3
         with:
-          name: manual-dev-release-workflow.yaml
-          path: /tmp/manual-dev-release-workflow.yaml
+          name: release.yaml
+          path: ${{ github.workspace }}/release.yaml
