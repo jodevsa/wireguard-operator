@@ -1,3 +1,10 @@
+# [1.1.0](https://github.com/jodevsa/wireguard-operator/compare/v1.0.9...v1.1.0) (2023-05-13)
+
+
+### Features
+
+* automate changelog creation ([310836f](https://github.com/jodevsa/wireguard-operator/commit/310836f6bd27a1a41196d2fcb4bc9705f0eb4810))
+
 ## [1.0.7](https://github.com/jodevsa/wireguard-operator/compare/v1.0.6...v1.0.7) (2023-05-13)
 
 
