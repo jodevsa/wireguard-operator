@@ -9,14 +9,16 @@ on:
       ref:
         required: true
         type: string
-      new_images_tag:
-        required: true
+      tag:
+        required: false
+        default: dev-${{ github.sha }}
         type: string
       push:
         required: true
         type: boolean
-      set_new_images_as_latest:
-        required: true
+      latest:
+        required: false
+        default: false
         type: boolean
       platforms:
         description: 'Docker image platforms'
@@ -67,8 +69,8 @@ jobs:
       uses: docker/metadata-action@v4
       with:
         tags: |
-          type=raw,value=latest, enable=${{ inputs.set_new_images_as_latest}}
-          type=raw,value=${{ inputs.new_images_tag }}
+          type=raw,value=latest, enable=${{ inputs.latest}}
+          type=raw,value=${{ inputs.tag }}
         images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/${{ matrix.image }}
 
     - uses: actions/setup-go@v3
