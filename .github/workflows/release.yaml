@@ -27,12 +27,13 @@ jobs:
 
   build-images:
     needs: [generate-next-semantic-version]
-    uses: "./.github/workflows/build-images-workflow.yaml"
+    uses: ./.github/workflows/build-images-workflow.yaml
     with:
-      set_new_images_as_latest: false
+      set_new_images_as_latest: true
       push: true
       new_images_tag: ${{needs.generate-next-semantic-version.outputs.version}}
-      ref: main
+      ref: ${{ github.sha }}
+      platforms: "linux/amd64, linux/arm64"
 
   release:
     needs: [build-images]
@@ -42,6 +43,7 @@ jobs:
         name: Checkout repository
         with:
           submodules: true
+          ref: ${{ github.sha }}
 
       - name: semantic-release
         env:
