@@ -9,6 +9,11 @@ on:
       ref:
         required: true
         type: string
+      repository:
+        description: 'Repository name with owner.'
+        required: false
+        default: ${{ github.repository }}
+        type: string
       tag:
         required: false
         default: dev-${{ github.sha }}

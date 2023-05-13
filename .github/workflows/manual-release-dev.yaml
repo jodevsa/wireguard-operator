@@ -17,6 +17,11 @@ on:
         required: true
         default: 'linux/amd64, linux/arm64'
         type: string
+      tag:
+        description: 'Docker image tag'
+        required: true
+        default: 'feature-1'
+        type: string
 
 env:
   REGISTRY: ghcr.io
@@ -27,104 +32,17 @@ permissions:
   packages: write
 
 jobs:
-  build-manager:
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Set up QEMU
-        uses: docker/setup-qemu-action@v2
-
-      - name: Set up Docker Buildx
-        id: buildx
-        uses: docker/setup-buildx-action@v2
-        with:
-          install: true
-
-      - name: Checkout repository
-        uses: actions/checkout@v3
-        with:
-          repository: ${{ inputs.repository }}
-          ref: ${{ inputs.branch }}
-          submodules: true
-  
-      - name: Log in to the Container registry
-        uses: docker/login-action@v2
-        with:
-          registry: ${{ env.REGISTRY }}
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Extract metadata (tags, labels) for Docker
-        id: meta
-        uses: docker/metadata-action@v4
-        with:
-          tags: |
-            type=sha,format=long,prefix=development-
-          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/manager
-
-      - name: Build and push Docker image
-        uses: docker/build-push-action@v3
-        with:
-          file: ./images/manager/Dockerfile
-          context: ./
-          push: true
-          platforms: ${{ inputs.platforms }}
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
-
-    outputs:
-      image: ${{ steps.meta.outputs.tags }}
-
-  build-agent:
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Set up QEMU
-        uses: docker/setup-qemu-action@v2
-
-      - name: Set up Docker Buildx
-        id: buildx
-        uses: docker/setup-buildx-action@v2
-        with:
-          install: true
-
-      - name: Checkout repository
-        uses: actions/checkout@v3
-        with:
-          repository: ${{ inputs.repository }}
-          ref: ${{ inputs.branch }}
-          submodules: true
-  
-      - name: Log in to the Container registry
-        uses: docker/login-action@v2
-        with:
-          registry: ${{ env.REGISTRY }}
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Extract metadata (tags, labels) for Docker
-        id: meta
-        uses: docker/metadata-action@v4
-        with:
-          tags: |
-            type=sha,format=long,prefix=development-
-          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/agent
-
-      - name: Build and push Docker image
-        uses: docker/build-push-action@v3
-        with:
-          file: ./images/agent/Dockerfile
-          context: ./
-          push: true
-          platforms: ${{ inputs.platforms }}
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
-
-    outputs:
-      image: ${{ steps.meta.outputs.tags }}
+  build-images:
+    uses: ./.github/workflows/build-images-workflow.yaml
+    with:
+      push: true
+      latest: false
+      ref: ${{ github.branch }}
+      repository:  ${{ inputs.repository }}
+      tag: dev-${{ inputs.tag }}
 
   save-release:
-    needs: [build-agent, build-manager]
+    needs: [build-images]
     runs-on: ubuntu-latest
     steps:
       - name: Set up Go
@@ -141,8 +59,8 @@ jobs:
 
       - name: prepare new release
         env:
-          MANAGER_IMAGE: ${{ needs.build-manager.outputs.image }}
-          AGENT_IMAGE: ${{ needs.build-agent.outputs.image }}
+          MANAGER_IMAGE: ghcr.io/${{ inputs.repo }}/manager:${{ inputs.tag }}
+          AGENT_IMAGE: ghcr.io/${{ inputs.repo }}/agent:${{ inputs.tag }}
         run : |
           make generate-release-file AGENT_IMAGE="$AGENT_IMAGE" MANAGER_IMAGE="$MANAGER_IMAGE"
           mv ./release.yaml /tmp/release.yaml
