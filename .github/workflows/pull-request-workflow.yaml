@@ -8,7 +8,7 @@ permissions:
 
 jobs: 
   build-images:
-    uses: ./.github/workflows/build-images-workflow.yaml
+    uses: ./.github/workflows/build-images.yaml
     with:
       push: false
       ref: ${{ github.ref }}

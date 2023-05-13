@@ -27,7 +27,7 @@ jobs:
 
   build-images:
     needs: [generate-next-semantic-version]
-    uses: ./.github/workflows/build-images-workflow.yaml
+    uses: ./.github/workflows/build-images.yaml
     with:
       latest: true
       push: true

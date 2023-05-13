@@ -33,7 +33,7 @@ permissions:
 
 jobs:
   build-images:
-    uses: ./.github/workflows/build-images-workflow.yaml
+    uses: ./.github/workflows/build-images.yaml
     with:
       push: true
       latest: false
@@ -68,5 +68,5 @@ jobs:
       - name: upload release
         uses: actions/upload-artifact@v3
         with:
-          name: manual-release-dev.yaml
-          path: /tmp/manual-release-dev.yaml
+          name: manual-dev-release-workflow.yaml
+          path: /tmp/manual-dev-release-workflow.yaml
