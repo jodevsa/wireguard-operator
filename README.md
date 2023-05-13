@@ -16,6 +16,7 @@ If you are facing any problems please open an issue or join our [slack channel](
 - [x] Google Kubernetes Engine
   * requires `spec.mtu: "1380"`
   * Not compatible with "Container-Optimized OS with containerd" node images
+  * Not compatible with autopilot
 - [x] DigitalOcean Kubernetes
   * requires `spec.serviceType: "NodePort"`. DigitalOcean LoadBalancer does not support UDP. 
 - [ ] Amazon EKS
