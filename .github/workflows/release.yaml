@@ -7,13 +7,12 @@ on:
 permissions: write-all
 
 jobs:
-  build-images:
+  generate-next-semantic-version:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
         name: Checkout repository
         with:
-          ref: main
           submodules: true
       - name: semantic-release extract new version
         id: extract
@@ -21,14 +20,18 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           npm install @semantic-release/commit-analyzer @semantic-release/release-notes-generator @semantic-release/changelog @semantic-release/git semantic-release/exec
-          echo "version=v$(npx semantic-release --dryRun | grep -oP 'Published release \K.*? ')" >> "$GITHUB_OUTPUT"
-          ls ./.github/workflows/build-images-workflow.yaml
-      - uses: ./.github/workflows/build-images-workflow.yaml
-        name: build images
-        with:
-          set_new_images_as_latest: false
-          push: true
-          new_images_tag: ${{ steps.extract.outputs.version }}
+          echo "version=v$(npx semantic-release --dryRun grep -oP 'Published release \K.*? ')" >> "$GITHUB_OUTPUT"
+    outputs:
+      version: ${{ steps.extract.outputs.version }}
+
+  build-images:
+    needs: [generate-next-semantic-version]
+    uses: ./.github/workflows/build-images-workflow.yaml
+    with:
+      set_new_images_as_latest: false
+      push: true
+      new_images_tag: ${{needs.generate-next-semantic-version.outputs.version}}
+      ref: main
 
   release:
     needs: [build-images]

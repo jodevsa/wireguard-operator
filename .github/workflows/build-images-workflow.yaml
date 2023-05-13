@@ -7,6 +7,9 @@ env:
 on:
   workflow_call:
     inputs:
+      ref:
+        required: true
+        type: string
       new_images_tag:
         required: true
         type: string
@@ -33,6 +36,8 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+
+
 
     - name: Set up QEMU
       uses: docker/setup-qemu-action@v2
