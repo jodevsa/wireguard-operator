@@ -11,3 +11,4 @@ jobs:
     uses: ./.github/workflows/build-images-workflow.yaml
     with:
       push: false
+      ref: ${{ github.ref }}
