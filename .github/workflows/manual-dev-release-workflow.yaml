@@ -1,0 +1,70 @@
+name: Manual DEV Release
+on:
+  workflow_dispatch:
+    inputs:
+      repository:
+        description: 'Repository name with owner.'
+        required: true
+        default: 'jodevsa/wireguard-operator'
+        type: string
+      branch:
+        description: 'The branch, tag or SHA to checkout.'
+        required: true
+        default: 'main'
+        type: string
+      platforms:
+        description: 'Docker image platforms'
+        required: true
+        default: 'linux/amd64, linux/arm64'
+        type: string
+      tag:
+        description: 'Docker image tag'
+        required: true
+        default: 'feature-1'
+        type: string
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  build-images:
+    uses: ./.github/workflows/build-images.yaml
+    with:
+      push: true
+      latest: false
+      ref: ${{ inputs.branch }}
+      repository:  ${{ inputs.repository }}
+      tag: dev-${{ inputs.tag }}
+
+  save-release:
+    needs: [build-images]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Set up Go
+        uses: actions/setup-go@v3
+        with:
+          go-version: 1.20
+
+      - name: Checkout repository
+        uses: actions/checkout@v3
+        with:
+          repository: ${{ inputs.repository }}
+          ref: ${{ inputs.branch }}
+          submodules: true
+
+      - name: prepare new release
+        env:
+          MANAGER_IMAGE: ghcr.io/${{ inputs.repository }}/manager:${{ inputs.tag }}
+          AGENT_IMAGE: ghcr.io/${{ inputs.repository }}/agent:${{ inputs.tag }}
+        run : |
+          make generate-release-file AGENT_IMAGE="$AGENT_IMAGE" MANAGER_IMAGE="$MANAGER_IMAGE"
+      - name: upload release
+        uses: actions/upload-artifact@v3
+        with:
+          name: release.yaml
+          path: ${{ github.workspace }}/release.yaml

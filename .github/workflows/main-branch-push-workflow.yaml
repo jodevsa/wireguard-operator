@@ -27,13 +27,12 @@ jobs:
 
   build-images:
     needs: [generate-next-semantic-version]
-    uses: ./.github/workflows/build-images-workflow.yaml
+    uses: ./.github/workflows/build-images.yaml
     with:
-      set_new_images_as_latest: true
+      latest: true
       push: true
-      new_images_tag: ${{needs.generate-next-semantic-version.outputs.version}}
+      tag: ${{needs.generate-next-semantic-version.outputs.version}}
       ref: ${{ github.sha }}
-      platforms: "linux/amd64, linux/arm64"
 
   release:
     needs: [build-images]

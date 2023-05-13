@@ -1,0 +1,14 @@
+name: build docker images
+on:
+  pull_request: {}
+
+permissions:
+  contents: read
+  packages: write
+
+jobs: 
+  build-images:
+    uses: ./.github/workflows/build-images.yaml
+    with:
+      push: false
+      ref: ${{ github.ref }}
