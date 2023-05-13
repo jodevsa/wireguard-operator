@@ -1,3 +1,10 @@
+## [1.0.8](https://github.com/jodevsa/wireguard-operator/compare/v1.0.7...v1.0.8) (2023-05-13)
+
+
+### Bug Fixes
+
+* add platforms to build-images-worfklow ([eaed2ee](https://github.com/jodevsa/wireguard-operator/commit/eaed2ee77c57e6c79ad79609dc9b6d0c8854cca9))
+
 ## [1.0.7](https://github.com/jodevsa/wireguard-operator/compare/v1.0.6...v1.0.7) (2023-05-13)
 
 
