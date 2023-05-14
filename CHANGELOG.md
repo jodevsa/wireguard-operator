@@ -1,3 +1,12 @@
+## [1.2.1](https://github.com/jodevsa/wireguard-operator/compare/v1.2.0...v1.2.1) (2023-05-14)
+
+
+### Bug Fixes
+
+* **deps:** update golang.zx2c4.com/wireguard/wgctrl digest to 925a1e7 ([628f92e](https://github.com/jodevsa/wireguard-operator/commit/628f92e643c73324194ccea1a720a92ed0b5f658))
+* fix releases with protected main branch ([65ee033](https://github.com/jodevsa/wireguard-operator/commit/65ee0338e81d890de20de0091a410ee0a825525d))
+* **workflow:** do not persist credentials on checkout ([6de8279](https://github.com/jodevsa/wireguard-operator/commit/6de82792e27d42eb997aeb76a48fc5ecfbe52b68))
+
 # [1.2.0](https://github.com/jodevsa/wireguard-operator/compare/v1.1.0...v1.2.0) (2023-05-13)
 
 
