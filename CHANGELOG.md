@@ -1,3 +1,12 @@
+## [1.2.3](https://github.com/jodevsa/wireguard-operator/compare/v1.2.2...v1.2.3) (2023-05-14)
+
+
+### Bug Fixes
+
+* do not include package*.json in the bot commit ([74f8134](https://github.com/jodevsa/wireguard-operator/commit/74f813401ce75586df61d9b54373fb79667c361f))
+* remove duplicate step in release workflow ([62158b2](https://github.com/jodevsa/wireguard-operator/commit/62158b21a3ca8a1eb46ae6cf0f6959ff5288ad0d))
+* remove package.json ([4002f19](https://github.com/jodevsa/wireguard-operator/commit/4002f198b306ff42bc213d3948e535c539301a20))
+
 ## [1.2.2](https://github.com/jodevsa/wireguard-operator/compare/v1.2.1...v1.2.2) (2023-05-14)
 
 
