@@ -42,6 +42,7 @@ jobs:
         name: Checkout repository
         with:
           submodules: true
+          persist-credentials: false
           ref: ${{ github.sha }}
 
       - name: semantic-release
