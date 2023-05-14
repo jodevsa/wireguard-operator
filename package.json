@@ -1,9 +1,0 @@
-{
-  "dependencies": {
-    "@semantic-release/changelog": "^6.0.3",
-    "@semantic-release/commit-analyzer": "^9.0.2",
-    "@semantic-release/exec": "github:semantic-release/exec",
-    "@semantic-release/git": "^10.0.1",
-    "@semantic-release/release-notes-generator": "^11.0.1"
-  }
-}
