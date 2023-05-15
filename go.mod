@@ -5,7 +5,7 @@ go 1.16
 require (
 	github.com/emicklei/go-restful v2.9.5+incompatible // indirect
 	github.com/fsnotify/fsnotify v1.6.0
-	github.com/go-logr/logr v1.2.3
+	github.com/go-logr/logr v1.2.4
 	github.com/go-logr/stdr v1.2.2
 	github.com/imdario/mergo v0.3.12 // indirect
 	github.com/korylprince/ipnetgen v1.0.1
