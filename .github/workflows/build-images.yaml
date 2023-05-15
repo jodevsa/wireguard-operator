@@ -78,7 +78,7 @@ jobs:
           type=raw,value=${{ inputs.tag }}
         images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/${{ matrix.image }}
 
-    - uses: actions/setup-go@v3
+    - uses: actions/setup-go@v4
       with:
         go-version: '^1.20'
 
