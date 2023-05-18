@@ -98,7 +98,7 @@ jobs:
         labels: ${{ steps.image-meta.outputs.labels }}
 
     - name: Upload artifact
-      if: ${{ input.upload_images == true }}
+      if: ${{ inputs.upload_images == true }}
       uses: actions/upload-artifact@v3
       with:
         name: images
