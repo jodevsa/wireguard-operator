@@ -14,6 +14,7 @@ jobs:
       upload_images: true
       platforms: "linux/amd64"
       ref: ${{ github.ref }}
+      tag: dev
 
   e2e:
     runs-on: ubuntu-latest
@@ -50,8 +51,8 @@ jobs:
       - name: run e2e
         env:
           REGISTRY: ghcr.io
-          AGENT_IMAGE: ghcr.io/${{ github.repository }}/agent:dev-${{ github.ref }}
-          MANAGER_IMAGE: ghcr.io/${{ github.repository }}/manager:dev-${{ github.ref }}
+          AGENT_IMAGE: ghcr.io/${{ github.repository }}/agent:dev
+          MANAGER_IMAGE: ghcr.io/${{ github.repository }}/manager:dev
         run: |
           make kind
           make run-e2e AGENT_IMAGE="$AGENT_IMAGE" MANAGER_IMAGE="$MANAGER_IMAGE"
