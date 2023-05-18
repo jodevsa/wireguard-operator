@@ -15,7 +15,7 @@ RUN go mod download
 # COPY src
 COPY pkg/ pkg/
 COPY cmd/ cmd/
-COPY internal internal/
+COPY internal/iptables internal/iptables
 # build
 ARG TARGETOS TARGETARCH
 RUN CGO_ENABLED=0 GOOS=${TARGETOS} GOARCH=${TARGETARCH} go build -o agent -x cmd/agent/main.go
