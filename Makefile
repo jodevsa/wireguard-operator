@@ -126,10 +126,10 @@ run: manifests generate fmt vet ## Run a controller from your host.
 
 
 docker-build-agent:  ## Build docker image with the manager.
-	docker build -t ${IT_AGENT_IMAGE} . -f ./images/agent/Dockerfile
+	docker build -t ${AGENT_IMAGE} . -f ./images/agent/Dockerfile
 
 docker-build-manager:  ## Build docker image with the manager.
-	docker build -t ${IT_MANAGER_IMAGE} . -f ./images/manager/Dockerfile
+	docker build -t ${MANAGER_IMAGE} . -f ./images/manager/Dockerfile
 
 docker-build-integration-test:  docker-build-manager
 	$(MAKE) docker-build-agent
