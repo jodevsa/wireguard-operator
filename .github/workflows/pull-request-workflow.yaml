@@ -12,7 +12,6 @@ jobs:
     with:
       push: false
       upload_images: true
-      latest: true
       platforms: "linux/amd64"
       ref: ${{ github.ref }}
 
@@ -49,6 +48,10 @@ jobs:
       - uses: azure/setup-kubectl@v3
 
       - name: run e2e
+        env:
+          REGISTRY: ghcr.io
+          AGENT_IMAGE: ghcr.io/${{ github.repository }}/agent:dev-${{ github.ref }}
+          MANAGER_IMAGE: ghcr.io/${{ github.repository }}/manager:dev-${{ github.ref }}
         run: |
           make kind
-          make run-e2e AGENT_IMAGE="agent:latest" MANAGER_IMAGE="manager:latest"
+          make run-e2e AGENT_IMAGE="$AGENT_IMAGE" MANAGER_IMAGE="$MANAGER_IMAGE"
