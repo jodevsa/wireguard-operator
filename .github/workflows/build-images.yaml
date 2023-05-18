@@ -25,6 +25,10 @@ on:
         required: false
         default: false
         type: boolean
+      run_e2e:
+        required: false
+        default: false
+        type: boolean
       platforms:
         description: 'Docker image platforms'
         required: false
@@ -82,7 +86,22 @@ jobs:
       with:
         go-version: '^1.20'
 
-    - name: Build and push docker image
+    - name: Build docker images
+      uses: docker/build-push-action@v4
+      with:
+        context: .
+        file: images/${{ matrix.image }}/Dockerfile
+        platforms: ${{ inputs.platforms }}
+        load: true
+        push: false
+        tags: ${{ matrix.image }}:dev
+        labels: ${{ steps.image-meta.outputs.labels }}
+
+    - name: e2e
+      if: ${{ inputs.run_e2e == true }}
+      run : |
+        make run-e2e AGENT_IMAGE="agent:dev" MANAGER_IMAGE:"manager:dev"
+    - name: push docker image
       uses: docker/build-push-action@v4
       with:
         context: .

@@ -11,4 +11,6 @@ jobs:
     uses: ./.github/workflows/build-images.yaml
     with:
       push: false
+      run_e2e: true
+      platforms: "linux/amd64"
       ref: ${{ github.ref }}

@@ -25,6 +25,11 @@ KUSTOMIZE_VERSION ?= v3.8.7
 CONTROLLER_TOOLS_VERSION ?= v0.8.0
 KIND_VERSION ?= v0.19.0
 
+
+# images
+AGENT_IMAGE ?= "agent:dev"
+MANAGER_IMAGE ?= "manager:dev"
+
 # CHANNELS define the bundle channels used in the bundle.
 # Add a new line here if you would like to change its default config. (E.g CHANNELS = "candidate,fast,stable")
 # To re-generate a bundle for other specific channels without changing the standard setup, you can:
@@ -118,8 +123,7 @@ build-manager: generate fmt vet ## Build manager binary.
 run: manifests generate fmt vet ## Run a controller from your host.
 	go run ./cmd/manager/main.go
 
-IT_AGENT_IMAGE ="agent:dev"
-IT_MANAGER_IMAGE ="manager:dev"
+
 
 docker-build-agent:  ## Build docker image with the manager.
 	docker build -t ${IT_AGENT_IMAGE} . -f ./images/agent/Dockerfile
@@ -132,13 +136,13 @@ docker-build-integration-test:  docker-build-manager
 	$(MAKE) docker-build-manager
 
 
-integration-test: docker-build-integration-test
-	AGENT_IMAGE=${IT_AGENT_IMAGE} $(MAKE) update-agent-image
-	MANAGER_IMAGE=${IT_MANAGER_IMAGE} $(MAKE) update-manager-image
+run-e2e:
+	AGENT_IMAGE=${AGENT_IMAGE} $(MAKE) update-agent-image
+	MANAGER_IMAGE=${MANAGER_IMAGE} $(MAKE) update-manager-image
 	$(KUSTOMIZE) build config/default > release_it.yaml
 	git checkout ./config/default/manager_auth_proxy_patch.yaml
 	git checkout ./config/manager/kustomization.yaml
-	KIND_BIN=${KIND} WIREGUARD_OPERATOR_RELEASE_PATH="../../release_it.yaml" IT_AGENT_IMAGE=${IT_AGENT_IMAGE} IT_MANAGER_IMAGE=${IT_MANAGER_IMAGE} go test ./internal/it/ -v -count=1
+	KIND_BIN=${KIND} WIREGUARD_OPERATOR_RELEASE_PATH="../../release_it.yaml" AGENT_IMAGE=${AGENT_IMAGE} MANAGER_IMAGE=${MANAGER_IMAGE} go test ./internal/it/ -v -count=1
 
 docker-push: ## Push docker image with the manager.
 	docker push ${IMG}

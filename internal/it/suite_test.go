@@ -155,8 +155,8 @@ var _ = BeforeSuite(func() {
 	}
 
 	releasePath = os.Getenv("WIREGUARD_OPERATOR_RELEASE_PATH")
-	agentImage = os.Getenv("IT_AGENT_IMAGE")
-	managerImage = os.Getenv("IT_MANAGER_IMAGE")
+	agentImage = os.Getenv("AGENT_IMAGE")
+	managerImage = os.Getenv("MANAGER_IMAGE")
 	kindBinary = os.Getenv("KIND_BIN")
 
 	Expect(releasePath).NotTo(Equal(""))
