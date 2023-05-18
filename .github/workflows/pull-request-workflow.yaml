@@ -12,6 +12,7 @@ jobs:
     with:
       push: false
       upload_images: true
+      latest: true
       platforms: "linux/amd64"
       ref: ${{ github.ref }}
 
@@ -34,11 +35,17 @@ jobs:
           docker load --input /tmp/manager.tar
           docker image ls -a
 
-
+      - name: Checkout repository
+        uses: actions/checkout@v3
+        with:
+          repository: ${{ inputs.repository }}
+          ref: ${{ inputs.ref }}
+          submodules: true
+          
       - uses: actions/setup-go@v4
         with:
           go-version: '^1.20'
 
       - name: run e2e
         run: |
-          make run-e2e AGENT_IMAGE="agent:dev" MANAGER_IMAGE:"manager:dev"
+          make run-e2e AGENT_IMAGE="agent:latest" MANAGER_IMAGE:"manager:latest"

@@ -93,8 +93,8 @@ jobs:
         file: images/${{ matrix.image }}/Dockerfile
         platforms: ${{ inputs.platforms }}
         outputs: type=docker,dest=/tmp/${{matrix.image}}.tar
-        push: false
-        tags: ${{ matrix.image }}:dev
+        push: ${{ inputs.push }}
+        tags: ${{ steps.image-meta.outputs.tags }}
         labels: ${{ steps.image-meta.outputs.labels }}
 
     - name: Upload artifact
