@@ -167,14 +167,19 @@ var _ = BeforeSuite(func() {
 		return
 	}
 
-
-
 	// load locally built images
 	cmd := exec.Command(kindBinary, "load", "docker-image", managerImage, "--name", testClusterName)
 	b, err := cmd.Output()
 	if err != nil {
+		if err != nil {
+			if exitError, ok := err.(*exec.ExitError); ok {
+				log.Info(string(exitError.Stderr))
+				Expect(err).NotTo(HaveOccurred())
+			}
+		}
+
 		log.Error(err, "unable to load local image manager:dev")
-		return
+		Expect(err).NotTo(HaveOccurred())
 	}
 	cmd = exec.Command(kindBinary, "load", "docker-image", agentImage, "--name", testClusterName)
 	b, err = cmd.Output()
