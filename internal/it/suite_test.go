@@ -36,6 +36,7 @@ var releasePath string
 var agentImage string
 var managerImage string
 var kindBinary string
+var kubeConfigPath string
 
 var testProvider = kind.NewProvider(
 	kind.ProviderWithDocker())
@@ -50,7 +51,6 @@ func TestAPIs(t *testing.T) {
 const (
 	Timeout             = time.Second * 120
 	Interval            = time.Second * 1
-	kubeConfigPath      = "/Users/subhi/.kube/config"
 	testClusterName     = "wg-kind-test"
 	testKindContextName = "kind-" + testClusterName
 	TestNamespace       = "default"
@@ -114,6 +114,19 @@ func KubectlApply(resource string, namespace string) (string, error) {
 }
 
 var _ = BeforeSuite(func() {
+	releasePath = os.Getenv("WIREGUARD_OPERATOR_RELEASE_PATH")
+	agentImage = os.Getenv("AGENT_IMAGE")
+	managerImage = os.Getenv("MANAGER_IMAGE")
+	kindBinary = os.Getenv("KIND_BIN")
+	kubeConfigPath = os.Getenv("KUBE_CONFIG")
+
+	Expect(releasePath).NotTo(Equal(""))
+	Expect(agentImage).NotTo(Equal(""))
+	Expect(releasePath).NotTo(Equal(""))
+	Expect(managerImage).NotTo(Equal(""))
+	Expect(kindBinary).NotTo(Equal(""))
+	Expect(kubeConfigPath).NotTo(Equal(""))
+
 	config := v1alpha4.Cluster{
 		Nodes: []v1alpha4.Node{
 			{
@@ -154,16 +167,7 @@ var _ = BeforeSuite(func() {
 		return
 	}
 
-	releasePath = os.Getenv("WIREGUARD_OPERATOR_RELEASE_PATH")
-	agentImage = os.Getenv("AGENT_IMAGE")
-	managerImage = os.Getenv("MANAGER_IMAGE")
-	kindBinary = os.Getenv("KIND_BIN")
 
-	Expect(releasePath).NotTo(Equal(""))
-	Expect(agentImage).NotTo(Equal(""))
-	Expect(releasePath).NotTo(Equal(""))
-	Expect(managerImage).NotTo(Equal(""))
-	Expect(kindBinary).NotTo(Equal(""))
 
 	// load locally built images
 	cmd := exec.Command(kindBinary, "load", "docker-image", managerImage, "--name", testClusterName)

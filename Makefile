@@ -142,7 +142,7 @@ run-e2e:
 	$(KUSTOMIZE) build config/default > release_it.yaml
 	git checkout ./config/default/manager_auth_proxy_patch.yaml
 	git checkout ./config/manager/kustomization.yaml
-	KIND_BIN=${KIND} WIREGUARD_OPERATOR_RELEASE_PATH="../../release_it.yaml" AGENT_IMAGE=${AGENT_IMAGE} MANAGER_IMAGE=${MANAGER_IMAGE} go test ./internal/it/ -v -count=1
+	KUBE_CONFIG=$(HOME)/.kube/config KIND_BIN=${KIND} WIREGUARD_OPERATOR_RELEASE_PATH="../../release_it.yaml" AGENT_IMAGE=${AGENT_IMAGE} MANAGER_IMAGE=${MANAGER_IMAGE} go test ./internal/it/ -v -count=1
 
 docker-push: ## Push docker image with the manager.
 	docker push ${IMG}
