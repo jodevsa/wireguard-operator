@@ -11,7 +11,7 @@ require (
 	github.com/korylprince/ipnetgen v1.0.1
 	github.com/onsi/ginkgo v1.16.4
 	github.com/onsi/ginkgo/v2 v2.9.5 // indirect
-	github.com/onsi/gomega v1.27.6
+	github.com/onsi/gomega v1.27.7
 	github.com/vishvananda/netlink v1.1.0
 	golang.zx2c4.com/wireguard/wgctrl v0.0.0-20230429144221-925a1e7659e6
 	k8s.io/api v0.26.1
