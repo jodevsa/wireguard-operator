@@ -1,3 +1,10 @@
+## [1.2.6](https://github.com/jodevsa/wireguard-operator/compare/v1.2.5...v1.2.6) (2023-05-19)
+
+
+### Bug Fixes
+
+* **tests:** add integration test ([e703aff](https://github.com/jodevsa/wireguard-operator/commit/e703aff91b0a8b9e9ac928335f6cb3b73085d2d7))
+
 ## [1.2.5](https://github.com/jodevsa/wireguard-operator/compare/v1.2.4...v1.2.5) (2023-05-15)
 
 
