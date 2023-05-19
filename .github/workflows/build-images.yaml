@@ -25,6 +25,10 @@ on:
         required: false
         default: false
         type: boolean
+      upload_images:
+        required: false
+        default: false
+        type: boolean
       platforms:
         description: 'Docker image platforms'
         required: false
@@ -82,12 +86,32 @@ jobs:
       with:
         go-version: '^1.20'
 
-    - name: Build and push docker image
+    - name: Build and push docker images
+      if: ${{ inputs.push == true }}
       uses: docker/build-push-action@v4
       with:
         context: .
         file: images/${{ matrix.image }}/Dockerfile
         platforms: ${{ inputs.platforms }}
-        push: ${{ inputs.push }}
+        push: true
         tags: ${{ steps.image-meta.outputs.tags }}
         labels: ${{ steps.image-meta.outputs.labels }}
+
+    - name: Build and upload docker image to job artifact
+      if: ${{ inputs.upload_images == true }}
+      uses: docker/build-push-action@v4
+      with:
+        context: .
+        file: images/${{ matrix.image }}/Dockerfile
+        platforms: ${{ inputs.platforms }}
+        outputs: type=docker,dest=/tmp/${{matrix.image}}.tar
+        push: false
+        tags: ${{ steps.image-meta.outputs.tags }}
+        labels: ${{ steps.image-meta.outputs.labels }}
+
+    - name: Upload artifact
+      if: ${{ inputs.upload_images == true }}
+      uses: actions/upload-artifact@v3
+      with:
+        name: images
+        path: /tmp/${{matrix.image}}.tar

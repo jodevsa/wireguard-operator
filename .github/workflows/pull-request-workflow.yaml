@@ -1,4 +1,4 @@
-name: build docker images
+name: PR pipeline
 on:
   pull_request: {}
 
@@ -11,4 +11,48 @@ jobs:
     uses: ./.github/workflows/build-images.yaml
     with:
       push: false
+      upload_images: true
+      platforms: "linux/amd64"
       ref: ${{ github.ref }}
+      tag: dev
+
+  e2e:
+    runs-on: ubuntu-latest
+    needs: build-images
+    steps:
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+
+      - name: Download artifact
+        uses: actions/download-artifact@v3
+        with:
+          name: images
+          path: /tmp
+
+      - name: Load image
+        run: |
+          docker load --input /tmp/agent.tar
+          docker load --input /tmp/manager.tar
+          docker image ls -a
+
+      - name: Checkout repository
+        uses: actions/checkout@v3
+        with:
+          repository: ${{ inputs.repository }}
+          ref: ${{ inputs.ref }}
+          submodules: true
+
+      - uses: actions/setup-go@v4
+        with:
+          go-version: '^1.20'
+
+      - uses: azure/setup-kubectl@v3
+
+      - name: run e2e
+        env:
+          REGISTRY: ghcr.io
+          AGENT_IMAGE: ghcr.io/${{ github.repository }}/agent:dev
+          MANAGER_IMAGE: ghcr.io/${{ github.repository }}/manager:dev
+        run: |
+          make kind
+          make run-e2e AGENT_IMAGE="$AGENT_IMAGE" MANAGER_IMAGE="$MANAGER_IMAGE"

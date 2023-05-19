@@ -59,8 +59,8 @@ jobs:
 
       - name: prepare new release
         env:
-          MANAGER_IMAGE: ghcr.io/${{ inputs.repository }}/manager:${{ inputs.tag }}
-          AGENT_IMAGE: ghcr.io/${{ inputs.repository }}/agent:${{ inputs.tag }}
+          MANAGER_IMAGE: ghcr.io/${{ inputs.repository }}/manager:dev-${{ inputs.tag }}
+          AGENT_IMAGE: ghcr.io/${{ inputs.repository }}/agent:dev-${{ inputs.tag }}
         run : |
           make generate-release-file AGENT_IMAGE="$AGENT_IMAGE" MANAGER_IMAGE="$MANAGER_IMAGE"
       - name: upload release
