@@ -1,3 +1,10 @@
+## [1.2.7](https://github.com/jodevsa/wireguard-operator/compare/v1.2.6...v1.2.7) (2023-05-23)
+
+
+### Bug Fixes
+
+* **deps:** update module sigs.k8s.io/controller-runtime to v0.15.0 ([48b078b](https://github.com/jodevsa/wireguard-operator/commit/48b078bd0f2058dc8d8ea40dd457a3214353672c))
+
 ## [1.2.6](https://github.com/jodevsa/wireguard-operator/compare/v1.2.5...v1.2.6) (2023-05-19)
 
 
