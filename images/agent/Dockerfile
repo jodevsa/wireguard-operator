@@ -15,7 +15,7 @@ RUN go mod download
 # COPY src
 COPY pkg/ pkg/
 COPY cmd/ cmd/
-COPY internal internal/
+COPY internal/iptables internal/iptables
 # build
 ARG TARGETOS TARGETARCH
 RUN CGO_ENABLED=0 GOOS=${TARGETOS} GOARCH=${TARGETARCH} go build -o agent -x cmd/agent/main.go
@@ -58,22 +58,19 @@ RUN set -eux; \
 # end of step 3
 
 # step 4: prepare image
-FROM --platform=${TARGETPLATFORM} debian:buster-slim
+FROM --platform=${TARGETPLATFORM} alpine:3.18
 ARG WIREGUARD_GO_SRC
 ARG WIREGUARD_AGENT_SRC
 ARG PROMETHEUS_WIREGUARD_EXPORTER_SRC
 
-RUN set -eux; \
-    echo 'deb http://deb.debian.org/debian buster-backports main' > /etc/apt/sources.list.d/backports.list; \
-    apt-get update; \
-    DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-suggests --no-install-recommends \
-    wireguard-tools sudo iproute2 iptables gettext-base fswatch
+# libgcc and gcompat are need for the prometheus exporter. it is currently not statically linked.
+RUN apk add bash iptables wireguard-tools libgcc gcompat
 
 COPY --from=golang-builder $WIREGUARD_GO_SRC/wireguard-go /usr/local/bin
 COPY --from=golang-builder $WIREGUARD_AGENT_SRC/agent /usr/local/bin
 COPY --from=rust-builder $PROMETHEUS_WIREGUARD_EXPORTER_SRC/prometheus_wireguard_exporter /usr/local/bin
 
-WORKDIR /etc/wireguard
+WORKDIR /
 
 ENTRYPOINT ["agent"]
 # end of step 4

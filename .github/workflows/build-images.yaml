@@ -1,0 +1,117 @@
+name: Build Docker Images
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+
+on:
+  workflow_call:
+    inputs:
+      ref:
+        required: true
+        type: string
+      repository:
+        description: 'Repository name with owner.'
+        required: false
+        default: ${{ github.repository }}
+        type: string
+      tag:
+        required: false
+        default: dev-${{ github.sha }}
+        type: string
+      push:
+        required: true
+        type: boolean
+      latest:
+        required: false
+        default: false
+        type: boolean
+      upload_images:
+        required: false
+        default: false
+        type: boolean
+      platforms:
+        description: 'Docker image platforms'
+        required: false
+        default: 'linux/amd64, linux/arm64'
+        type: string
+
+
+permissions:
+  contents: read
+  packages: write
+
+jobs: 
+  build-images:
+    strategy:
+      matrix:
+        image:
+          - manager
+          - agent
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v3
+      with:
+        repository: ${{ inputs.repository }}
+        ref: ${{ inputs.ref }}
+        submodules: true
+
+    - name: Set up QEMU
+      uses: docker/setup-qemu-action@v2
+
+    - name: Set up Docker Buildx
+      id: buildx
+      uses: docker/setup-buildx-action@v2
+      with:
+        install: true
+
+    - name: Login to GitHub Container Registry
+      uses: docker/login-action@v2
+      with:
+        registry: ghcr.io
+        username: ${{ github.repository_owner }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Generate docker metadata
+      id: image-meta
+      uses: docker/metadata-action@v4
+      with:
+        tags: |
+          type=raw,value=latest, enable=${{ inputs.latest}}
+          type=raw,value=${{ inputs.tag }}
+        images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/${{ matrix.image }}
+
+    - uses: actions/setup-go@v4
+      with:
+        go-version: '^1.20'
+
+    - name: Build and push docker images
+      if: ${{ inputs.push == true }}
+      uses: docker/build-push-action@v4
+      with:
+        context: .
+        file: images/${{ matrix.image }}/Dockerfile
+        platforms: ${{ inputs.platforms }}
+        push: true
+        tags: ${{ steps.image-meta.outputs.tags }}
+        labels: ${{ steps.image-meta.outputs.labels }}
+
+    - name: Build and upload docker image to job artifact
+      if: ${{ inputs.upload_images == true }}
+      uses: docker/build-push-action@v4
+      with:
+        context: .
+        file: images/${{ matrix.image }}/Dockerfile
+        platforms: ${{ inputs.platforms }}
+        outputs: type=docker,dest=/tmp/${{matrix.image}}.tar
+        push: false
+        tags: ${{ steps.image-meta.outputs.tags }}
+        labels: ${{ steps.image-meta.outputs.labels }}
+
+    - name: Upload artifact
+      if: ${{ inputs.upload_images == true }}
+      uses: actions/upload-artifact@v3
+      with:
+        name: images
+        path: /tmp/${{matrix.image}}.tar

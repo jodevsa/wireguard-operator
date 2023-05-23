@@ -1,0 +1,53 @@
+name: Release
+on:
+  push:
+    branches:
+      - main
+
+permissions: write-all
+
+jobs:
+  generate-next-semantic-version:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+        name: Checkout repository
+        with:
+          submodules: true
+      - name: semantic-release extract new version
+        id: extract
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          npm install @semantic-release/commit-analyzer @semantic-release/release-notes-generator @semantic-release/changelog @semantic-release/git semantic-release/exec
+          echo "version=v$(npx semantic-release --dryRun | grep -oP 'Published release \K.*? ')"
+          echo "version=v$(npx semantic-release --dryRun | grep -oP 'Published release \K.*? ')" >> "$GITHUB_OUTPUT"
+    outputs:
+      version: ${{ steps.extract.outputs.version }}
+
+  build-images:
+    needs: [generate-next-semantic-version]
+    uses: ./.github/workflows/build-images.yaml
+    with:
+      latest: true
+      push: true
+      tag: ${{needs.generate-next-semantic-version.outputs.version}}
+      ref: ${{ github.sha }}
+
+  release:
+    needs: [build-images]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+        name: Checkout repository
+        with:
+          submodules: true
+          persist-credentials: false
+          ref: ${{ github.sha }}
+
+      - name: semantic-release
+        env:
+          GITHUB_TOKEN: ${{ secrets.ADMIN_SECRET }}
+        run : |
+          npm install @semantic-release/commit-analyzer @semantic-release/release-notes-generator @semantic-release/changelog @semantic-release/git semantic-release/exec
+          npx semantic-release

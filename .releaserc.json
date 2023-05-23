@@ -1,0 +1,33 @@
+{
+    "branches": [
+        "main"
+    ],
+    "plugins": [
+        ["@semantic-release/exec", {
+            "publishCmd": "make generate-release-file AGENT_IMAGE=\"ghcr.io/jodevsa/wireguard-operator/agent:v${nextRelease.version}\" MANAGER_IMAGE=\"ghcr.io/jodevsa/wireguard-operator/manager:v${nextRelease.version}\""
+          }],
+        "@semantic-release/commit-analyzer",
+        "@semantic-release/release-notes-generator",
+        ["@semantic-release/changelog",
+            {
+                "changelogFile": "CHANGELOG.md"
+            }
+        ],
+        ["@semantic-release/git",
+            {
+                "assets": ["CHANGELOG.md"]
+            }
+        ],
+        [
+            "@semantic-release/github",
+            {
+                "assets": [
+                    {
+                        "path": "./release.yaml",
+                        "label": "k8s release file"
+                    }
+                ]
+            }
+        ]
+    ]
+}
