@@ -144,7 +144,7 @@ docker-load-kind:
 run-e2e:
 	SIDECAR_IMAGE=${SIDECAR_IMAGE} AGENT_IMAGE=${AGENT_IMAGE} $(MAKE) update-agent-and-sidecar-image
 	MANAGER_IMAGE=${MANAGER_IMAGE} $(MAKE) update-manager-image
-	$(KUSTOMIZE) build config/default > release_it.yaml
+	$(KUSTOMIZE) build config/e2e > release_it.yaml
 	git checkout ./config/default/manager_auth_proxy_patch.yaml
 	git checkout ./config/manager/kustomization.yaml
 	KUBE_CONFIG=$(HOME)/.kube/config KIND_BIN=${KIND} WIREGUARD_OPERATOR_RELEASE_PATH="../../release_it.yaml" SIDECAR_IMAGE=${SIDECAR_IMAGE} AGENT_IMAGE=${AGENT_IMAGE} MANAGER_IMAGE=${MANAGER_IMAGE} go test ./internal/it/ -v -count=1
