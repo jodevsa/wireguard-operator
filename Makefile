@@ -27,8 +27,9 @@ KIND_VERSION ?= v0.19.0
 
 
 # images
-AGENT_IMAGE ?= "agent:dev"
-MANAGER_IMAGE ?= "manager:dev"
+AGENT_IMAGE ?= "ghcr.io/jodevsa/wireguard-operator/agent:main"
+MANAGER_IMAGE ?= "ghcr.io/jodevsa/wireguard-operator/manager:main"
+SIDECAR_IMAGE ?= "ghcr.io/jodevsa/wireguard-operator/sidecar:main"
 
 # CHANNELS define the bundle channels used in the bundle.
 # Add a new line here if you would like to change its default config. (E.g CHANNELS = "candidate,fast,stable")
@@ -130,6 +131,9 @@ docker-build-agent:  ## Build docker image with the manager.
 
 docker-build-manager:  ## Build docker image with the manager.
 	docker build -t ${MANAGER_IMAGE} . -f ./images/manager/Dockerfile
+
+docker-build-sidecar:  ## Build docker image with the sidecar.
+	docker build -t ${SIDECAR_IMAGE} . -f ./images/sidecar/Dockerfile
 
 docker-build-integration-test:  docker-build-manager
 	$(MAKE) docker-build-agent
