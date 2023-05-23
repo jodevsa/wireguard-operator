@@ -135,9 +135,10 @@ docker-build-manager:  ## Build docker image with the manager.
 docker-build-sidecar:  ## Build docker image with the sidecar.
 	docker build -t ${SIDECAR_IMAGE} . -f ./images/sidecar/Dockerfile
 
-docker-build-integration-test:  docker-build-manager
+docker-build-all:
 	$(MAKE) docker-build-agent
 	$(MAKE) docker-build-manager
+	${MAKE} docker-build-sidecar
 
 docker-load-kind:
 	kind load docker-image ${AGENT_IMAGE} ${SIDECAR_IMAGE} ${MANAGER_IMAGE}
