@@ -139,6 +139,8 @@ docker-build-integration-test:  docker-build-manager
 	$(MAKE) docker-build-agent
 	$(MAKE) docker-build-manager
 
+docker-load-kind:
+	kind load docker-image ${AGENT_IMAGE} ${SIDECAR_IMAGE} ${MANAGER_IMAGE}
 
 run-e2e:
 	AGENT_IMAGE=${AGENT_IMAGE} $(MAKE) update-agent-image
@@ -174,7 +176,6 @@ generate-release-file: kustomize update-agent-image update-manager-image
 	git checkout ./config/manager/kustomization.yaml
 
 deploy: manifests kustomize ## Deploy controller to the K8s cluster specified in ~/.kube/config.
-	cd config/manager && $(KUSTOMIZE) edit set image controller=${IMG}
 	$(KUSTOMIZE) build config/default | kubectl apply -f -
 
 undeploy: ## Undeploy controller from the K8s cluster specified in ~/.kube/config.
