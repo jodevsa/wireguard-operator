@@ -3,6 +3,13 @@ package it
 import (
 	"context"
 	"fmt"
+	"log"
+	"os"
+	"os/exec"
+	"strings"
+	"testing"
+	"time"
+
 	"github.com/go-logr/stdr"
 	"github.com/jodevsa/wireguard-operator/pkg/api/v1alpha1"
 	. "github.com/onsi/ginkgo"
@@ -12,17 +19,11 @@ import (
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
-	"log"
-	"os"
-	"os/exec"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
 	"sigs.k8s.io/kind/pkg/apis/config/v1alpha4"
 	kind "sigs.k8s.io/kind/pkg/cluster"
 	log2 "sigs.k8s.io/kind/pkg/log"
-	"strings"
-	"testing"
-	"time"
 	//+kubebuilder:scaffold:imports
 )
 
@@ -34,6 +35,7 @@ var k8sClient client.Client
 var testEnv *envtest.Environment
 var releasePath string
 var agentImage string
+var sidecarImage string
 var managerImage string
 var kindBinary string
 var kubeConfigPath string
@@ -184,7 +186,13 @@ var _ = BeforeSuite(func() {
 	cmd = exec.Command(kindBinary, "load", "docker-image", agentImage, "--name", testClusterName)
 	b, err = cmd.Output()
 	if err != nil {
-		log.Error(err, "unable to load local image agent:dev")
+		log.Error(err, "unable to load local image for agent")
+		return
+	}
+	cmd = exec.Command(kindBinary, "load", "docker-image", sidecarImage, "--name", testClusterName)
+	b, err = cmd.Output()
+	if err != nil {
+		log.Error(err, "unable to load local image for sidecar")
 		return
 	}
 
