@@ -146,6 +146,7 @@ docker-load-kind:
 run-e2e:
 	AGENT_IMAGE=${AGENT_IMAGE} $(MAKE) update-agent-image
 	MANAGER_IMAGE=${MANAGER_IMAGE} $(MAKE) update-manager-image
+	SIDECAR_IMAGE=${SIDECAR_IMAGE} $(MAKE) update-sidecar-image
 	$(KUSTOMIZE) build config/default > release_it.yaml
 	git checkout ./config/default/manager_auth_proxy_patch.yaml
 	git checkout ./config/manager/kustomization.yaml
