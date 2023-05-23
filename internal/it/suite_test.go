@@ -125,6 +125,7 @@ var _ = BeforeSuite(func() {
 
 	Expect(releasePath).NotTo(Equal(""))
 	Expect(agentImage).NotTo(Equal(""))
+	Expect(sidecarImage).NotTo(Equal(""))
 	Expect(releasePath).NotTo(Equal(""))
 	Expect(managerImage).NotTo(Equal(""))
 	Expect(kindBinary).NotTo(Equal(""))
