@@ -124,8 +124,6 @@ build-manager: generate fmt vet ## Build manager binary.
 run: manifests generate fmt vet ## Run a controller from your host.
 	go run ./cmd/manager/main.go
 
-
-
 docker-build-agent:  ## Build docker image with the manager.
 	docker build -t ${AGENT_IMAGE} . -f ./images/agent/Dockerfile
 
@@ -144,9 +142,8 @@ docker-load-kind:
 	kind load docker-image ${AGENT_IMAGE} ${SIDECAR_IMAGE} ${MANAGER_IMAGE}
 
 run-e2e:
-	AGENT_IMAGE=${AGENT_IMAGE} $(MAKE) update-agent-image
+	SIDECAR_IMAGE=${SIDECAR_IMAGE} AGENT_IMAGE=${AGENT_IMAGE} $(MAKE) update-agent-and-sidecar-image
 	MANAGER_IMAGE=${MANAGER_IMAGE} $(MAKE) update-manager-image
-	SIDECAR_IMAGE=${SIDECAR_IMAGE} $(MAKE) update-sidecar-image
 	$(KUSTOMIZE) build config/default > release_it.yaml
 	git checkout ./config/default/manager_auth_proxy_patch.yaml
 	git checkout ./config/manager/kustomization.yaml
@@ -164,9 +161,9 @@ uninstall: manifests kustomize ## Uninstall CRDs from the K8s cluster specified 
 	$(KUSTOMIZE) build config/crd | kubectl delete -f -
 
 
-update-agent-image: kustomize
+update-agent-and-sidecar-image: kustomize
 	## TODO: Simplify later
-	AGENT_IMAGE=$(AGENT_IMAGE) envsubst < ./config/default/manager_auth_proxy_patch.yaml.template > ./config/default/manager_auth_proxy_patch.yaml
+	SIDECAR_IMAGE=$(SIDECAR_IMAGE) AGENT_IMAGE=$(AGENT_IMAGE) envsubst < ./config/default/manager_auth_proxy_patch.yaml.template > ./config/default/manager_auth_proxy_patch.yaml
 
 update-manager-image: kustomize
 	$(info MANAGER_IMAGE: "$(MANAGER_IMAGE)")
