@@ -118,6 +118,7 @@ func KubectlApply(resource string, namespace string) (string, error) {
 var _ = BeforeSuite(func() {
 	releasePath = os.Getenv("WIREGUARD_OPERATOR_RELEASE_PATH")
 	agentImage = os.Getenv("AGENT_IMAGE")
+	sidecarImage = os.Getenv("SIDECAR_IMAGE")
 	managerImage = os.Getenv("MANAGER_IMAGE")
 	kindBinary = os.Getenv("KIND_BIN")
 	kubeConfigPath = os.Getenv("KUBE_CONFIG")

@@ -142,6 +142,7 @@ docker-load-kind:
 	kind load docker-image ${AGENT_IMAGE} ${SIDECAR_IMAGE} ${MANAGER_IMAGE}
 
 run-e2e:
+	${MAKE} docker-build-all
 	SIDECAR_IMAGE=${SIDECAR_IMAGE} AGENT_IMAGE=${AGENT_IMAGE} $(MAKE) update-agent-and-sidecar-image
 	MANAGER_IMAGE=${MANAGER_IMAGE} $(MAKE) update-manager-image
 	$(KUSTOMIZE) build config/default > release_it.yaml
