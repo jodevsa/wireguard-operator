@@ -1,3 +1,10 @@
+## [1.2.10](https://github.com/jodevsa/wireguard-operator/compare/v1.2.9...v1.2.10) (2023-06-10)
+
+
+### Bug Fixes
+
+* **deps:** update module github.com/onsi/gomega to v1.27.8 ([d9e398d](https://github.com/jodevsa/wireguard-operator/commit/d9e398d1a6e6cebe5479f772cb13a68506c37875))
+
 ## [1.2.9](https://github.com/jodevsa/wireguard-operator/compare/v1.2.8...v1.2.9) (2023-06-10)
 
 
