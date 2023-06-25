@@ -1,3 +1,12 @@
+## [1.2.12](https://github.com/jodevsa/wireguard-operator/compare/v1.2.11...v1.2.12) (2023-06-25)
+
+
+### Bug Fixes
+
+* **deps:** update kubernetes packages to v0.27.3 ([964b192](https://github.com/jodevsa/wireguard-operator/commit/964b1924c202a6c1975a9f1054fc52d0a3318c6d))
+* **deps:** update module github.com/onsi/ginkgo to v2 ([71f22b3](https://github.com/jodevsa/wireguard-operator/commit/71f22b3f5b922f65decaf50ef6f29de6acd6481f))
+* **deps:** update module sigs.k8s.io/kind to v0.20.0 ([1a01801](https://github.com/jodevsa/wireguard-operator/commit/1a01801a6684377bfb6602fb578ea2efdde7f691))
+
 ## [1.2.11](https://github.com/jodevsa/wireguard-operator/compare/v1.2.10...v1.2.11) (2023-06-10)
 
 
