@@ -7,8 +7,7 @@ painless deployment of wireguard on kubernetes
 
 # Support and discussions
 
-If you are facing any problems please open an issue or join our [slack channel](https://join.slack.com/t/wireguard-operator/shared_invite/zt-144xd8ufl-NvH_T82QA0lrP3q0ECTdYA)
-
+If you are facing any problems please open an [issue](https://github.com/jodevsa/wireguard-operator/issues) or start a [discussion](https://github.com/jodevsa/wireguard-operator/discussions) 
 # Tested with
 - [x] IBM Cloud Kubernetes Service
 - [x] Gcore Labs KMP
