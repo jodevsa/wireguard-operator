@@ -64,7 +64,7 @@ ARG WIREGUARD_AGENT_SRC
 ARG PROMETHEUS_WIREGUARD_EXPORTER_SRC
 
 # libgcc and gcompat are need for the prometheus exporter. it is currently not statically linked.
-RUN apk add bash iptables wireguard-tools libgcc gcompat
+RUN apk add iptables wireguard-tools libgcc gcompat
 
 COPY --from=golang-builder $WIREGUARD_GO_SRC/wireguard-go /usr/local/bin
 COPY --from=golang-builder $WIREGUARD_AGENT_SRC/agent /usr/local/bin
