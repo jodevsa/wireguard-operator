@@ -1,3 +1,10 @@
+## [1.2.19](https://github.com/jodevsa/wireguard-operator/compare/v1.2.18...v1.2.19) (2023-08-27)
+
+
+### Bug Fixes
+
+* **deps:** update kubernetes packages to v0.28.1 ([23b7a7c](https://github.com/jodevsa/wireguard-operator/commit/23b7a7ce533300b790d01f024184678210696fe7))
+
 ## [1.2.18](https://github.com/jodevsa/wireguard-operator/compare/v1.2.17...v1.2.18) (2023-08-14)
 
 
