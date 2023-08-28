@@ -632,10 +632,10 @@ func (r *WireguardReconciler) serviceForWireguard(m *v1alpha1.Wireguard, service
 
 	dep := &corev1.Service{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      m.Name + "-svc",
-			Namespace: m.Namespace,
+			Name:        m.Name + "-svc",
+			Namespace:   m.Namespace,
 			Annotations: m.Spec.ServiceAnnotations,
-			Labels: labels,
+			Labels:      labels,
 		},
 		Spec: corev1.ServiceSpec{
 			Selector: labels,

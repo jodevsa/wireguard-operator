@@ -33,3 +33,4 @@ spec:
         - "--metrics-bind-address=127.0.0.1:8080"
         - "--leader-elect"
         - "--agent-image=ghcr.io/jodevsa/wireguard-operator/agent:main"
+        - "--sidecar-image=ghcr.io/jodevsa/wireguard-operator/sidecar:main"

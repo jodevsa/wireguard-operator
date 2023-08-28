@@ -3,6 +3,13 @@ package it
 import (
 	"context"
 	"fmt"
+	"log"
+	"os"
+	"os/exec"
+	"strings"
+	"testing"
+	"time"
+
 	"github.com/go-logr/stdr"
 	"github.com/jodevsa/wireguard-operator/pkg/api/v1alpha1"
 	. "github.com/onsi/ginkgo"
@@ -12,17 +19,11 @@ import (
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
-	"log"
-	"os"
-	"os/exec"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
 	"sigs.k8s.io/kind/pkg/apis/config/v1alpha4"
 	kind "sigs.k8s.io/kind/pkg/cluster"
 	log2 "sigs.k8s.io/kind/pkg/log"
-	"strings"
-	"testing"
-	"time"
 	//+kubebuilder:scaffold:imports
 )
 
@@ -34,6 +35,7 @@ var k8sClient client.Client
 var testEnv *envtest.Environment
 var releasePath string
 var agentImage string
+var sidecarImage string
 var managerImage string
 var kindBinary string
 var kubeConfigPath string
@@ -116,12 +118,14 @@ func KubectlApply(resource string, namespace string) (string, error) {
 var _ = BeforeSuite(func() {
 	releasePath = os.Getenv("WIREGUARD_OPERATOR_RELEASE_PATH")
 	agentImage = os.Getenv("AGENT_IMAGE")
+	sidecarImage = os.Getenv("SIDECAR_IMAGE")
 	managerImage = os.Getenv("MANAGER_IMAGE")
 	kindBinary = os.Getenv("KIND_BIN")
 	kubeConfigPath = os.Getenv("KUBE_CONFIG")
 
 	Expect(releasePath).NotTo(Equal(""))
 	Expect(agentImage).NotTo(Equal(""))
+	Expect(sidecarImage).NotTo(Equal(""))
 	Expect(releasePath).NotTo(Equal(""))
 	Expect(managerImage).NotTo(Equal(""))
 	Expect(kindBinary).NotTo(Equal(""))
@@ -184,7 +188,13 @@ var _ = BeforeSuite(func() {
 	cmd = exec.Command(kindBinary, "load", "docker-image", agentImage, "--name", testClusterName)
 	b, err = cmd.Output()
 	if err != nil {
-		log.Error(err, "unable to load local image agent:dev")
+		log.Error(err, "unable to load local image for agent")
+		return
+	}
+	cmd = exec.Command(kindBinary, "load", "docker-image", sidecarImage, "--name", testClusterName)
+	b, err = cmd.Output()
+	if err != nil {
+		log.Error(err, "unable to load local image for sidecar")
 		return
 	}
 
@@ -201,17 +211,19 @@ var _ = BeforeSuite(func() {
 		"namespace/wireguard-system",
 		"customresourcedefinition.apiextensions.k8s.io/wireguardpeers.vpn.example.com",
 		"customresourcedefinition.apiextensions.k8s.io/wireguards.vpn.example.com",
-		"serviceaccount/wireguard-controller-manager",
-		"role.rbac.authorization.k8s.io/wireguard-leader-election-role",
-		"clusterrole.rbac.authorization.k8s.io/wireguard-manager-role",
-		"clusterrole.rbac.authorization.k8s.io/wireguard-metrics-reader",
-		"clusterrole.rbac.authorization.k8s.io/wireguard-proxy-role",
-		"rolebinding.rbac.authorization.k8s.io/wireguard-leader-election-rolebinding",
-		"clusterrolebinding.rbac.authorization.k8s.io/wireguard-manager-rolebinding",
-		"clusterrolebinding.rbac.authorization.k8s.io/wireguard-proxy-rolebinding",
-		"configmap/wireguard-manager-config",
-		"service/wireguard-controller-manager-metrics-service",
-		"deployment.apps/wireguard-controller-manager",
+		"serviceaccount/wireguard-wireguard-controller-manager",
+		"role.rbac.authorization.k8s.io/wireguard-wireguard-leader-election-role",
+		"clusterrole.rbac.authorization.k8s.io/wireguard-wireguard-manager-role",
+		"clusterrole.rbac.authorization.k8s.io/wireguard-wireguard-metrics-reader",
+		"clusterrole.rbac.authorization.k8s.io/wireguard-wireguard-proxy-role",
+		"rolebinding.rbac.authorization.k8s.io/wireguard-wireguard-leader-election-rolebinding",
+		"clusterrolebinding.rbac.authorization.k8s.io/wireguard-wireguard-manager-rolebinding",
+		"clusterrolebinding.rbac.authorization.k8s.io/wireguard-wireguard-proxy-rolebinding",
+		"configmap/wireguard-wireguard-manager-config",
+		"service/wireguard-hello-kubernetes",
+		"service/wireguard-wireguard-controller-manager-metrics-service",
+		"deployment.apps/wireguard-hello-kubernetes",
+		"deployment.apps/wireguard-wireguard-controller-manager",
 	}
 
 	Expect(strings.Split(strings.Trim(strings.ReplaceAll(string(b), " created", ""), "\n"), "\n")).To(BeEquivalentTo(expectedResources))

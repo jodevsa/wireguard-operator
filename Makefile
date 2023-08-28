@@ -27,8 +27,9 @@ KIND_VERSION ?= v0.19.0
 
 
 # images
-AGENT_IMAGE ?= "agent:dev"
-MANAGER_IMAGE ?= "manager:dev"
+AGENT_IMAGE ?= "ghcr.io/jodevsa/wireguard-operator/agent:main"
+MANAGER_IMAGE ?= "ghcr.io/jodevsa/wireguard-operator/manager:main"
+SIDECAR_IMAGE ?= "ghcr.io/jodevsa/wireguard-operator/sidecar:main"
 
 # CHANNELS define the bundle channels used in the bundle.
 # Add a new line here if you would like to change its default config. (E.g CHANNELS = "candidate,fast,stable")
@@ -123,26 +124,30 @@ build-manager: generate fmt vet ## Build manager binary.
 run: manifests generate fmt vet ## Run a controller from your host.
 	go run ./cmd/manager/main.go
 
-
-
 docker-build-agent:  ## Build docker image with the manager.
 	docker build -t ${AGENT_IMAGE} . -f ./images/agent/Dockerfile
 
 docker-build-manager:  ## Build docker image with the manager.
 	docker build -t ${MANAGER_IMAGE} . -f ./images/manager/Dockerfile
 
-docker-build-integration-test:  docker-build-manager
+docker-build-sidecar:  ## Build docker image with the sidecar.
+	docker build -t ${SIDECAR_IMAGE} . -f ./images/sidecar/Dockerfile
+
+docker-build-all:
 	$(MAKE) docker-build-agent
 	$(MAKE) docker-build-manager
+	${MAKE} docker-build-sidecar
 
+docker-load-kind:
+	kind load docker-image ${AGENT_IMAGE} ${SIDECAR_IMAGE} ${MANAGER_IMAGE}
 
 run-e2e:
-	AGENT_IMAGE=${AGENT_IMAGE} $(MAKE) update-agent-image
+	SIDECAR_IMAGE=${SIDECAR_IMAGE} AGENT_IMAGE=${AGENT_IMAGE} $(MAKE) update-agent-and-sidecar-image
 	MANAGER_IMAGE=${MANAGER_IMAGE} $(MAKE) update-manager-image
-	$(KUSTOMIZE) build config/default > release_it.yaml
+	$(KUSTOMIZE) build config/e2e > release_it.yaml
 	git checkout ./config/default/manager_auth_proxy_patch.yaml
 	git checkout ./config/manager/kustomization.yaml
-	KUBE_CONFIG=$(HOME)/.kube/config KIND_BIN=${KIND} WIREGUARD_OPERATOR_RELEASE_PATH="../../release_it.yaml" AGENT_IMAGE=${AGENT_IMAGE} MANAGER_IMAGE=${MANAGER_IMAGE} go test ./internal/it/ -v -count=1
+	KUBE_CONFIG=$(HOME)/.kube/config KIND_BIN=${KIND} WIREGUARD_OPERATOR_RELEASE_PATH="../../release_it.yaml" SIDECAR_IMAGE=${SIDECAR_IMAGE} AGENT_IMAGE=${AGENT_IMAGE} MANAGER_IMAGE=${MANAGER_IMAGE} go test ./internal/it/ -v -count=1
 
 docker-push: ## Push docker image with the manager.
 	docker push ${IMG}
@@ -156,9 +161,9 @@ uninstall: manifests kustomize ## Uninstall CRDs from the K8s cluster specified 
 	$(KUSTOMIZE) build config/crd | kubectl delete -f -
 
 
-update-agent-image: kustomize
+update-agent-and-sidecar-image: kustomize
 	## TODO: Simplify later
-	AGENT_IMAGE=$(AGENT_IMAGE) envsubst < ./config/default/manager_auth_proxy_patch.yaml.template > ./config/default/manager_auth_proxy_patch.yaml
+	SIDECAR_IMAGE=$(SIDECAR_IMAGE) AGENT_IMAGE=$(AGENT_IMAGE) envsubst < ./config/default/manager_auth_proxy_patch.yaml.template > ./config/default/manager_auth_proxy_patch.yaml
 
 update-manager-image: kustomize
 	$(info MANAGER_IMAGE: "$(MANAGER_IMAGE)")
@@ -170,7 +175,6 @@ generate-release-file: kustomize update-agent-image update-manager-image
 	git checkout ./config/manager/kustomization.yaml
 
 deploy: manifests kustomize ## Deploy controller to the K8s cluster specified in ~/.kube/config.
-	cd config/manager && $(KUSTOMIZE) edit set image controller=${IMG}
 	$(KUSTOMIZE) build config/default | kubectl apply -f -
 
 undeploy: ## Undeploy controller from the K8s cluster specified in ~/.kube/config.
