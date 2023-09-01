@@ -85,7 +85,7 @@ rules:
   - update
   - watch
 - apiGroups:
-  - vpn.example.com
+  - vpn.wireguard-operator.io
   resources:
   - wireguardpeers
   verbs:
@@ -97,13 +97,13 @@ rules:
   - update
   - watch
 - apiGroups:
-  - vpn.example.com
+  - vpn.wireguard-operator.io
   resources:
   - wireguardpeers/finalizers
   verbs:
   - update
 - apiGroups:
-  - vpn.example.com
+  - vpn.wireguard-operator.io
   resources:
   - wireguardpeers/status
   verbs:
@@ -111,7 +111,7 @@ rules:
   - patch
   - update
 - apiGroups:
-  - vpn.example.com
+  - vpn.wireguard-operator.io
   resources:
   - wireguards
   verbs:
@@ -123,13 +123,13 @@ rules:
   - update
   - watch
 - apiGroups:
-  - vpn.example.com
+  - vpn.wireguard-operator.io
   resources:
   - wireguards/finalizers
   verbs:
   - update
 - apiGroups:
-  - vpn.example.com
+  - vpn.wireguard-operator.io
   resources:
   - wireguards/status
   verbs:

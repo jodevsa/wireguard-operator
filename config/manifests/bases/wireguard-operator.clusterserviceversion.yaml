@@ -13,12 +13,12 @@ spec:
     - description: WireguardPeer is the Schema for the wireguardpeers API
       displayName: Wireguard Peer
       kind: WireguardPeer
-      name: wireguardpeers.vpn.example.com
+      name: wireguardpeers.vpn.wireguard-operator.io
       version: v1alpha1
     - description: Wireguard is the Schema for the wireguards API
       displayName: Wireguard
       kind: Wireguard
-      name: wireguards.vpn.example.com
+      name: wireguards.vpn.wireguard-operator.io
       version: v1alpha1
   description: op
   displayName: wireguard

@@ -2,7 +2,7 @@
 apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
-  name: wireguards.vpn.example.com
+  name: wireguards.vpn.wireguard-operator.io
 spec:
   conversion:
     strategy: Webhook

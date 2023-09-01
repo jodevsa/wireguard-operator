@@ -11,7 +11,7 @@ data:
       port: 9443
     leaderElection:
       leaderElect: true
-      resourceName: a6d3bffc.example.com
+      resourceName: a6d3bffc.wireguard-operator.io
 kind: ConfigMap
 metadata:
   name: wireguard-manager-config
