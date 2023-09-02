@@ -199,8 +199,8 @@ var _ = BeforeSuite(func() {
 
 	expectedResources := []string{
 		"namespace/wireguard-system",
-		"customresourcedefinition.apiextensions.k8s.io/wireguardpeers.vpn.example.com",
-		"customresourcedefinition.apiextensions.k8s.io/wireguards.vpn.example.com",
+		"customresourcedefinition.apiextensions.k8s.io/wireguardpeers.vpn.wireguard-operator.io",
+		"customresourcedefinition.apiextensions.k8s.io/wireguards.vpn.wireguard-operator.io",
 		"serviceaccount/wireguard-controller-manager",
 		"role.rbac.authorization.k8s.io/wireguard-leader-election-role",
 		"clusterrole.rbac.authorization.k8s.io/wireguard-manager-role",

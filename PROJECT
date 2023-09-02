@@ -1,4 +1,4 @@
-domain: example.com
+domain: wireguard-operator.io
 layout:
 - go.kubebuilder.io/v3
 plugins:
@@ -11,7 +11,7 @@ resources:
     crdVersion: v1
     namespaced: true
   controller: true
-  domain: example.com
+  domain: wireguard-operator.io
   group: vpn
   kind: Wireguard
   path: github.com/jodevsa/wireguard-operator/api/v1alpha1
@@ -20,7 +20,7 @@ resources:
     crdVersion: v1
     namespaced: true
   controller: true
-  domain: example.com
+  domain: wireguard-operator.io
   group: vpn
   kind: WireguardPeer
   path: github.com/jodevsa/wireguard-operator/api/v1alpha1

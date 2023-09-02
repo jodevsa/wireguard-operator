@@ -68,9 +68,9 @@ func (r *WireguardPeerReconciler) secretForPeer(m *v1alpha1.WireguardPeer, priva
 
 }
 
-//+kubebuilder:rbac:groups=vpn.example.com,resources=wireguardpeers,verbs=get;list;watch;create;update;patch;delete
-//+kubebuilder:rbac:groups=vpn.example.com,resources=wireguardpeers/status,verbs=get;update;patch
-//+kubebuilder:rbac:groups=vpn.example.com,resources=wireguardpeers/finalizers,verbs=update
+//+kubebuilder:rbac:groups=vpn.wireguard-operator.io,resources=wireguardpeers,verbs=get;list;watch;create;update;patch;delete
+//+kubebuilder:rbac:groups=vpn.wireguard-operator.io,resources=wireguardpeers/status,verbs=get;update;patch
+//+kubebuilder:rbac:groups=vpn.wireguard-operator.io,resources=wireguardpeers/finalizers,verbs=update
 
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
 // move the current state of the cluster closer to the desired state.

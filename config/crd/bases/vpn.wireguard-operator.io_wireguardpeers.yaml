@@ -5,9 +5,9 @@ metadata:
   annotations:
     controller-gen.kubebuilder.io/version: v0.8.0
   creationTimestamp: null
-  name: wireguardpeers.vpn.example.com
+  name: wireguardpeers.vpn.wireguard-operator.io
 spec:
-  group: vpn.example.com
+  group: vpn.wireguard-operator.io
   names:
     kind: WireguardPeer
     listKind: WireguardPeerList
