@@ -5,7 +5,7 @@ metadata:
     alm-examples: |-
       [
         {
-          "apiVersion": "vpn.example.com/v1alpha1",
+          "apiVersion": "vpn.wireguard-operator.io/v1alpha1",
           "kind": "Wireguard",
           "metadata": {
             "name": "wireguard-sample"
@@ -13,7 +13,7 @@ metadata:
           "spec": null
         },
         {
-          "apiVersion": "vpn.example.com/v1alpha1",
+          "apiVersion": "vpn.wireguard-operator.io/v1alpha1",
           "kind": "WireguardPeer",
           "metadata": {
             "name": "wireguardpeer-sample"
@@ -33,12 +33,12 @@ spec:
     - description: WireguardPeer is the Schema for the wireguardpeers API
       displayName: Wireguard Peer
       kind: WireguardPeer
-      name: wireguardpeers.vpn.example.com
+      name: wireguardpeers.vpn.wireguard-operator.io
       version: v1alpha1
     - description: Wireguard is the Schema for the wireguards API
       displayName: Wireguard
       kind: Wireguard
-      name: wireguards.vpn.example.com
+      name: wireguards.vpn.wireguard-operator.io
       version: v1alpha1
   description: op
   displayName: wireguard
@@ -122,7 +122,7 @@ spec:
           - update
           - watch
         - apiGroups:
-          - vpn.example.com
+          - vpn.wireguard-operator.io
           resources:
           - wireguardpeers
           verbs:
@@ -134,13 +134,13 @@ spec:
           - update
           - watch
         - apiGroups:
-          - vpn.example.com
+          - vpn.wireguard-operator.io
           resources:
           - wireguardpeers/finalizers
           verbs:
           - update
         - apiGroups:
-          - vpn.example.com
+          - vpn.wireguard-operator.io
           resources:
           - wireguardpeers/status
           verbs:
@@ -148,7 +148,7 @@ spec:
           - patch
           - update
         - apiGroups:
-          - vpn.example.com
+          - vpn.wireguard-operator.io
           resources:
           - wireguards
           verbs:
@@ -160,13 +160,13 @@ spec:
           - update
           - watch
         - apiGroups:
-          - vpn.example.com
+          - vpn.wireguard-operator.io
           resources:
           - wireguards/finalizers
           verbs:
           - update
         - apiGroups:
-          - vpn.example.com
+          - vpn.wireguard-operator.io
           resources:
           - wireguards/status
           verbs:

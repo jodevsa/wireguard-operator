@@ -11,9 +11,9 @@ metadata:
   annotations:
     controller-gen.kubebuilder.io/version: v0.8.0
   creationTimestamp: null
-  name: wireguardpeers.vpn.example.com
+  name: wireguardpeers.vpn.wireguard-operator.io
 spec:
-  group: vpn.example.com
+  group: vpn.wireguard-operator.io
   names:
     kind: WireguardPeer
     listKind: WireguardPeerList
@@ -160,9 +160,9 @@ metadata:
   annotations:
     controller-gen.kubebuilder.io/version: v0.8.0
   creationTimestamp: null
-  name: wireguards.vpn.example.com
+  name: wireguards.vpn.wireguard-operator.io
 spec:
-  group: vpn.example.com
+  group: vpn.wireguard-operator.io
   names:
     kind: Wireguard
     listKind: WireguardList
@@ -367,7 +367,7 @@ rules:
   - update
   - watch
 - apiGroups:
-  - vpn.example.com
+  - vpn.wireguard-operator.io
   resources:
   - wireguardpeers
   verbs:
@@ -379,13 +379,13 @@ rules:
   - update
   - watch
 - apiGroups:
-  - vpn.example.com
+  - vpn.wireguard-operator.io
   resources:
   - wireguardpeers/finalizers
   verbs:
   - update
 - apiGroups:
-  - vpn.example.com
+  - vpn.wireguard-operator.io
   resources:
   - wireguardpeers/status
   verbs:
@@ -393,7 +393,7 @@ rules:
   - patch
   - update
 - apiGroups:
-  - vpn.example.com
+  - vpn.wireguard-operator.io
   resources:
   - wireguards
   verbs:
@@ -405,13 +405,13 @@ rules:
   - update
   - watch
 - apiGroups:
-  - vpn.example.com
+  - vpn.wireguard-operator.io
   resources:
   - wireguards/finalizers
   verbs:
   - update
 - apiGroups:
-  - vpn.example.com
+  - vpn.wireguard-operator.io
   resources:
   - wireguards/status
   verbs:
@@ -500,7 +500,7 @@ data:
       port: 9443
     leaderElection:
       leaderElect: true
-      resourceName: a6d3bffc.example.com
+      resourceName: a6d3bffc.wireguard-operator.io
 kind: ConfigMap
 metadata:
   name: wireguard-manager-config

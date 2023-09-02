@@ -8,7 +8,7 @@ import (
 var _ = Describe("wireguard controller", func() {
 	It("wireguard is able to start", func() {
 		wireguardYaml :=
-			`apiVersion: vpn.example.com/v1alpha1
+			`apiVersion: vpn.wireguard-operator.io/v1alpha1
 kind: Wireguard
 metadata:
   name: vpn
@@ -19,10 +19,10 @@ spec:
 		// kubectl apply -f
 		output, err := KubectlApply(wireguardYaml, TestNamespace)
 		Expect(err).NotTo(HaveOccurred())
-		Expect(output).To(Equal("wireguard.vpn.example.com/vpn created"))
+		Expect(output).To(Equal("wireguard.vpn.wireguard-operator.io/vpn created"))
 
 		wireguardPeerYaml :=
-			`apiVersion: vpn.example.com/v1alpha1
+			`apiVersion: vpn.wireguard-operator.io/v1alpha1
 kind: WireguardPeer
 metadata:
   name: peer20
@@ -33,7 +33,7 @@ spec:
 		// kubectl apply -f
 		output, err = KubectlApply(wireguardPeerYaml, TestNamespace)
 		Expect(err).NotTo(HaveOccurred())
-		Expect(output).To(Equal("wireguardpeer.vpn.example.com/peer20 created"))
+		Expect(output).To(Equal("wireguardpeer.vpn.wireguard-operator.io/peer20 created"))
 
 		WaitForWireguardToBeReady("vpn", TestNamespace)
 		WaitForPeerToBeReady("peer20", TestNamespace)

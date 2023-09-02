@@ -221,9 +221,9 @@ Endpoint = %s:%s"`, serverPublicKey, serverAddress, wireguard.Status.Port)
 	return nil
 }
 
-//+kubebuilder:rbac:groups=vpn.example.com,resources=wireguards,verbs=get;list;watch;create;update;patch;delete
-//+kubebuilder:rbac:groups=vpn.example.com,resources=wireguards/status,verbs=get;update;patch
-//+kubebuilder:rbac:groups=vpn.example.com,resources=wireguards/finalizers,verbs=update
+//+kubebuilder:rbac:groups=vpn.wireguard-operator.io,resources=wireguards,verbs=get;list;watch;create;update;patch;delete
+//+kubebuilder:rbac:groups=vpn.wireguard-operator.io,resources=wireguards/status,verbs=get;update;patch
+//+kubebuilder:rbac:groups=vpn.wireguard-operator.io,resources=wireguards/finalizers,verbs=update
 
 //+kubebuilder:rbac:groups="",resources=secrets,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups="",resources=services,verbs=get;list;watch;create;update;patch;delete
@@ -632,10 +632,10 @@ func (r *WireguardReconciler) serviceForWireguard(m *v1alpha1.Wireguard, service
 
 	dep := &corev1.Service{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      m.Name + "-svc",
-			Namespace: m.Namespace,
+			Name:        m.Name + "-svc",
+			Namespace:   m.Namespace,
 			Annotations: m.Spec.ServiceAnnotations,
-			Labels: labels,
+			Labels:      labels,
 		},
 		Spec: corev1.ServiceSpec{
 			Selector: labels,

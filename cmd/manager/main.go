@@ -76,7 +76,7 @@ func main() {
 		Port:                   9443,
 		HealthProbeBindAddress: probeAddr,
 		LeaderElection:         enableLeaderElection,
-		LeaderElectionID:       "a6d3bffc.example.com",
+		LeaderElectionID:       "a6d3bffc.wireguard-operator.io",
 	})
 	if err != nil {
 		setupLog.Error(err, "unable to start manager")

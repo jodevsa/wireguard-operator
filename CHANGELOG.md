@@ -1,3 +1,58 @@
+# [2.0.0](https://github.com/jodevsa/wireguard-operator/compare/v1.2.20...v2.0.0) (2023-09-02)
+
+
+### Bug Fixes
+
+* Change apiversion to canonical one ([#93](https://github.com/jodevsa/wireguard-operator/issues/93)) ([4bd7537](https://github.com/jodevsa/wireguard-operator/commit/4bd7537b9a71a77eaa71842fa7dd1da649cd0948))
+
+
+### BREAKING CHANGES
+
+* change in apiversion will result in a new crd
+
+## [1.2.20](https://github.com/jodevsa/wireguard-operator/compare/v1.2.19...v1.2.20) (2023-08-27)
+
+
+### Bug Fixes
+
+* **deps:** update module github.com/onsi/ginkgo/v2 to v2.12.0 ([feb6d9a](https://github.com/jodevsa/wireguard-operator/commit/feb6d9a13dc082a16cdccefa0eea8390894c8d1c))
+
+## [1.2.19](https://github.com/jodevsa/wireguard-operator/compare/v1.2.18...v1.2.19) (2023-08-27)
+
+
+### Bug Fixes
+
+* **deps:** update kubernetes packages to v0.28.1 ([23b7a7c](https://github.com/jodevsa/wireguard-operator/commit/23b7a7ce533300b790d01f024184678210696fe7))
+
+## [1.2.18](https://github.com/jodevsa/wireguard-operator/compare/v1.2.17...v1.2.18) (2023-08-14)
+
+
+### Bug Fixes
+
+* **deps:** update module github.com/onsi/ginkgo to v1.16.5 ([133fd58](https://github.com/jodevsa/wireguard-operator/commit/133fd589f3de8ef32dd330e4607350133333cc60))
+
+## [1.2.17](https://github.com/jodevsa/wireguard-operator/compare/v1.2.16...v1.2.17) (2023-08-04)
+
+
+### Bug Fixes
+
+* **deps:** update module sigs.k8s.io/controller-runtime to v0.15.1 ([55da080](https://github.com/jodevsa/wireguard-operator/commit/55da08053104abc1451ee8fc45375129e32071d2))
+
+## [1.2.16](https://github.com/jodevsa/wireguard-operator/compare/v1.2.15...v1.2.16) (2023-07-29)
+
+
+### Bug Fixes
+
+* **deps:** update module github.com/onsi/gomega to v1.27.10 ([a0e42ff](https://github.com/jodevsa/wireguard-operator/commit/a0e42ffce9785ccec67cb0c613f1548ec1e398a3))
+* **deps:** update module github.com/onsi/gomega to v1.27.9 ([b635d9b](https://github.com/jodevsa/wireguard-operator/commit/b635d9b0507ae6d5e2a77d644e9fd35e6ec1edd4))
+
+## [1.2.15](https://github.com/jodevsa/wireguard-operator/compare/v1.2.14...v1.2.15) (2023-07-20)
+
+
+### Bug Fixes
+
+* **deps:** update kubernetes packages to v0.27.4 ([9cc9f45](https://github.com/jodevsa/wireguard-operator/commit/9cc9f4534f80c2e00c9ac6f1f3062dbc2d0d1705))
+
 ## [1.2.14](https://github.com/jodevsa/wireguard-operator/compare/v1.2.13...v1.2.14) (2023-06-25)
 
 

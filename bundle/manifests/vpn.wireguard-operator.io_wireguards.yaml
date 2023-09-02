@@ -4,20 +4,20 @@ metadata:
   annotations:
     controller-gen.kubebuilder.io/version: v0.7.0
   creationTimestamp: null
-  name: wireguardpeers.vpn.example.com
+  name: wireguards.vpn.wireguard-operator.io
 spec:
-  group: vpn.example.com
+  group: vpn.wireguard-operator.io
   names:
-    kind: WireguardPeer
-    listKind: WireguardPeerList
-    plural: wireguardpeers
-    singular: wireguardpeer
+    kind: Wireguard
+    listKind: WireguardList
+    plural: wireguards
+    singular: wireguard
   scope: Namespaced
   versions:
   - name: v1alpha1
     schema:
       openAPIV3Schema:
-        description: WireguardPeer is the Schema for the wireguardpeers API
+        description: Wireguard is the Schema for the wireguards API
         properties:
           apiVersion:
             description: 'APIVersion defines the versioned schema of this representation
@@ -32,53 +32,26 @@ spec:
           metadata:
             type: object
           spec:
-            description: WireguardPeerSpec defines the desired state of WireguardPeer
+            description: WireguardSpec defines the desired state of Wireguard
             properties:
-              PrivateKeyRef:
-                properties:
-                  secretKeyRef:
-                    description: SecretKeySelector selects a key of a Secret.
-                    properties:
-                      key:
-                        description: The key of the secret to select from.  Must be
-                          a valid secret key.
-                        type: string
-                      name:
-                        description: 'Name of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
-                          TODO: Add other useful fields. apiVersion, kind, uid?'
-                        type: string
-                      optional:
-                        description: Specify whether the Secret or its key must be
-                          defined
-                        type: boolean
-                    required:
-                    - key
-                    type: object
-                required:
-                - secretKeyRef
-                type: object
-              address:
+              hostname:
                 type: string
-              dns:
-                type: string
-              publicKey:
-                type: string
-              wireguardRef:
-                description: Foo is an example field of WireguardPeer. Edit wireguardpeer_types.go
-                  to remove/update
+              mtu:
                 type: string
             required:
-            - wireguardRef
+            - mtu
             type: object
           status:
-            description: WireguardPeerStatus defines the observed state of WireguardPeer
+            description: WireguardStatus defines the observed state of Wireguard
             properties:
-              config:
+              hostname:
                 description: 'INSERT ADDITIONAL STATUS FIELD - define observed state
                   of cluster Important: Run "make" to regenerate code after modifying
                   this file'
                 type: string
               message:
+                type: string
+              port:
                 type: string
               status:
                 type: string
