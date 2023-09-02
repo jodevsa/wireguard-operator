@@ -1,3 +1,15 @@
+# [2.0.0](https://github.com/jodevsa/wireguard-operator/compare/v1.2.20...v2.0.0) (2023-09-02)
+
+
+### Bug Fixes
+
+* Change apiversion to canonical one ([#93](https://github.com/jodevsa/wireguard-operator/issues/93)) ([4bd7537](https://github.com/jodevsa/wireguard-operator/commit/4bd7537b9a71a77eaa71842fa7dd1da649cd0948))
+
+
+### BREAKING CHANGES
+
+* change in apiversion will result in a new crd
+
 ## [1.2.20](https://github.com/jodevsa/wireguard-operator/compare/v1.2.19...v1.2.20) (2023-08-27)
 
 
