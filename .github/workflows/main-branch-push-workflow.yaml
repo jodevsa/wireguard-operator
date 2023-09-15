@@ -10,7 +10,7 @@ jobs:
   generate-next-semantic-version:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         name: Checkout repository
         with:
           submodules: true
@@ -38,7 +38,7 @@ jobs:
     needs: [build-images]
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         name: Checkout repository
         with:
           submodules: true
