@@ -64,6 +64,10 @@ spec:
                   that should be used for the Wireguard VPN. This could be NodePort
                   or LoadBalancer, depending on the needs of the deployment.
                 type: string
+              nodePort:
+                description: A field that specifies the nodePort to use for the Kubernetes
+                  service when a nodePort serviceType has been selected.
+                type: string
             type: object
           status:
             description: WireguardStatus defines the observed state of Wireguard
