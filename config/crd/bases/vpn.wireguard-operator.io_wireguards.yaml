@@ -54,6 +54,10 @@ spec:
                 description: A string field that specifies the maximum transmission
                   unit (MTU) size for Wireguard packets for all peers.
                 type: string
+              port:
+                description: A field that specifies the value to use for a nodePort
+                  ServiceType
+                type: integer
               serviceAnnotations:
                 additionalProperties:
                   type: string
@@ -63,10 +67,6 @@ spec:
                 description: A field that specifies the type of Kubernetes service
                   that should be used for the Wireguard VPN. This could be NodePort
                   or LoadBalancer, depending on the needs of the deployment.
-                type: string
-              nodePort:
-                description: A field that specifies the nodePort to use for the Kubernetes
-                  service when a nodePort serviceType has been selected.
                 type: string
             type: object
           status:
