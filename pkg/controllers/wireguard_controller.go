@@ -641,6 +641,7 @@ func (r *WireguardReconciler) serviceForWireguard(m *v1alpha1.Wireguard, service
 			Selector: labels,
 			Ports: []corev1.ServicePort{{
 				Protocol:   corev1.ProtocolUDP,
+				NodePort:   m.Spec.NodePort,
 				Port:       port,
 				TargetPort: intstr.FromInt(port),
 			}},
