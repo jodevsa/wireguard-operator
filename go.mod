@@ -3,7 +3,7 @@ module github.com/jodevsa/wireguard-operator
 go 1.16
 
 require (
-	github.com/fsnotify/fsnotify v1.6.0
+	github.com/fsnotify/fsnotify v1.7.0
 	github.com/go-logr/logr v1.3.0
 	github.com/go-logr/stdr v1.2.2
 	github.com/imdario/mergo v0.3.12 // indirect
