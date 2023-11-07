@@ -1,3 +1,11 @@
+## [2.0.9](https://github.com/jodevsa/wireguard-operator/compare/v2.0.8...v2.0.9) (2023-11-07)
+
+
+### Bug Fixes
+
+* **deps:** update module github.com/fsnotify/fsnotify to v1.7.0 ([#112](https://github.com/jodevsa/wireguard-operator/issues/112)) ([23edb6d](https://github.com/jodevsa/wireguard-operator/commit/23edb6db8a65f96eebb272ce9eb400ac3de43fd4))
+* **deps:** update module github.com/onsi/gomega to v1.29.0 ([#113](https://github.com/jodevsa/wireguard-operator/issues/113)) ([2a62db3](https://github.com/jodevsa/wireguard-operator/commit/2a62db35f156be331da7601e09d29e919c21e68c))
+
 ## [2.0.8](https://github.com/jodevsa/wireguard-operator/compare/v2.0.7...v2.0.8) (2023-10-30)
 
 
