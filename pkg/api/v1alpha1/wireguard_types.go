@@ -51,6 +51,8 @@ type WireguardSpec struct {
 	ServiceAnnotations map[string]string `json:"serviceAnnotations,omitempty"`
 	// A boolean field that specifies whether IP forwarding should be enabled on the Wireguard VPN pod at startup. This can be useful to enable if the peers are having problems with sending traffic to the internet.
 	EnableIpForwardOnPodInit bool `json:"enableIpForwardOnPodInit,omitempty"`
+	// A boolean field that specifies whether to use the userspace implementation of Wireguard instead of the kernel one.
+	UseWgUserspaceImplementation bool `json:"useWgUserspaceImplementation,omitempty"`
 }
 
 // WireguardStatus defines the observed state of Wireguard

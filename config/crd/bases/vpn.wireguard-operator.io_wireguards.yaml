@@ -68,6 +68,10 @@ spec:
                   that should be used for the Wireguard VPN. This could be NodePort
                   or LoadBalancer, depending on the needs of the deployment.
                 type: string
+              useWgUserspaceImplementation:
+                description: A boolean field that specifies whether to use the userspace
+                  implementation of Wireguard instead of the kernel one.
+                type: boolean
             type: object
           status:
             description: WireguardStatus defines the observed state of Wireguard
