@@ -21,9 +21,10 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"time"
+
 	"github.com/jodevsa/wireguard-operator/pkg/agent"
 	"github.com/jodevsa/wireguard-operator/pkg/api/v1alpha1"
-	"time"
 
 	"github.com/korylprince/ipnetgen"
 	wgtypes "golang.zx2c4.com/wireguard/wgctrl/wgtypes"
@@ -780,7 +781,7 @@ func (r *WireguardReconciler) deploymentForWireguard(m *v1alpha1.Wireguard) *app
 							Image:           r.AgentImage,
 							ImagePullPolicy: r.AgentImagePullPolicy,
 							Name:            "agent",
-							Command:         []string{"agent", "--v", "11", "--wg-iface", "wg0", "--wg-listen-port", fmt.Sprintf("%d", port), "--state", "/tmp/wireguard/state.json", "--wg-userspace-implementation-fallback", "wireguard-go", "--wg-use-userspace-implementation"},
+							Command:         []string{"agent", "--v", "11", "--wg-iface", "wg0", "--wg-listen-port", fmt.Sprintf("%d", port), "--state", "/tmp/wireguard/state.json", "--wg-userspace-implementation-fallback", "wireguard-go"},
 							Ports: []corev1.ContainerPort{
 								{
 									ContainerPort: port,
@@ -821,6 +822,15 @@ func (r *WireguardReconciler) deploymentForWireguard(m *v1alpha1.Wireguard) *app
 				Args:            []string{"-c", "echo 1 > /proc/sys/net/ipv4/ip_forward"},
 			})
 	}
+
+	if m.Spec.UseWgUserspaceImplementation {
+		for i, c := range dep.Spec.Template.Spec.Containers {
+			if c.Name == "agent" {
+				dep.Spec.Template.Spec.Containers[i].Command = append(dep.Spec.Template.Spec.Containers[i].Command, "--wg-use-userspace-implementation")
+			}
+		}
+	}
+
 	ctrl.SetControllerReference(m, dep, r.Scheme)
 	return dep
 }

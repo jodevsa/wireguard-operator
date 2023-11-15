@@ -57,6 +57,7 @@ spec:
               port:
                 description: A field that specifies the value to use for a nodePort
                   ServiceType
+                format: int32
                 type: integer
               serviceAnnotations:
                 additionalProperties:
@@ -68,6 +69,10 @@ spec:
                   that should be used for the Wireguard VPN. This could be NodePort
                   or LoadBalancer, depending on the needs of the deployment.
                 type: string
+              useWgUserspaceImplementation:
+                description: A boolean field that specifies whether to use the userspace
+                  implementation of Wireguard instead of the kernel one.
+                type: boolean
             type: object
           status:
             description: WireguardStatus defines the observed state of Wireguard

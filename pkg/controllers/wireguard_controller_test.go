@@ -512,6 +512,51 @@ Endpoint = %s:%s"`, peerKey.Name, peer.Spec.Address, dnsServiceIp, peer.Namespac
 
 		})
 
+		for _, useWgUserspace := range []bool{true, false} {
+			testTextPrefix := "uses"
+			if !useWgUserspace {
+				testTextPrefix="does not use"
+			}
+
+			It(fmt.Sprintf("%s userspace implementation of wireguard if spec.useWgUserspaceImplementation is set to %t", testTextPrefix, useWgUserspace), func() {
+
+				wgServer := &v1alpha1.Wireguard{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      wgKey.Name,
+						Namespace: wgKey.Namespace,
+					},
+					Spec: v1alpha1.WireguardSpec{
+						UseWgUserspaceImplementation: useWgUserspace,
+					},
+				}
+				Expect(k8sClient.Create(context.Background(), wgServer)).Should(Succeed())
+
+				// new
+				depName := wgKey.Name + "-dep"
+				depKey := types.NamespacedName{
+					Namespace: wgKey.Namespace,
+					Name:      depName,
+				}
+
+				expectedCmdFlag := "--wg-use-userspace-implementation"
+				matcher := ContainElements(expectedCmdFlag)
+				if !useWgUserspace {
+					matcher = Not(matcher)
+				}
+
+				Eventually(func() []string {
+					dep := &appsv1.Deployment{}
+					k8sClient.Get(context.Background(), depKey, dep)
+					fmt.Println(dep)
+					for _, c := range dep.Spec.Template.Spec.Containers {
+						if c.Name == "agent" {
+							return c.Command
+						}
+					}
+					return []string{}
+				}, Timeout, Interval).Should(matcher)
+			})
+		}
 	})
 
 })
