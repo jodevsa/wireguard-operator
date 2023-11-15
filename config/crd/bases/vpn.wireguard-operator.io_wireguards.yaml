@@ -57,6 +57,7 @@ spec:
               port:
                 description: A field that specifies the value to use for a nodePort
                   ServiceType
+                format: int32
                 type: integer
               serviceAnnotations:
                 additionalProperties:
