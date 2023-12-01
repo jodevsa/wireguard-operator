@@ -1,3 +1,10 @@
+## [2.0.17](https://github.com/jodevsa/wireguard-operator/compare/v2.0.16...v2.0.17) (2023-12-01)
+
+
+### Bug Fixes
+
+* **deps:** update module github.com/onsi/ginkgo/v2 to v2.13.2 ([#125](https://github.com/jodevsa/wireguard-operator/issues/125)) ([89fab82](https://github.com/jodevsa/wireguard-operator/commit/89fab827da31fb5da7690ef6bf068a73782ddc8c))
+
 ## [2.0.16](https://github.com/jodevsa/wireguard-operator/compare/v2.0.15...v2.0.16) (2023-11-28)
 
 
