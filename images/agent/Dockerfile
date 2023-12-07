@@ -58,13 +58,14 @@ RUN set -eux; \
 # end of step 3
 
 # step 4: prepare image
-FROM --platform=${TARGETPLATFORM} alpine:3.18
+FROM --platform=${TARGETPLATFORM} debian:bookworm
 ARG WIREGUARD_GO_SRC
 ARG WIREGUARD_AGENT_SRC
 ARG PROMETHEUS_WIREGUARD_EXPORTER_SRC
 
-# libgcc and gcompat are need for the prometheus exporter. it is currently not statically linked.
-RUN apk add bash iptables wireguard-tools libgcc gcompat
+RUN apt-get update \
+    && apt-get install --no-install-recommends -y iptables wireguard-tools \
+    && rm -rf /var/lib/apt/lists/*
 
 COPY --from=golang-builder $WIREGUARD_GO_SRC/wireguard-go /usr/local/bin
 COPY --from=golang-builder $WIREGUARD_AGENT_SRC/agent /usr/local/bin
