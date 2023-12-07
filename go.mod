@@ -8,7 +8,7 @@ require (
 	github.com/go-logr/stdr v1.2.2
 	github.com/imdario/mergo v0.3.12 // indirect
 	github.com/korylprince/ipnetgen v1.0.1
-	github.com/onsi/ginkgo v1.16.4
+	github.com/onsi/ginkgo/v2 v2.13.2
 	github.com/onsi/ginkgo/v2 v2.13.2
 	github.com/onsi/gomega v1.30.0
 	github.com/vishvananda/netlink v1.1.0
