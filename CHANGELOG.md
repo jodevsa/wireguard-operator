@@ -1,3 +1,10 @@
+## [2.0.20](https://github.com/jodevsa/wireguard-operator/compare/v2.0.19...v2.0.20) (2023-12-28)
+
+
+### Bug Fixes
+
+* **deps:** update module github.com/go-logr/logr to v1.4.1 ([#134](https://github.com/jodevsa/wireguard-operator/issues/134)) ([cd41df3](https://github.com/jodevsa/wireguard-operator/commit/cd41df3fd329a68b6414dbff160db2393ecb254b))
+
 ## [2.0.19](https://github.com/jodevsa/wireguard-operator/compare/v2.0.18...v2.0.19) (2023-12-14)
 
 
