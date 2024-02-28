@@ -1,3 +1,13 @@
+## [2.0.21](https://github.com/jodevsa/wireguard-operator/compare/v2.0.20...v2.0.21) (2024-02-28)
+
+
+### Bug Fixes
+
+* **deps:** update module github.com/onsi/ginkgo/v2 to v2.14.0 ([#135](https://github.com/jodevsa/wireguard-operator/issues/135)) ([e8a2fac](https://github.com/jodevsa/wireguard-operator/commit/e8a2fac1efae929a07b20cd814e42e5b434f7eda))
+* **deps:** update module sigs.k8s.io/kind to v0.21.0 ([#140](https://github.com/jodevsa/wireguard-operator/issues/140)) ([73ff848](https://github.com/jodevsa/wireguard-operator/commit/73ff848b4c9e0b30627a3f639463cf8c3b2555f5))
+* use nodejs 20.8.1 for semantic-release ([d1fa423](https://github.com/jodevsa/wireguard-operator/commit/d1fa4236ec143a45a295fc7d087ccfcace03648f))
+* use nodejs 20.8.1 for semantic-release ([20825be](https://github.com/jodevsa/wireguard-operator/commit/20825bebe562d4516824f98eddacbd760fa44ca3))
+
 ## [2.0.20](https://github.com/jodevsa/wireguard-operator/compare/v2.0.19...v2.0.20) (2023-12-28)
 
 
