@@ -15,7 +15,7 @@ jobs:
         with:
           submodules: true
       - name: Use Node.js
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v4
         with:
           node-version: '20.8.1'
       - name: semantic-release extract new version
@@ -49,6 +49,11 @@ jobs:
           persist-credentials: false
           ref: ${{ github.sha }}
 
+      - name: Use Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20.8.1'
+          
       - name: semantic-release
         env:
           GITHUB_TOKEN: ${{ secrets.ADMIN_SECRET }}
