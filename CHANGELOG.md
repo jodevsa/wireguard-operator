@@ -1,3 +1,10 @@
+## [2.0.22](https://github.com/jodevsa/wireguard-operator/compare/v2.0.21...v2.0.22) (2024-02-28)
+
+
+### Bug Fixes
+
+* **deps:** update module sigs.k8s.io/kind to v0.22.0 ([#142](https://github.com/jodevsa/wireguard-operator/issues/142)) ([c856013](https://github.com/jodevsa/wireguard-operator/commit/c85601312666fdce5c7f0dd0f3b5b167c9ddf171))
+
 ## [2.0.21](https://github.com/jodevsa/wireguard-operator/compare/v2.0.20...v2.0.21) (2024-02-28)
 
 
