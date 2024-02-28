@@ -1,3 +1,10 @@
+## [2.0.23](https://github.com/jodevsa/wireguard-operator/compare/v2.0.22...v2.0.23) (2024-02-28)
+
+
+### Bug Fixes
+
+* update controller tools to 0.14.0 ([#146](https://github.com/jodevsa/wireguard-operator/issues/146)) ([c5c78f1](https://github.com/jodevsa/wireguard-operator/commit/c5c78f1245d04aa650619e4127568e2e3810d20c))
+
 ## [2.0.22](https://github.com/jodevsa/wireguard-operator/compare/v2.0.21...v2.0.22) (2024-02-28)
 
 
