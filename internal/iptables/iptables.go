@@ -38,29 +38,30 @@ func (it *Iptables) Sync(state agent.State) error {
 }
 
 func GenerateIptableRulesFromNetworkPolicies(policies v1alpha1.EgressNetworkPolicies, peerIp string, kubeDnsIp string, wgServerIp string) string {
-	var rules []string
-
-	// add a comment
-	rules = append(rules, fmt.Sprintf("# start of rules for peer %s", peerIp))
-
 	peerChain := strings.ReplaceAll(peerIp, ".", "-")
 
-	// create chain for peer
-	rules = append(rules, fmt.Sprintf(":%s - [0:0]", peerChain))
-	// associate peer chain to FORWARD chain
-	rules = append(rules, fmt.Sprintf("-A FORWARD -s %s -j %s", peerIp, peerChain))
+	rules := []string{
+		// add a comment
+		fmt.Sprintf("# start of rules for peer %s", peerIp),
 
-	// allow peer to ping (ICMP) wireguard server for debugging purposes
-	rules = append(rules, fmt.Sprintf("-A %s -d %s -p icmp -j ACCEPT", peerChain, wgServerIp))
-	// allow peer to communicate with itself
-	rules = append(rules, fmt.Sprintf("-A %s -d %s -j ACCEPT", peerChain, peerIp))
-	// allow peer to communicate with kube-dns
-	rules = append(rules, fmt.Sprintf("-A %s -d %s -p UDP --dport 53 -j ACCEPT", peerChain, kubeDnsIp))
+		// create chain for peer
+		fmt.Sprintf(":%s - [0:0]", peerChain),
+
+		// associate peer chain to FORWARD chain
+		fmt.Sprintf("-A FORWARD -s %s -j %s", peerIp, peerChain),
+
+		// allow peer to ping (ICMP) wireguard server for debugging purposes
+		fmt.Sprintf("-A %s -d %s -p icmp -j ACCEPT", peerChain, wgServerIp),
+
+		// allow peer to communicate with itself
+		fmt.Sprintf("-A %s -d %s -j ACCEPT", peerChain, peerIp),
+
+		// allow peer to communicate with kube-dns
+		fmt.Sprintf("-A %s -d %s -p UDP --dport 53 -j ACCEPT", peerChain, kubeDnsIp),
+	}
 
 	for _, policy := range policies {
-		for _, rule := range EgressNetworkPolicyToIpTableRules(policy, peerChain) {
-			rules = append(rules, rule)
-		}
+		rules = append(rules, EgressNetworkPolicyToIpTableRules(policy, peerChain)...)
 	}
 
 	// if policies are defined impose an implicit deny all
@@ -77,14 +78,14 @@ func GenerateIptableRulesFromNetworkPolicies(policies v1alpha1.EgressNetworkPoli
 func GenerateIptableRulesFromPeers(wgHostName string, dns string, peers []v1alpha1.WireguardPeer) string {
 	var rules []string
 
-	var natTableRules = fmt.Sprintf(`
+	var natTableRules = `
 *nat
 :PREROUTING ACCEPT [0:0]
 :INPUT ACCEPT [0:0]
 :OUTPUT ACCEPT [0:0]
 :POSTROUTING ACCEPT [0:0]
 -A POSTROUTING -s 10.8.0.0/24 -o eth0 -j MASQUERADE
-COMMIT`)
+COMMIT`
 
 	for _, peer := range peers {
 

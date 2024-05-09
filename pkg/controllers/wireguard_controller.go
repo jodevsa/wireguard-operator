@@ -21,6 +21,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"strconv"
 	"time"
 
 	"github.com/jodevsa/wireguard-operator/pkg/agent"
@@ -148,7 +149,7 @@ func getAvaialbleIp(cidr string, usedIps []string) (string, error) {
 		}
 	}
 
-	return "", fmt.Errorf("No available ip found in %s", cidr)
+	return "", fmt.Errorf("no available ip found in %s", cidr)
 }
 
 func (r *WireguardReconciler) getUsedIps(peers *v1alpha1.WireguardPeerList) []string {
@@ -404,8 +405,7 @@ func (r *WireguardReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 			return ctrl.Result{}, nil
 		}
 
-		port = fmt.Sprint(svcFound.Spec.Ports[0].NodePort)
-		port = fmt.Sprint(svcFound.Spec.Ports[0].NodePort)
+		port = strconv.Itoa(int(svcFound.Spec.Ports[0].NodePort))
 
 		ips, err := r.getNodeIps(ctx, req)
 
