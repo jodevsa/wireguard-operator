@@ -2,7 +2,13 @@ package it
 
 import (
 	"context"
-	"fmt"
+	"log"
+	"os"
+	"os/exec"
+	"strings"
+	"testing"
+	"time"
+
 	"github.com/go-logr/stdr"
 	"github.com/jodevsa/wireguard-operator/pkg/api/v1alpha1"
 	. "github.com/onsi/ginkgo"
@@ -12,17 +18,11 @@ import (
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
-	"log"
-	"os"
-	"os/exec"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
 	"sigs.k8s.io/kind/pkg/apis/config/v1alpha4"
 	kind "sigs.k8s.io/kind/pkg/cluster"
 	log2 "sigs.k8s.io/kind/pkg/log"
-	"strings"
-	"testing"
-	"time"
 	//+kubebuilder:scaffold:imports
 )
 
@@ -97,20 +97,21 @@ func WaitForPeerToBeReady(name string, namespace string) {
 }
 
 func KubectlApply(resource string, namespace string) (string, error) {
-	bashCommand := fmt.Sprintf("echo \"%s\" | kubectl apply -n %s --context %s -f -", strings.TrimSpace(strings.ReplaceAll(resource, "\"", "\\\"")), namespace, testKindContextName)
+	cmd := exec.Command("kubectl", "apply",
+		"--context", testKindContextName,
+		"-n", namespace,
+		"-f", "-",
+	)
+	cmd.Stdin = strings.NewReader(resource)
 
-	cmd := exec.Command("bash", "-c", bashCommand)
+	var stdout, stderr strings.Builder
+	cmd.Stdout = &stdout
+	cmd.Stderr = &stderr
 
-	o, err := cmd.Output()
-
-	if err != nil {
-		if exitError, ok := err.(*exec.ExitError); ok {
-			return string(exitError.Stderr), err
-		}
-		return "", err
+	if err := cmd.Run(); err != nil {
+		return stderr.String(), err
 	}
-
-	return strings.TrimSpace(string(o)), nil
+	return strings.TrimSpace(stdout.String()), nil
 }
 
 var _ = BeforeSuite(func() {
