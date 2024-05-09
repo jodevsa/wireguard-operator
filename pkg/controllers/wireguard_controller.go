@@ -460,8 +460,6 @@ func (r *WireguardReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 			return ctrl.Result{}, err
 		}
 
-		bytes.Equal(b, secret.Data["state.json"])
-
 		if !bytes.Equal(b, secret.Data["state.json"]) {
 			log.Info("Updating secret with new config")
 			publicKey := string(secret.Data["publicKey"])
@@ -519,33 +517,14 @@ func (r *WireguardReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 			return ctrl.Result{}, err
 		}
 
-		bytes.Equal(b, secret.Data["state"])
-
 		secret := r.secretForWireguard(wireguard, b, privateKey, publicKey)
 
 		log.Info("Creating a new secret", "secret.Namespace", secret.Namespace, "secret.Name", secret.Name)
-		err = r.Create(ctx, secret)
-		if err != nil {
+
+		if err := r.Create(ctx, secret); err != nil {
 			log.Error(err, "Failed to create new secret", "secret.Namespace", secret.Namespace, "secret.Name", secret.Name)
 			return ctrl.Result{}, err
 		}
-
-		clientKey, err := wgtypes.GeneratePrivateKey()
-
-		if err != nil {
-			log.Error(err, "Failed to generate private key")
-			return ctrl.Result{}, err
-		}
-
-		clientSecret := r.secretForClient(wireguard, clientKey.String(), clientKey.PublicKey().String())
-
-		log.Info("Creating a new secret", "secret.Namespace", clientSecret.Namespace, "secret.Name", clientSecret.Name)
-		err = r.Create(ctx, clientSecret)
-		if err != nil {
-			log.Error(err, "Failed to create new secret", "secret.Namespace", clientSecret.Namespace, "secret.Name", clientSecret.Name)
-			return ctrl.Result{}, err
-		}
-
 		return ctrl.Result{}, err
 	} else if err != nil {
 		log.Error(err, "Failed to get secret")
@@ -689,23 +668,6 @@ func (r *WireguardReconciler) secretForWireguard(m *v1alpha1.Wireguard, state []
 			Labels:    ls,
 		},
 		Data: map[string][]byte{"state.json": state, "privateKey": []byte(privateKey), "publicKey": []byte(publicKey)},
-	}
-
-	ctrl.SetControllerReference(m, dep, r.Scheme)
-
-	return dep
-
-}
-
-func (r *WireguardReconciler) secretForClient(m *v1alpha1.Wireguard, privateKey string, publicKey string) *corev1.Secret {
-	ls := labelsForWireguard(m.Name)
-	dep := &corev1.Secret{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      m.Name + "-client",
-			Namespace: m.Namespace,
-			Labels:    ls,
-		},
-		Data: map[string][]byte{"privateKey": []byte(privateKey), "publicKey": []byte(publicKey)},
 	}
 
 	ctrl.SetControllerReference(m, dep, r.Scheme)
