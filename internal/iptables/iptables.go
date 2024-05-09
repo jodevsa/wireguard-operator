@@ -2,36 +2,18 @@ package iptables
 
 import (
 	"fmt"
+	"os/exec"
+	"strings"
+
 	"github.com/go-logr/logr"
 	"github.com/jodevsa/wireguard-operator/pkg/agent"
 	"github.com/jodevsa/wireguard-operator/pkg/api/v1alpha1"
-	"os"
-	"os/exec"
-	"strings"
 )
 
 func ApplyRules(rules string) error {
-	file, err := os.CreateTemp("/tmp", "iptables-")
-	if err != nil {
-		return err
-	}
-	defer os.RemoveAll(file.Name())
-
-	err = os.WriteFile(file.Name(), []byte(rules), 0640)
-
-	if err != nil {
-		return err
-	}
-
-	bashCommand := fmt.Sprintf("iptables-restore < %s", file.Name())
-	cmd := exec.Command("bash", "-c", bashCommand)
-
-	err = cmd.Run()
-	if err != nil {
-		return err
-	}
-
-	return nil
+	cmd := exec.Command("iptables-restore")
+	cmd.Stdin = strings.NewReader(rules)
+	return cmd.Run()
 }
 
 type Iptables struct {
