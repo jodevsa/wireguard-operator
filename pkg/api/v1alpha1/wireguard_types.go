@@ -23,9 +23,9 @@ import (
 )
 
 const (
-	Pending string = "pending"
-	Error          = "error"
-	Ready          = "ready"
+	Pending = "pending"
+	Error   = "error"
+	Ready   = "ready"
 )
 
 type WgStatusReport struct {

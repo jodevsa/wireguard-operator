@@ -16,10 +16,8 @@ import (
 	v12 "k8s.io/api/apps/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes/scheme"
-	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/envtest"
 	"sigs.k8s.io/kind/pkg/apis/config/v1alpha4"
 	kind "sigs.k8s.io/kind/pkg/cluster"
 	log2 "sigs.k8s.io/kind/pkg/log"
@@ -29,9 +27,7 @@ import (
 // These tests use Ginkgo (BDD-style Go testing framework). Refer to
 // http://onsi.github.io/ginkgo/ to learn more about Ginkgo.
 
-var cfg *rest.Config
 var k8sClient client.Client
-var testEnv *envtest.Environment
 var releasePath string
 var agentImage string
 var managerImage string
@@ -169,9 +165,9 @@ var _ = BeforeSuite(func() {
 	}
 
 	// load locally built images
-	cmd := exec.Command(kindBinary, "load", "docker-image", managerImage, "--name", testClusterName)
-	b, err := cmd.Output()
-	if err != nil {
+	if _, err := exec.
+		Command(kindBinary, "load", "docker-image", managerImage, "--name", testClusterName).
+		Output(); err != nil {
 		if err != nil {
 			if exitError, ok := err.(*exec.ExitError); ok {
 				log.Info(string(exitError.Stderr))
@@ -182,17 +178,18 @@ var _ = BeforeSuite(func() {
 		log.Error(err, "unable to load local image manager:dev")
 		Expect(err).NotTo(HaveOccurred())
 	}
-	cmd = exec.Command(kindBinary, "load", "docker-image", agentImage, "--name", testClusterName)
-	b, err = cmd.Output()
-	if err != nil {
+
+	if _, err := exec.
+		Command(kindBinary, "load", "docker-image", agentImage, "--name", testClusterName).
+		Output(); err != nil {
 		log.Error(err, "unable to load local image agent:dev")
 		return
 	}
 
 	// simulate what users exactly do in real life.
-	cmd = exec.Command("kubectl", "apply", "-f", releasePath, "--context", testKindContextName)
-	b, err = cmd.Output()
-
+	b, err := exec.
+		Command("kubectl", "apply", "-f", releasePath, "--context", testKindContextName).
+		Output()
 	if err != nil {
 		log.Error(err, "unable to apply release.yaml")
 		return
@@ -221,6 +218,7 @@ var _ = BeforeSuite(func() {
 	Expect(err).NotTo(HaveOccurred())
 
 	k8sClient, err = client.New(c, client.Options{Scheme: scheme.Scheme})
+	Expect(err).NotTo(HaveOccurred())
 
 	// wait until operator is ready
 	Eventually(func() int {

@@ -2,10 +2,11 @@ package wireguard
 
 import (
 	"fmt"
-	"github.com/go-logr/logr"
 	"net"
 	"os/exec"
 	"syscall"
+
+	"github.com/go-logr/logr"
 
 	"github.com/jodevsa/wireguard-operator/pkg/agent"
 	"github.com/jodevsa/wireguard-operator/pkg/api/v1alpha1"
@@ -60,9 +61,12 @@ func syncAddress(_ agent.State, iface string) error {
 	if len(addresses) != 0 {
 		return nil
 	}
-	err = netlink.AddrAdd(link, &netlink.Addr{
+
+	if err := netlink.AddrAdd(link, &netlink.Addr{
 		IPNet: &net.IPNet{IP: net.ParseIP("10.8.0.1")},
-	})
+	}); err != nil {
+		return fmt.Errorf("netlink addr add: %w", err)
+	}
 
 	if err := netlink.LinkSetUp(link); err != nil {
 		return err
@@ -101,7 +105,7 @@ func createLinkUsingKernalModule(iface string) error {
 }
 
 func SyncLink(_ agent.State, iface string, wgUserspaceImplementationFallback string, wgUseUserspaceImpl bool) error {
-	link, err := netlink.LinkByName(iface)
+	_, err := netlink.LinkByName(iface)
 	if err != nil {
 		if _, ok := err.(netlink.LinkNotFoundError); !ok {
 			return err
@@ -128,7 +132,8 @@ func SyncLink(_ agent.State, iface string, wgUserspaceImplementationFallback str
 			}
 		}
 
-		link, err = netlink.LinkByName(iface)
+		// TODO: Can this be removed?
+		link, err := netlink.LinkByName(iface)
 		if err != nil {
 			return err
 		}
@@ -137,7 +142,7 @@ func SyncLink(_ agent.State, iface string, wgUserspaceImplementationFallback str
 		}
 	}
 
-	link, err = netlink.LinkByName(iface)
+	link, err := netlink.LinkByName(iface)
 	if err != nil {
 		if _, ok := err.(netlink.LinkNotFoundError); !ok {
 			return err
@@ -152,9 +157,12 @@ func SyncLink(_ agent.State, iface string, wgUserspaceImplementationFallback str
 	if len(addresses) != 0 {
 		return nil
 	}
-	err = netlink.AddrAdd(link, &netlink.Addr{
+
+	if err := netlink.AddrAdd(link, &netlink.Addr{
 		IPNet: &getIP("10.8.0.1/32")[0],
-	})
+	}); err != nil {
+		return fmt.Errorf("netlink addr add: %w", err)
+	}
 
 	if err := netlink.LinkSetUp(link); err != nil {
 		return err
@@ -290,7 +298,7 @@ func createPeersConfiguration(state agent.State, iface string) ([]wgtypes.PeerCo
 
 	// add new peers
 	for _, peer := range state.Peers {
-		if peer.Spec.Disabled == true {
+		if peer.Spec.Disabled {
 			continue
 		}
 		if peer.Spec.PublicKey == "" {
@@ -341,6 +349,9 @@ func CreateWireguardConfiguration(state agent.State, iface string, listenPort in
 	cfg.ListenPort = &listenPort
 
 	peers, err := createPeersConfiguration(state, iface)
+	if err != nil {
+		return wgtypes.Config{}, err
+	}
 
 	cfg.Peers = peers
 
