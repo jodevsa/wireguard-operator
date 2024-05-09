@@ -60,7 +60,7 @@ func waitForDeploymentTobeReady(name string, namespace string) {
 		}
 
 		deployment := &v12.Deployment{}
-		k8sClient.Get(context.Background(), deploymentKey, deployment)
+		Expect(k8sClient.Get(context.Background(), deploymentKey, deployment)).Should(Succeed())
 		return int(deployment.Status.ReadyReplicas)
 	}, Timeout, Interval).Should(Equal(1))
 
@@ -73,7 +73,7 @@ func WaitForWireguardToBeReady(name string, namespace string) {
 			Name:      name,
 		}
 		wg := &v1alpha1.Wireguard{}
-		k8sClient.Get(context.Background(), wgKey, wg)
+		Expect(k8sClient.Get(context.Background(), wgKey, wg)).Should(Succeed())
 		return wg.Status.Status
 	}, Timeout, Interval).Should(Equal(v1alpha1.Ready))
 
@@ -86,7 +86,7 @@ func WaitForPeerToBeReady(name string, namespace string) {
 			Name:      name,
 		}
 		wg := &v1alpha1.WireguardPeer{}
-		k8sClient.Get(context.Background(), wgKey, wg)
+		Expect(k8sClient.Get(context.Background(), wgKey, wg)).Should(Succeed())
 		return wg.Status.Status
 	}, Timeout, Interval).Should(Equal(v1alpha1.Ready))
 
@@ -228,7 +228,7 @@ var _ = BeforeSuite(func() {
 		}
 
 		deployment := &v12.Deployment{}
-		k8sClient.Get(context.Background(), deploymentKey, deployment)
+		Expect(k8sClient.Get(context.Background(), deploymentKey, deployment)).Should(Succeed())
 		return int(deployment.Status.ReadyReplicas)
 	}, Timeout, Interval).Should(Equal(1))
 
