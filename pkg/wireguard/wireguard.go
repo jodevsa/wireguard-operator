@@ -1,15 +1,19 @@
 package wireguard
 
 import (
+	"errors"
 	"fmt"
-	"github.com/go-logr/logr"
+	"io/fs"
 	"net"
+	"os"
 	"os/exec"
 	"syscall"
 
+	"github.com/go-logr/logr"
 	"github.com/jodevsa/wireguard-operator/pkg/agent"
 	"github.com/jodevsa/wireguard-operator/pkg/api/v1alpha1"
 	"github.com/vishvananda/netlink"
+	"golang.org/x/sys/unix"
 	"golang.zx2c4.com/wireguard/wgctrl"
 	"golang.zx2c4.com/wireguard/wgctrl/wgtypes"
 )
@@ -71,17 +75,18 @@ func syncAddress(_ agent.State, iface string) error {
 }
 
 func createLinkUsingUserspaceImpl(iface string, wgUserspaceImplementationFallback string) error {
-
-	bashCommand := fmt.Sprintf("mkdir -p /dev/net && if [ ! -c /dev/net/tun ]; then\n    mknod /dev/net/tun c 10 200\nfi && %s %s", wgUserspaceImplementationFallback, iface)
-	cmd := exec.Command("bash", "-c", bashCommand)
-
-	err := cmd.Run()
-	if err != nil {
-		return err
+	if _, err := os.Stat("/dev/net"); errors.Is(err, fs.ErrNotExist) {
+		if err := os.MkdirAll("/dev/net", 0o755); err != nil {
+			return fmt.Errorf("mkdir all: %w", err)
+		}
 	}
 
-	return nil
-
+	if _, err := os.Stat("/dev/net/tun"); errors.Is(err, fs.ErrNotExist) {
+		if err := unix.Mknod("/dev/net/tun", unix.S_IFCHR|0o600, int(unix.Mkdev(10, 200))); err != nil {
+			return fmt.Errorf("mknod: %w", err)
+		}
+	}
+	return exec.Command(wgUserspaceImplementationFallback, iface).Run()
 }
 
 func createLinkUsingKernalModule(iface string) error {
