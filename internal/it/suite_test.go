@@ -207,7 +207,6 @@ var _ = BeforeSuite(func() {
 		"rolebinding.rbac.authorization.k8s.io/wireguard-leader-election-rolebinding",
 		"clusterrolebinding.rbac.authorization.k8s.io/wireguard-manager-rolebinding",
 		"clusterrolebinding.rbac.authorization.k8s.io/wireguard-proxy-rolebinding",
-		"configmap/wireguard-manager-config",
 		"service/wireguard-controller-manager-metrics-service",
 		"deployment.apps/wireguard-controller-manager",
 	}
