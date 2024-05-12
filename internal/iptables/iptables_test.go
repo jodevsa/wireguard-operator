@@ -1,13 +1,12 @@
 package iptables
 
 import (
-	"github.com/jodevsa/wireguard-operator/pkg/api/v1alpha1"
 	"testing"
+
+	"github.com/jodevsa/wireguard-operator/pkg/api/v1alpha1"
 )
 
-// test helpers
-
-func TestIptableRules(t *testing.T) {
+func TestIPTableRules(t *testing.T) {
 	tests := []struct {
 		name                 string
 		peerIp               string
@@ -83,7 +82,7 @@ func TestIptableRules(t *testing.T) {
 -A 10-8-0-11 -d 10.7.0.1 -p icmp -j ACCEPT
 -A 10-8-0-11 -d 10.8.0.11 -j ACCEPT
 -A 10-8-0-11 -d 100.64.0.21 -p UDP --dport 53 -j ACCEPT
--A 10-8-0-11 -j Reject
+-A 10-8-0-11 -j REJECT
 -A 10-8-0-11 -j REJECT --reject-with icmp-port-unreachable
 # end of rules for peer 10.8.0.11`,
 		},
@@ -113,7 +112,7 @@ func TestIptableRules(t *testing.T) {
 
 		t.Run(test.name, func(t *testing.T) {
 
-			rules := GenerateIptableRulesFromNetworkPolicies(test.networkPolicies, test.peerIp, test.kubeDnsIp, test.wgServerIp)
+			rules := GenerateIPTableRulesFromNetworkPolicies(test.networkPolicies, test.peerIp, test.kubeDnsIp, test.wgServerIp)
 			if rules != test.expectedIptableRules {
 				t.Errorf("got %s, want %s", rules, test.expectedIptableRules)
 			}
