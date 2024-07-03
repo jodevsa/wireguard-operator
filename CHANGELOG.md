@@ -1,3 +1,10 @@
+# [2.1.0](https://github.com/jodevsa/wireguard-operator/compare/v2.0.30...v2.1.0) (2024-07-03)
+
+
+### Features
+
+* pass address to LoadBalancerIP ([#184](https://github.com/jodevsa/wireguard-operator/issues/184)) ([d954499](https://github.com/jodevsa/wireguard-operator/commit/d95449998bd8a3cbddebdc74a738c48698fe22ec))
+
 ## [2.0.30](https://github.com/jodevsa/wireguard-operator/compare/v2.0.29...v2.0.30) (2024-05-03)
 
 
