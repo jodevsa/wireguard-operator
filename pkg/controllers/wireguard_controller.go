@@ -602,7 +602,7 @@ func (r *WireguardReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 	}
 
 	// create secret resource if not yet created
-	if wireguard.Status.Resources.Service.Status != v1alpha1.Ready {
+	if wireguard.Status.Resources.Secret.Status != v1alpha1.Ready {
 		return r.syncSecretResource(ctx, req, wireguard)
 
 	}
