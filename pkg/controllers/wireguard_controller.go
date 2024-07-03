@@ -376,7 +376,7 @@ func (r *WireguardReconciler) syncSecretResource(ctx context.Context, req ctrl.R
 			return ctrl.Result{}, err
 		}
 
-		secret := r.secretForWireguard(wireguard, b, privateKey, publicKey)
+		secret = r.secretForWireguard(wireguard, b, privateKey, publicKey)
 
 		log.Info("Creating a new secret", "secret.Namespace", secret.Namespace, "secret.Name", secret.Name)
 
@@ -416,6 +416,7 @@ func (r *WireguardReconciler) syncMetricsServiceResource(ctx context.Context, re
 		return ctrl.Result{}, err
 	}
 	wireguard.Status.Resources.MetricsService.Status = v1alpha1.Ready
+	wireguard.Status.Resources.MetricsService.Name = svcFound.Name
 
 	err = r.Status().Update(ctx, wireguard)
 
@@ -784,11 +785,6 @@ func (r *WireguardReconciler) deploymentForWireguard(m *v1alpha1.Wireguard) *app
 									Name:          "wireguard",
 									Protocol:      corev1.ProtocolUDP,
 								}},
-							EnvFrom: []corev1.EnvFromSource{{
-								ConfigMapRef: &corev1.ConfigMapEnvSource{
-									LocalObjectReference: corev1.LocalObjectReference{Name: m.Name + "-config"},
-								},
-							}},
 							VolumeMounts: []corev1.VolumeMount{
 								{
 									Name:      "socket",
