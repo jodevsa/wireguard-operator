@@ -515,7 +515,7 @@ Endpoint = %s:%s"`, peerKey.Name, peer.Spec.Address, dnsServiceIp, peer.Namespac
 		for _, useWgUserspace := range []bool{true, false} {
 			testTextPrefix := "uses"
 			if !useWgUserspace {
-				testTextPrefix="does not use"
+				testTextPrefix = "does not use"
 			}
 
 			It(fmt.Sprintf("%s userspace implementation of wireguard if spec.useWgUserspaceImplementation is set to %t", testTextPrefix, useWgUserspace), func() {
