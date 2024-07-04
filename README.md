@@ -83,12 +83,12 @@ Endpoint = 32.121.45.102:51820
 
 ## How to deploy
 ```
-kubectl apply -f https://github.com/jodevsa/wireguard-operator/releases/download/v2.0.0/release.yaml
+kubectl apply -f https://github.com/jodevsa/wireguard-operator/releases/download/v2.1.0/release.yaml
 ```
 
 ## How to remove
 ```
-kubectl delete -f https://github.com/jodevsa/wireguard-operator/releases/download/v2.0.0/release.yaml
+kubectl delete -f https://github.com/jodevsa/wireguard-operator/releases/download/v2.1.0/release.yaml
 ```
 
 ## How to collaborate
