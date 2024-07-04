@@ -220,15 +220,6 @@ spec:
                   requests:
                     cpu: 5m
                     memory: 64Mi
-                securityContext:
-                  runAsNonRoot: false
-                  runAsGroup: 65534
-                  runAsUser: 65534
-                  allowPrivilegeEscalation: false
-                  readOnlyRootFilesystem: true
-                  capabilities:
-                    drop:
-                      - ALL
               - args:
                 - --health-probe-bind-address=:8081
                 - --metrics-bind-address=127.0.0.1:8080
@@ -257,17 +248,9 @@ spec:
                     cpu: 10m
                     memory: 64Mi
                 securityContext:
-                  runAsNonRoot: false
-                  runAsGroup: 65534
-                  runAsUser: 65534
                   allowPrivilegeEscalation: false
-                  readOnlyRootFilesystem: true
-                  capabilities:
-                    drop:
-                      - ALL
               securityContext:
                 runAsNonRoot: true
-                fsGroup: 65534
               serviceAccountName: wireguard-controller-manager
               terminationGracePeriodSeconds: 10
       permissions:
