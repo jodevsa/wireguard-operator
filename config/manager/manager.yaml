@@ -25,6 +25,7 @@ spec:
         control-plane: controller-manager
     spec:
       securityContext:
+        fsGroup: 65534
         runAsNonRoot: true
       containers:
       - command:
@@ -34,7 +35,14 @@ spec:
         image: controller:latest
         name: manager
         securityContext:
+          runAsNonRoot: false
+          runAsGroup: 65534
+          runAsUser: 65534
           allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          capabilities:
+            drop:
+              - ALL
         livenessProbe:
           httpGet:
             path: /healthz
