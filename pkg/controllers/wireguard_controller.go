@@ -686,6 +686,7 @@ func (r *WireguardReconciler) deploymentForWireguard(m *v1alpha1.Wireguard) *app
 	runAsGroup := int64(65534)
 	readOnlyRootFilesystem := true
 	allowPrivilegeEscalation := false
+	automountServiceAccountToken := false
 
 	dep := &appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
@@ -703,6 +704,12 @@ func (r *WireguardReconciler) deploymentForWireguard(m *v1alpha1.Wireguard) *app
 					Labels: ls,
 				},
 				Spec: corev1.PodSpec{
+					SecurityContext: &corev1.PodSecurityContext{
+						SeccompProfile: &corev1.SeccompProfile{
+							Type: corev1.SeccompProfileType("RuntimeDefault"),
+						},
+					},
+					AutomountServiceAccountToken: &automountServiceAccountToken,
 					Volumes: []corev1.Volume{
 						{
 							Name: "socket",
