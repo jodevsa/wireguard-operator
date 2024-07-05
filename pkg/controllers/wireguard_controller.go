@@ -736,6 +736,7 @@ func (r *WireguardReconciler) deploymentForWireguard(m *v1alpha1.Wireguard) *app
 									MountPath: "/var/run/wireguard/",
 								},
 							},
+							Resources: m.Spec.Metric.Resources,
 						},
 						{
 							SecurityContext: &corev1.SecurityContext{
@@ -765,6 +766,7 @@ func (r *WireguardReconciler) deploymentForWireguard(m *v1alpha1.Wireguard) *app
 									Name:      "config",
 									MountPath: "/tmp/wireguard/",
 								}},
+							Resources: m.Spec.Agent.Resources,
 						}},
 				},
 			},
