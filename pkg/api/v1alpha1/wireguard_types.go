@@ -53,6 +53,14 @@ type WireguardSpec struct {
 	EnableIpForwardOnPodInit bool `json:"enableIpForwardOnPodInit,omitempty"`
 	// A boolean field that specifies whether to use the userspace implementation of Wireguard instead of the kernel one.
 	UseWgUserspaceImplementation bool `json:"useWgUserspaceImplementation,omitempty"`
+
+	Agent  WireguardPodSpec `json:"agent,omitempty"`
+	Metric WireguardPodSpec `json:"metric,omitempty"`
+}
+
+// WireguardPodSpec defines spec for respective containers created for Wireguard
+type WireguardPodSpec struct {
+	Resources corev1.ResourceRequirements `json:"resources,omitempty"`
 }
 
 // WireguardStatus defines the observed state of Wireguard
