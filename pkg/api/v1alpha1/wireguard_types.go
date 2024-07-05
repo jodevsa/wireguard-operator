@@ -68,7 +68,8 @@ type WireguardStatus struct {
 	Status string `json:"status,omitempty"`
 	// A string field that provides additional information about the status of Wireguard. This could include error messages or other information that helps to diagnose issues with the wg instance.
 	Message   string    `json:"message,omitempty"`
-	Resources Resources `json:"resources,omitempty"`
+	Resources        Resources `json:"resources,omitempty"`
+	UniqueIdentifier string    `json:"UniqueIdentifier,omitempty"`
 }
 type Resource struct {
 	Name   string `json:"name,omitempty"`

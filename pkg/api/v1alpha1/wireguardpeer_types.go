@@ -130,6 +130,10 @@ type WireguardPeerList struct {
 	Items           []WireguardPeer `json:"items"`
 }
 
+func (in *WireguardPeerList) Error() string {
+	panic("implement me")
+}
+
 func init() {
 	SchemeBuilder.Register(&WireguardPeer{}, &WireguardPeerList{})
 }
