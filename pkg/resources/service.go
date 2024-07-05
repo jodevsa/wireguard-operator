@@ -14,15 +14,11 @@ import (
 )
 
 type Service struct {
-	wireguard *v1alpha1.Wireguard
-	logger logr.Logger
-	agentImage string
-	targetPort int32
-	ImagePullPolicy corev1.PullPolicy
-	enableIpForwardOnPodInit bool
-	useWgUserspaceImplementation bool
-	client client.Client
-	Scheme *runtime.Scheme
+	Wireguard  *v1alpha1.Wireguard
+	Logger     logr.Logger
+	TargetPort int32
+	Client     client.Client
+	Scheme     *runtime.Scheme
 }
 
 
@@ -32,15 +28,20 @@ func(r Service) Type() string {
 }
 
 func(r Service) Name() string {
-	return fmt.Sprintf("%s-%s", r.wireguard.Name, r.wireguard.Status.UniqueIdentifier)
+	return fmt.Sprintf("%s-%s", r.Wireguard.Name, r.Wireguard.Status.UniqueIdentifier)
 }
 
 
+
+func(s Service) Update(ctx context.Context) error {
+	return nil
+}
+
 func(s Service) Create(ctx context.Context) error {
 	svc := s.serviceForWireguard()
-	err := s.client.Create(ctx, svc)
+	err := s.Client.Create(ctx, svc)
 	if err != nil {
-		s.logger.Error(err, "Failed to create new service", "svc.Namespace", svc.Namespace, "dep.Name", svc.Name)
+		s.Logger.Error(err, "Failed to create new service", "svc.Namespace", svc.Namespace, "dep.Name", svc.Name)
 		return err
 	}
 	return nil
@@ -54,22 +55,22 @@ func(s Service) serviceForWireguard() *corev1.Service {
 	dep := &corev1.Service{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:        s.Name(),
-			Namespace:   s.wireguard.Namespace,
-			Annotations: s.wireguard.Spec.ServiceAnnotations,
+			Namespace:   s.Wireguard.Namespace,
+			Annotations: s.Wireguard.Spec.ServiceAnnotations,
 			Labels:      labels,
 		},
 		Spec: corev1.ServiceSpec{
-			LoadBalancerIP: s.wireguard.Spec.Address,
+			LoadBalancerIP: s.Wireguard.Spec.Address,
 			Selector:       labels,
 			Ports: []corev1.ServicePort{{
 				Protocol:   corev1.ProtocolUDP,
-				NodePort:   s.wireguard.Spec.NodePort,
-				Port:       s.targetPort,
-				TargetPort: intstr.FromInt(int(s.targetPort)),
+				NodePort:   s.Wireguard.Spec.NodePort,
+				Port:       s.TargetPort,
+				TargetPort: intstr.FromInt(int(s.TargetPort)),
 			}},
-			Type: s.wireguard.Spec.ServiceType,
+			Type: s.Wireguard.Spec.ServiceType,
 		},
 	}
-	ctrl.SetControllerReference(s.wireguard, dep, s.Scheme)
+	ctrl.SetControllerReference(s.Wireguard, dep, s.Scheme)
 	return dep
 }

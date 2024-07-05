@@ -68,7 +68,7 @@ type WireguardStatus struct {
 	Status string `json:"status,omitempty"`
 	// A string field that provides additional information about the status of Wireguard. This could include error messages or other information that helps to diagnose issues with the wg instance.
 	Message   string    `json:"message,omitempty"`
-	Resources        Resources `json:"resources,omitempty"`
+	Resources       []Resource `json:"resources,omitempty"`
 	UniqueIdentifier string    `json:"UniqueIdentifier,omitempty"`
 }
 type Resource struct {
@@ -81,14 +81,6 @@ type DeploymentResource struct {
 	Status string `json:"status,omitempty"`
 	Image  string `json:"image,omitempty"`
 }
-type Resources struct {
-	Deployment     DeploymentResource `json:"deployment,omitempty"`
-	Configmap      Resource           `json:"configmap,omitempty"`
-	Secret         Resource           `json:"secret,omitempty"`
-	Service        Resource           `json:"service,omitempty"`
-	MetricsService Resource           `json:"metricsservice,omitempty"`
-}
-
 //+kubebuilder:object:root=true
 //+kubebuilder:subresource:status
 
