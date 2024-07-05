@@ -3,8 +3,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.8.0
-  creationTimestamp: null
+    controller-gen.kubebuilder.io/version: v0.14.0
   name: wireguards.vpn.wireguard-operator.io
 spec:
   group: vpn.wireguard-operator.io
@@ -21,14 +20,19 @@ spec:
         description: Wireguard is the Schema for the wireguards API
         properties:
           apiVersion:
-            description: 'APIVersion defines the versioned schema of this representation
-              of an object. Servers should convert recognized schemas to the latest
-              internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+            description: |-
+              APIVersion defines the versioned schema of this representation of an object.
+              Servers should convert recognized schemas to the latest internal value, and
+              may reject unrecognized values.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
             type: string
           kind:
-            description: 'Kind is a string value representing the REST resource this
-              object represents. Servers may infer this from the endpoint the client
-              submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+            description: |-
+              Kind is a string value representing the REST resource this object represents.
+              Servers may infer this from the endpoint the client submits requests to.
+              Cannot be updated.
+              In CamelCase.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
             type: string
           metadata:
             type: object
@@ -77,11 +81,15 @@ spec:
           status:
             description: WireguardStatus defines the observed state of Wireguard
             properties:
+              UniqueIdentifier:
+                type: string
               address:
                 description: A string field that specifies the address for the Wireguard
                   VPN server that is currently being used.
                 type: string
               dns:
+                type: string
+              dnssearchdomain:
                 type: string
               message:
                 description: A string field that provides additional information about
@@ -92,6 +100,17 @@ spec:
                 description: A string field that specifies the port for the Wireguard
                   VPN server that is currently being used.
                 type: string
+              publickey:
+                type: string
+              resources:
+                items:
+                  properties:
+                    name:
+                      type: string
+                    status:
+                      type: string
+                  type: object
+                type: array
               status:
                 description: A string field that represents the current status of
                   Wireguard. This could include values like ready, pending, or error.
@@ -102,9 +121,3 @@ spec:
     storage: true
     subresources:
       status: {}
-status:
-  acceptedNames:
-    kind: ""
-    plural: ""
-  conditions: []
-  storedVersions: []

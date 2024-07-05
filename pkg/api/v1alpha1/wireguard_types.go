@@ -58,16 +58,29 @@ type WireguardSpec struct {
 // WireguardStatus defines the observed state of Wireguard
 type WireguardStatus struct {
 	// A string field that specifies the address for the Wireguard VPN server that is currently being used.
-	Address string `json:"address,omitempty"`
-	Dns     string `json:"dns,omitempty"`
+	Address         string `json:"address,omitempty"`
+	Dns             string `json:"dns,omitempty"`
+	DnsSearchDomain string `json:"dnssearchdomain,omitempty"`
+	PublicKey       string `json:"publickey,omitempty"`
 	// A string field that specifies the port for the Wireguard VPN server that is currently being used.
 	Port string `json:"port,omitempty"`
 	// A string field that represents the current status of Wireguard. This could include values like ready, pending, or error.
 	Status string `json:"status,omitempty"`
 	// A string field that provides additional information about the status of Wireguard. This could include error messages or other information that helps to diagnose issues with the wg instance.
-	Message string `json:"message,omitempty"`
+	Message   string    `json:"message,omitempty"`
+	Resources       []Resource `json:"resources,omitempty"`
+	UniqueIdentifier string    `json:"UniqueIdentifier,omitempty"`
+}
+type Resource struct {
+	Name   string `json:"name,omitempty"`
+	Status string `json:"status,omitempty"`
 }
 
+type DeploymentResource struct {
+	Name   string `json:"name,omitempty"`
+	Status string `json:"status,omitempty"`
+	Image  string `json:"image,omitempty"`
+}
 //+kubebuilder:object:root=true
 //+kubebuilder:subresource:status
 
