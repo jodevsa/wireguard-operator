@@ -193,6 +193,12 @@ func (r *WireguardReconciler) updateWireguardPeers(ctx context.Context, req ctrl
 			dnsConfiguration = dns + ", " + dnsSearchDomain
 		}
 
+		allowIps := peer.Spec.AllowedIPs
+
+		if allowIps == "" {
+			allowIps = "0.0.0.0/0"
+		}
+
 		newConfig := fmt.Sprintf(`
 echo "
 [Interface]
@@ -208,8 +214,8 @@ DNS = %s`, peer.Name, peer.Namespace, peer.Spec.Address, dnsConfiguration)
 
 [Peer]
 PublicKey = %s
-AllowedIPs = 0.0.0.0/0
-Endpoint = %s:%s"`, serverPublicKey, serverAddress, wireguard.Status.Port)
+AllowedIPs = %s
+Endpoint = %s:%s"`, serverPublicKey, allowIps, serverAddress, wireguard.Status.Port)
 		if peer.Status.Config != newConfig || peer.Status.Status != v1alpha1.Ready {
 			peer.Status.Config = newConfig
 			peer.Status.Status = v1alpha1.Ready
