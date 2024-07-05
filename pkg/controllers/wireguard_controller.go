@@ -724,7 +724,15 @@ func (r *WireguardReconciler) deploymentForWireguard(m *v1alpha1.Wireguard) *app
 					Containers: []corev1.Container{
 						{
 							SecurityContext: &corev1.SecurityContext{
-								Capabilities: &corev1.Capabilities{Add: []corev1.Capability{"NET_ADMIN"}},
+								RunAsUser:                &runAsUser,
+								RunAsGroup:               &runAsGroup,
+								RunAsNonRoot:             &runAsNonRoot,
+								ReadOnlyRootFilesystem:   &readOnlyRootFilesystem,
+								AllowPrivilegeEscalation: &allowPrivilegeEscalation,
+								Capabilities: &corev1.Capabilities{
+									Drop: []corev1.Capability{"ALL"},
+									Add:  []corev1.Capability{"NET_ADMIN"},
+								},
 							},
 							Image:           r.AgentImage,
 							ImagePullPolicy: r.AgentImagePullPolicy,
@@ -745,15 +753,9 @@ func (r *WireguardReconciler) deploymentForWireguard(m *v1alpha1.Wireguard) *app
 						},
 						{
 							SecurityContext: &corev1.SecurityContext{
-								RunAsUser:                &runAsUser,
-								RunAsGroup:               &runAsGroup,
-								RunAsNonRoot:             &runAsNonRoot,
 								ReadOnlyRootFilesystem:   &readOnlyRootFilesystem,
 								AllowPrivilegeEscalation: &allowPrivilegeEscalation,
-								Capabilities: &corev1.Capabilities{
-									Drop: []corev1.Capability{"ALL"},
-									Add:  []corev1.Capability{"NET_ADMIN"},
-								},
+								Capabilities:             &corev1.Capabilities{Add: []corev1.Capability{"NET_ADMIN"}},
 							},
 							Image:           r.AgentImage,
 							ImagePullPolicy: r.AgentImagePullPolicy,
