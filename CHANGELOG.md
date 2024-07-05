@@ -1,3 +1,10 @@
+# [2.2.0](https://github.com/jodevsa/wireguard-operator/compare/v2.1.0...v2.2.0) (2024-07-05)
+
+
+### Features
+
+* pass resources to deployment' ([d516579](https://github.com/jodevsa/wireguard-operator/commit/d516579f371c1af0cc37ade0b7adf47b8225d669))
+
 # [2.1.0](https://github.com/jodevsa/wireguard-operator/compare/v2.0.30...v2.1.0) (2024-07-03)
 
 
