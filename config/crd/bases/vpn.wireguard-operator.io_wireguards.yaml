@@ -81,6 +81,8 @@ spec:
           status:
             description: WireguardStatus defines the observed state of Wireguard
             properties:
+              UniqueIdentifier:
+                type: string
               address:
                 description: A string field that specifies the address for the Wireguard
                   VPN server that is currently being used.
@@ -101,45 +103,14 @@ spec:
               publickey:
                 type: string
               resources:
-                properties:
-                  configmap:
-                    properties:
-                      name:
-                        type: string
-                      status:
-                        type: string
-                    type: object
-                  deployment:
-                    properties:
-                      image:
-                        type: string
-                      name:
-                        type: string
-                      status:
-                        type: string
-                    type: object
-                  metricsservice:
-                    properties:
-                      name:
-                        type: string
-                      status:
-                        type: string
-                    type: object
-                  secret:
-                    properties:
-                      name:
-                        type: string
-                      status:
-                        type: string
-                    type: object
-                  service:
-                    properties:
-                      name:
-                        type: string
-                      status:
-                        type: string
-                    type: object
-                type: object
+                items:
+                  properties:
+                    name:
+                      type: string
+                    status:
+                      type: string
+                  type: object
+                type: array
               status:
                 description: A string field that represents the current status of
                   Wireguard. This could include values like ready, pending, or error.
