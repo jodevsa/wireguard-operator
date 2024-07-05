@@ -681,6 +681,12 @@ func (r *WireguardReconciler) deploymentForWireguard(m *v1alpha1.Wireguard) *app
 	ls := labelsForWireguard(m.Name)
 	replicas := int32(1)
 
+	runAsNonRoot := true
+	runAsUser := int64(65534)
+	runAsGroup := int64(65534)
+	readOnlyRootFilesystem := true
+	allowPrivilegeEscalation := false
+
 	dep := &appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      m.Name + "-dep",
@@ -739,7 +745,15 @@ func (r *WireguardReconciler) deploymentForWireguard(m *v1alpha1.Wireguard) *app
 						},
 						{
 							SecurityContext: &corev1.SecurityContext{
-								Capabilities: &corev1.Capabilities{Add: []corev1.Capability{"NET_ADMIN"}},
+								RunAsUser:                &runAsUser,
+								RunAsGroup:               &runAsGroup,
+								RunAsNonRoot:             &runAsNonRoot,
+								ReadOnlyRootFilesystem:   &readOnlyRootFilesystem,
+								AllowPrivilegeEscalation: &allowPrivilegeEscalation,
+								Capabilities: &corev1.Capabilities{
+									Drop: []corev1.Capability{"ALL"},
+									Add:  []corev1.Capability{"NET_ADMIN"},
+								},
 							},
 							Image:           r.AgentImage,
 							ImagePullPolicy: r.AgentImagePullPolicy,
