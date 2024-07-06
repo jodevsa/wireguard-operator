@@ -88,7 +88,7 @@ jobs:
 
     - name: Build and push docker images
       if: ${{ inputs.push == true }}
-      uses: docker/build-push-action@v5
+      uses: docker/build-push-action@v6
       with:
         context: .
         file: images/${{ matrix.image }}/Dockerfile
@@ -99,7 +99,7 @@ jobs:
 
     - name: Build and upload docker image to job artifact
       if: ${{ inputs.upload_images == true }}
-      uses: docker/build-push-action@v5
+      uses: docker/build-push-action@v6
       with:
         context: .
         file: images/${{ matrix.image }}/Dockerfile
