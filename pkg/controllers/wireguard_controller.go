@@ -115,7 +115,7 @@ func (r *WireguardReconciler) getNodeIps(ctx context.Context, req ctrl.Request) 
 // - https://pkg.go.dev/sigs.k8s.io/controller-runtime@v0.10.0/pkg/reconcile
 
 const charset = "abcdefghijklmnopqrstuvwxyz" +
-	"ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
+	"0123456789"
 
 func randomString(length int) string {
 	return stringWithCharset(length, charset)
@@ -153,7 +153,7 @@ func (r *WireguardReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 	log.Info("reconciling " + wireguard.Name)
 
 	if wireguard.Status.Status == "" {
-		wireguard.Status.UniqueIdentifier = randomString(4)
+		wireguard.Status.UniqueIdentifier = randomString(5)
 		wireguard.Status.Status = v1alpha1.Pending
 		wireguard.Status.Message = "Fetching Wireguard status"
 		err = r.Status().Update(ctx, wireguard)

@@ -83,7 +83,7 @@ func (s Service) serviceType() corev1.ServiceType {
 }
 func (s Service) serviceForWireguard() *corev1.Service {
 	labels := labelsForWireguard(s.Name())
-	dep := &corev1.Service{
+	svc := &corev1.Service{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:        s.Name(),
 			Namespace:   s.Wireguard.Namespace,
@@ -102,6 +102,6 @@ func (s Service) serviceForWireguard() *corev1.Service {
 			Type: s.serviceType(),
 		},
 	}
-	ctrl.SetControllerReference(s.Wireguard, dep, s.Scheme)
-	return dep
+	ctrl.SetControllerReference(s.Wireguard, svc, s.Scheme)
+	return svc
 }
