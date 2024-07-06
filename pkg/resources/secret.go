@@ -32,7 +32,7 @@ func (s Secret) Converged(ctx context.Context) (bool, error) {
 func (s Secret) NeedsUpdate(ctx context.Context) (bool, error) {
 
 	secret := &corev1.Secret{}
-	err := s.Client.Get(ctx, types.NamespacedName{Name: s.Wireguard.Name, Namespace: s.Wireguard.Namespace}, secret)
+	err := s.Client.Get(ctx, types.NamespacedName{Name: s.Name(), Namespace: s.Wireguard.Namespace}, secret)
 
 	if err != nil {
 		return true, err

@@ -42,7 +42,7 @@ func (r Deployment) Converged(ctx context.Context) (bool, error) {
 
 func (r Deployment) NeedsUpdate(ctx context.Context) (bool, error) {
 	dep := &appsv1.Deployment{}
-	err := r.Client.Get(ctx, types.NamespacedName{Name: r.Wireguard.Name + "-dep", Namespace: r.Wireguard.Namespace}, dep)
+	err := r.Client.Get(ctx, types.NamespacedName{Name: r.Name(), Namespace: r.Wireguard.Namespace}, dep)
 	if err != nil {
 		r.Logger.Error(err, "Failed to get dep", "dep.Namespace", dep.Namespace, "dep.Name", dep.Name)
 		return true, err
