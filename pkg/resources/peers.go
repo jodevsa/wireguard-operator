@@ -15,6 +15,10 @@ type Peers struct {
 	Client    client.Client
 }
 
+func (p Peers) Type() string {
+	return "peers"
+}
+
 func (p Peers) Converged(ctx context.Context) (bool, error) {
 	return true, nil
 }

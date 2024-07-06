@@ -115,9 +115,7 @@ func (r *WireguardReconciler) getNodeIps(ctx context.Context, req ctrl.Request) 
 func (r *WireguardReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	log := ctrllog.FromContext(ctx)
 
-	log.Info("loaded the following wireguard image:" + r.AgentImage)
 	wireguard := &v1alpha1.Wireguard{}
-	log.Info(req.NamespacedName.Name)
 	err := r.Get(ctx, req.NamespacedName, wireguard)
 	if err != nil {
 		if errors.IsNotFound(err) {
@@ -190,7 +188,7 @@ func (r *WireguardReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 
 		resourceStatus := v1alpha1.Resource{}
 		for _, registeredResource := range wireguard.Status.Resources {
-			if registeredResource.Name == res.Name() {
+			if registeredResource.Name == res.Name() && registeredResource.Type == res.Type() {
 				resourceStatus = registeredResource
 				break
 			}
@@ -206,6 +204,7 @@ func (r *WireguardReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 			wireguard.Status.Resources = append(
 				wireguard.Status.Resources, v1alpha1.Resource{
 					Name:   res.Name(),
+					Type:   res.Type(),
 					Status: v1alpha1.Pending,
 				},
 			)

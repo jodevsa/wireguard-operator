@@ -79,7 +79,7 @@ func (s Secret) Create(ctx context.Context) error {
 	return nil
 }
 func (s Secret) Type() string {
-	return "Secret"
+	return "secret"
 }
 
 func (s Secret) Name() string {

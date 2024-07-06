@@ -8,4 +8,5 @@ type Resource interface {
 	Converged(context.Context) (bool, error)
 	NeedsUpdate(context.Context) (bool, error)
 	Name() string
+	Type() string
 }

@@ -29,7 +29,7 @@ type Deployment struct {
 }
 
 func (r Deployment) Type() string {
-	return "Deployment"
+	return "deployment"
 }
 
 func (r Deployment) Name() string {
