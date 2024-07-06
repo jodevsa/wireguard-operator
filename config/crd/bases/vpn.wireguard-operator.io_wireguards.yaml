@@ -109,6 +109,8 @@ spec:
                       type: string
                     status:
                       type: string
+                    type:
+                      type: string
                   type: object
                 type: array
               status:
