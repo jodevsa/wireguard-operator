@@ -115,7 +115,7 @@ func (r *WireguardReconciler) getNodeIps(ctx context.Context, req ctrl.Request) 
 func (r *WireguardReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	log := ctrllog.FromContext(ctx)
 
-	log.Info("loaded the following wireguard image:",r.AgentImage)
+	log.Info("loaded the following wireguard image:" + r.AgentImage)
 	wireguard := &v1alpha1.Wireguard{}
 	log.Info(req.NamespacedName.Name)
 	err := r.Get(ctx, req.NamespacedName, wireguard)
