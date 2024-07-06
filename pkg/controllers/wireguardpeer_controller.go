@@ -176,7 +176,13 @@ func (r *WireguardPeerReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 	}
 
 	wireguardSecret := &corev1.Secret{}
-	err = r.Get(ctx, types.NamespacedName{Name: newPeer.Spec.WireguardRef, Namespace: newPeer.Namespace}, wireguardSecret)
+	secretRef := ""
+	for _, resource := range wireguard.Status.Resources {
+		if resource.Type == "secret" {
+			secretRef = resource.Name
+		}
+	}
+	err = r.Get(ctx, types.NamespacedName{Name: secretRef, Namespace: newPeer.Namespace}, wireguardSecret)
 
 	if len(newPeer.OwnerReferences) == 0 {
 		log.Info("Waiting for owner reference to be set " + wireguard.Name + " " + newPeer.Name)

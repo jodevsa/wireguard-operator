@@ -164,7 +164,7 @@ func (d Deployment) deploymentForWireguard() *appsv1.Deployment {
 							Ports: []corev1.ContainerPort{
 								{
 									ContainerPort: d.TargetPort,
-									Name:          "Wireguard",
+									Name:          "wireguard",
 									Protocol:      corev1.ProtocolUDP,
 								}},
 							VolumeMounts: []corev1.VolumeMount{

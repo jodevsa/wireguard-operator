@@ -12,6 +12,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/intstr"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"strconv"
 )
 
 type Service struct {
@@ -81,6 +82,62 @@ func (s Service) serviceType() corev1.ServiceType {
 
 	return serviceType
 }
+
+func (s Service) GetAddressAndPort(ctx context.Context) (string, string, error) {
+	var port = fmt.Sprintf("%d", s.TargetPort)
+
+	svc := &corev1.Service{}
+	err := s.Client.Get(ctx, types.NamespacedName{Name: s.Name(), Namespace: s.Wireguard.Namespace}, svc)
+	if err != nil {
+		s.Logger.Error(err, "Failed to get service", "svc.Namespace", svc.Namespace, "dep.Name", svc.Name)
+		return "", "", err
+	}
+
+	if svc.Spec.Type == corev1.ServiceTypeLoadBalancer {
+		if svc.Status.LoadBalancer.Ingress[0].Hostname != "" {
+			return svc.Status.LoadBalancer.Ingress[0].Hostname, port, nil
+		}
+		return svc.Status.LoadBalancer.Ingress[0].IP, port, nil
+	}
+
+	ips, err := s.getNodeIps(ctx)
+	port = strconv.Itoa(int(svc.Spec.Ports[0].NodePort))
+	if err != nil {
+		return "", "", err
+	}
+	return ips[0], port, err
+
+}
+
+func (s *Service) getNodeIps(ctx context.Context) ([]string, error) {
+	nodes := &corev1.NodeList{}
+	if err := s.Client.List(ctx, nodes); err != nil {
+		return nil, err
+	}
+
+	ips := []string{}
+
+	for _, node := range nodes.Items {
+		for _, address := range node.Status.Addresses {
+			if address.Type == corev1.NodeExternalIP {
+				ips = append(ips, address.Address)
+			}
+		}
+	}
+
+	if len(ips) == 0 {
+		for _, node := range nodes.Items {
+			for _, address := range node.Status.Addresses {
+				if address.Type == corev1.NodeInternalIP {
+					ips = append(ips, address.Address)
+				}
+			}
+		}
+	}
+
+	return ips, nil
+}
+
 func (s Service) serviceForWireguard() *corev1.Service {
 	labels := labelsForWireguard(s.Name())
 	svc := &corev1.Service{

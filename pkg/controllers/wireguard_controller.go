@@ -18,6 +18,7 @@ package controllers
 
 import (
 	"context"
+	"fmt"
 	"github.com/jodevsa/wireguard-operator/pkg/api/v1alpha1"
 	"github.com/jodevsa/wireguard-operator/pkg/resources"
 	appsv1 "k8s.io/api/apps/v1"
@@ -207,8 +208,9 @@ func (r *WireguardReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 	for _, res := range resourcesList {
 		log.Info("reconciling resource " + res.Name())
 
-		resourceStatus := v1alpha1.Resource{}
-		for _, registeredResource := range wireguard.Status.Resources {
+		resourceStatus := &v1alpha1.Resource{}
+		for i, _ := range wireguard.Status.Resources {
+			registeredResource := &wireguard.Status.Resources[i]
 			if registeredResource.Name == res.Name() && registeredResource.Type == res.Type() {
 				resourceStatus = registeredResource
 				break
@@ -237,41 +239,82 @@ func (r *WireguardReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 
 			return ctrl.Result{}, nil
 		}
-
+		log.Info(fmt.Sprintf("checking if resource %s with type %s needs an update", res.Name(), res.Type()))
 		needsUpdate, err := res.NeedsUpdate(ctx)
 
 		if err != nil {
+			log.Info(fmt.Sprintf("unable to check if resource %s with type %s needs an update", res.Name(), res.Type()))
 			return ctrl.Result{}, err
 		}
 
 		if needsUpdate {
-			log.Info("resource " + res.Name())
+			log.Info(fmt.Sprintf("resource %s with type %s needs to be updated", res.Name(), res.Type()))
 			err = res.Update(ctx)
 			if err != nil {
 				return ctrl.Result{}, err
 			}
+			log.Info(fmt.Sprintf("resource %s with type %s was updated", res.Name(), res.Type()))
 			return ctrl.Result{Requeue: true}, nil
 		}
 
 		status := v1alpha1.Pending
 
+		log.Info(fmt.Sprintf("checking if resource %s with type %s has converged", res.Name(), res.Type()))
 		converged, err := res.Converged(ctx)
 		if err != nil {
 			return ctrl.Result{}, err
 		}
 
 		if converged {
+			log.Info(fmt.Sprintf("resource %s with type %s has converged sucessfully", res.Name(), res.Type()))
 			status = v1alpha1.Ready
+		} else {
+			log.Info(fmt.Sprintf("resource %s with type %s has not converged yet", res.Name(), res.Type()))
+			return ctrl.Result{Requeue: false}, err
 		}
 
 		if status != resourceStatus.Status {
 			resourceStatus.Status = status
 			err = r.Status().Update(ctx, wireguard)
-			return ctrl.Result{Requeue: !converged}, err
+			return ctrl.Result{Requeue: true}, err
 		}
 	}
 
+	// update WG public key
+	publicKey, err := secret.GetPublicKey(ctx)
+	if err != nil {
+		return ctrl.Result{}, err
+	}
+	log.Info(fmt.Sprintf("updating public key %s", publicKey))
+	if wireguard.Status.PublicKey != publicKey {
+		wireguard.Status.Status = v1alpha1.Pending
+		wireguard.Status.PublicKey = publicKey
+		err = r.Status().Update(ctx, wireguard)
+		return ctrl.Result{Requeue: true}, err
+	}
+
+	// update WG address
+	address, port, err := service.GetAddressAndPort(ctx)
+	if err != nil {
+		return ctrl.Result{}, err
+	}
+	if wireguard.Status.Address != address || wireguard.Status.Port != port {
+		wireguard.Status.Port = port
+		wireguard.Status.Address = address
+		wireguard.Status.Status = v1alpha1.Pending
+		err = r.Status().Update(ctx, wireguard)
+		return ctrl.Result{Requeue: true}, err
+	}
+
+
 	if wireguard.Status.Status != v1alpha1.Ready {
+
+		dnsAddress := "1.1.1.1"
+
+		if wireguard.Spec.Dns != "" {
+			dnsAddress = wireguard.Spec.Dns
+		}
+		wireguard.Status.Dns = dnsAddress
 		wireguard.Status.Status = v1alpha1.Ready
 		wireguard.Status.Message = "VPN is active!"
 		err = r.Status().Update(ctx, wireguard)
@@ -279,9 +322,12 @@ func (r *WireguardReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 		if err != nil {
 			return ctrl.Result{}, err
 		}
+		return ctrl.Result{Requeue: true}, nil
 	}
 
+
 	return ctrl.Result{}, nil
+
 }
 
 // SetupWithManager sets up the controller with the Manager.

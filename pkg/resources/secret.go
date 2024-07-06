@@ -59,6 +59,7 @@ func (s Secret) Update(ctx context.Context) error {
 		return err
 	}
 	if err := s.Client.Update(ctx, sec); err != nil {
+		s.Logger.Error(err, fmt.Sprintf("unable to update secret %v and %s", err, s.Name()))
 		return err
 
 	}
@@ -86,6 +87,16 @@ func (s Secret) Name() string {
 	return fmt.Sprintf("%s-%s", s.Wireguard.Name, s.Wireguard.Status.UniqueIdentifier)
 }
 
+func (s Secret) GetPublicKey(ctx context.Context) (string, error) {
+	sec, err := s.getSecreteData(ctx)
+	if err != nil {
+		return "", err
+	}
+
+	s.Logger.Info(fmt.Sprintf("sec %s", string(sec.Data["publicKey"])))
+
+	return string(sec.Data["publicKey"]), nil
+}
 func (s Secret) getSecreteData(ctx context.Context) (*corev1.Secret, error) {
 
 	data := map[string][]byte{}
@@ -96,24 +107,30 @@ func (s Secret) getSecreteData(ctx context.Context) (*corev1.Secret, error) {
 	}
 
 	sec, err := s.getExistingSecret(ctx)
+	if err != nil {
+		return &corev1.Secret{}, err
+	}
+
 	publicKey := ""
 	privateKey := ""
+
 	if errors.IsNotFound(err) {
 
 		key, err := wgtypes.GeneratePrivateKey()
 		if err != nil {
-			return &corev1.Secret{}, nil
+			return &corev1.Secret{}, err
 		}
 
 		privateKey = key.String()
 		publicKey = key.PublicKey().String()
 
-	} else if err != nil {
+	} else if err == nil {
 		privateKey = string(sec.Data["privateKey"])
 		publicKey = string(sec.Data["publicKey"])
-	} else {
+	} else if err != nil {
 		return &corev1.Secret{}, err
 	}
+
 	state := agent.State{
 		Server:           *s.Wireguard.DeepCopy(),
 		ServerPrivateKey: privateKey,
