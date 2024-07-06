@@ -25,9 +25,11 @@ import (
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"math/rand"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	ctrllog "sigs.k8s.io/controller-runtime/pkg/log"
+	"time"
 )
 
 // WireguardReconciler reconciles a Wireguard object
@@ -112,6 +114,24 @@ func (r *WireguardReconciler) getNodeIps(ctx context.Context, req ctrl.Request) 
 // For more details, check Reconcile and its Result here:
 // - https://pkg.go.dev/sigs.k8s.io/controller-runtime@v0.10.0/pkg/reconcile
 
+const charset = "abcdefghijklmnopqrstuvwxyz" +
+	"ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
+
+func randomString(length int) string {
+	return stringWithCharset(length, charset)
+}
+
+var seededRand *rand.Rand = rand.New(
+	rand.NewSource(time.Now().UnixNano()))
+
+func stringWithCharset(length int, charset string) string {
+	b := make([]byte, length)
+	for i := range b {
+		b[i] = charset[seededRand.Intn(len(charset))]
+	}
+	return string(b)
+}
+
 func (r *WireguardReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	log := ctrllog.FromContext(ctx)
 
@@ -133,6 +153,7 @@ func (r *WireguardReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 	log.Info("reconciling " + wireguard.Name)
 
 	if wireguard.Status.Status == "" {
+		wireguard.Status.UniqueIdentifier = randomString(4)
 		wireguard.Status.Status = v1alpha1.Pending
 		wireguard.Status.Message = "Fetching Wireguard status"
 		err = r.Status().Update(ctx, wireguard)
@@ -246,7 +267,7 @@ func (r *WireguardReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 		if status != resourceStatus.Status {
 			resourceStatus.Status = status
 			err = r.Status().Update(ctx, wireguard)
-			return ctrl.Result{}, err
+			return ctrl.Result{Requeue: !converged}, err
 		}
 	}
 
