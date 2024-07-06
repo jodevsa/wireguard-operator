@@ -28,59 +28,59 @@ type Deployment struct {
 	Scheme                       *runtime.Scheme
 }
 
-func (r Deployment) Type() string {
+func (d Deployment) Type() string {
 	return "deployment"
 }
 
-func (r Deployment) Name() string {
-	return fmt.Sprintf("%s-%s", r.Wireguard.Name, r.Wireguard.Status.UniqueIdentifier)
+func (d Deployment) Name() string {
+	return fmt.Sprintf("%s-%s", d.Wireguard.Name, d.Wireguard.Status.UniqueIdentifier)
 }
 
-func (r Deployment) Converged(ctx context.Context) (bool, error) {
+func (d Deployment) Converged(ctx context.Context) (bool, error) {
 	return true, nil
 }
 
-func (r Deployment) NeedsUpdate(ctx context.Context) (bool, error) {
+func (d Deployment) NeedsUpdate(ctx context.Context) (bool, error) {
 	dep := &appsv1.Deployment{}
-	err := r.Client.Get(ctx, types.NamespacedName{Name: r.Name(), Namespace: r.Wireguard.Namespace}, dep)
+	err := d.Client.Get(ctx, types.NamespacedName{Name: d.Name(), Namespace: d.Wireguard.Namespace}, dep)
 	if err != nil {
-		r.Logger.Error(err, "Failed to get dep", "dep.Namespace", dep.Namespace, "dep.Name", dep.Name)
+		d.Logger.Error(err, "Failed to get dep", "dep.Namespace", dep.Namespace, "dep.Name", dep.Name)
 		return true, err
 	}
 	// only update if image needs to be updated
-	if dep.Spec.Template.Spec.Containers[0].Image != r.AgentImage {
+	if dep.Spec.Template.Spec.Containers[0].Image != d.AgentImage {
 		return true, nil
 	}
 
 	return false, nil
 }
 
-func (r Deployment) Create(ctx context.Context) error {
-	dep := r.deploymentForWireguard()
-	r.Logger.Info("Creating a new dep", "dep.Namespace", dep.Namespace, "dep.Name", dep.Name)
-	err := r.Client.Create(ctx, dep)
+func (d Deployment) Create(ctx context.Context) error {
+	dep := d.deploymentForWireguard()
+	d.Logger.Info("Creating a new dep", "dep.Namespace", dep.Namespace, "dep.Name", dep.Name)
+	err := d.Client.Create(ctx, dep)
 	if err != nil {
-		r.Logger.Error(err, "Failed to create new dep", "dep.Namespace", dep.Namespace, "dep.Name", dep.Name)
+		d.Logger.Error(err, "Failed to create new dep", "dep.Namespace", dep.Namespace, "dep.Name", dep.Name)
 		return err
 	}
 
 	return nil
 }
 
-func (r Deployment) Update(ctx context.Context) error {
+func (d Deployment) Update(ctx context.Context) error {
 	deployment := &appsv1.Deployment{}
-	err := r.Client.Get(ctx, types.NamespacedName{Name: r.Name(), Namespace: r.Wireguard.Namespace}, deployment)
+	err := d.Client.Get(ctx, types.NamespacedName{Name: d.Name(), Namespace: d.Wireguard.Namespace}, deployment)
 	if err != nil {
-		r.Logger.Error(err, "Failed to get Deployment")
+		d.Logger.Error(err, "Failed to get Deployment")
 		return err
 	}
-	targetDep := r.deploymentForWireguard()
+	targetDep := d.deploymentForWireguard()
 
 	if !cmp.Equal(deployment, targetDep) {
 
-		r.Client.Update(ctx, targetDep)
+		d.Client.Update(ctx, targetDep)
 		if err != nil {
-			r.Logger.Error(err, "Failed to update Deployment", "dep.Namespace", targetDep.Namespace, "dep.Name", targetDep.Name)
+			d.Logger.Error(err, "Failed to update Deployment", "dep.Namespace", targetDep.Namespace, "dep.Name", targetDep.Name)
 			return err
 		}
 
@@ -93,14 +93,14 @@ func labelsForWireguard(name string) map[string]string {
 	return map[string]string{"app": "Wireguard", "instance": name}
 }
 
-func (r Deployment) deploymentForWireguard() *appsv1.Deployment {
-	ls := labelsForWireguard(r.Wireguard.Name)
+func (d Deployment) deploymentForWireguard() *appsv1.Deployment {
+	ls := labelsForWireguard(d.Wireguard.Name)
 	replicas := int32(1)
 
 	dep := &appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      r.Name(),
-			Namespace: r.Wireguard.Namespace,
+			Name:      d.Name(),
+			Namespace: d.Wireguard.Namespace,
 			Labels:    ls,
 		},
 		Spec: appsv1.DeploymentSpec{
@@ -126,7 +126,7 @@ func (r Deployment) deploymentForWireguard() *appsv1.Deployment {
 							Name: "config",
 							VolumeSource: corev1.VolumeSource{
 								Secret: &corev1.SecretVolumeSource{
-									SecretName: r.SecretName,
+									SecretName: d.SecretName,
 								},
 							},
 						}},
@@ -136,13 +136,13 @@ func (r Deployment) deploymentForWireguard() *appsv1.Deployment {
 							SecurityContext: &corev1.SecurityContext{
 								Capabilities: &corev1.Capabilities{Add: []corev1.Capability{"NET_ADMIN"}},
 							},
-							Image:           r.AgentImage,
-							ImagePullPolicy: r.ImagePullPolicy,
+							Image:           d.AgentImage,
+							ImagePullPolicy: d.ImagePullPolicy,
 							Name:            "metrics",
 							Command:         []string{"/usr/local/bin/prometheus_wireguard_exporter"},
 							Ports: []corev1.ContainerPort{
 								{
-									ContainerPort: r.MetricsPort,
+									ContainerPort: d.MetricsPort,
 									Name:          "metrics",
 									Protocol:      corev1.ProtocolTCP,
 								}},
@@ -157,13 +157,13 @@ func (r Deployment) deploymentForWireguard() *appsv1.Deployment {
 							SecurityContext: &corev1.SecurityContext{
 								Capabilities: &corev1.Capabilities{Add: []corev1.Capability{"NET_ADMIN"}},
 							},
-							Image:           r.AgentImage,
-							ImagePullPolicy: r.ImagePullPolicy,
+							Image:           d.AgentImage,
+							ImagePullPolicy: d.ImagePullPolicy,
 							Name:            "agent",
-							Command:         []string{"agent", "--v", "11", "--wg-iface", "wg0", "--wg-listen-port", fmt.Sprintf("%d", r.TargetPort), "--state", "/tmp/Wireguard/state.json", "--wg-userspace-implementation-fallback", "Wireguard-go"},
+							Command:         []string{"agent", "--v", "11", "--wg-iface", "wg0", "--wg-listen-port", fmt.Sprintf("%d", d.TargetPort), "--state", "/tmp/Wireguard/state.json", "--wg-userspace-implementation-fallback", "Wireguard-go"},
 							Ports: []corev1.ContainerPort{
 								{
-									ContainerPort: r.TargetPort,
+									ContainerPort: d.TargetPort,
 									Name:          "Wireguard",
 									Protocol:      corev1.ProtocolUDP,
 								}},
@@ -182,22 +182,22 @@ func (r Deployment) deploymentForWireguard() *appsv1.Deployment {
 		},
 	}
 
-	if r.Wireguard.Spec.EnableIpForwardOnPodInit {
+	if d.Wireguard.Spec.EnableIpForwardOnPodInit {
 		privileged := true
 		dep.Spec.Template.Spec.InitContainers = append(dep.Spec.Template.Spec.InitContainers,
 			corev1.Container{
 				SecurityContext: &corev1.SecurityContext{
 					Privileged: &privileged,
 				},
-				Image:           r.AgentImage,
-				ImagePullPolicy: r.ImagePullPolicy,
+				Image:           d.AgentImage,
+				ImagePullPolicy: d.ImagePullPolicy,
 				Name:            "sysctl",
 				Command:         []string{"/bin/sh"},
 				Args:            []string{"-c", "echo 1 > /proc/sys/net/ipv4/ip_forward"},
 			})
 	}
 
-	if r.UseWgUserspaceImplementation {
+	if d.UseWgUserspaceImplementation {
 		for i, c := range dep.Spec.Template.Spec.Containers {
 			if c.Name == "agent" {
 				dep.Spec.Template.Spec.Containers[i].Command = append(dep.Spec.Template.Spec.Containers[i].Command, "--wg-use-userspace-implementation")
@@ -205,6 +205,6 @@ func (r Deployment) deploymentForWireguard() *appsv1.Deployment {
 		}
 	}
 
-	ctrl.SetControllerReference(r.Wireguard, dep, r.Scheme)
+	ctrl.SetControllerReference(d.Wireguard, dep, d.Scheme)
 	return dep
 }
