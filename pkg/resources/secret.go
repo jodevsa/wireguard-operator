@@ -1,6 +1,7 @@
 package resources
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -18,12 +19,38 @@ import (
 )
 
 type Secret struct {
-	Wireguard  *v1alpha1.Wireguard
-	Logger logr.Logger
-	Client client.Client
-	Scheme *runtime.Scheme
+	Wireguard *v1alpha1.Wireguard
+	Logger    logr.Logger
+	Client    client.Client
+	Scheme    *runtime.Scheme
 }
 
+func (s Secret) Converged(ctx context.Context) (bool, error) {
+	return true, nil
+}
+
+func (s Secret) NeedsUpdate(ctx context.Context) (bool, error) {
+
+	secret := &corev1.Secret{}
+	err := s.Client.Get(ctx, types.NamespacedName{Name: s.Wireguard.Name, Namespace: s.Wireguard.Namespace}, secret)
+
+	if err != nil {
+		return true, err
+	}
+
+	expectedSecret, err := s.getSecreteData(ctx)
+
+	if err != nil {
+		return true, err
+	}
+
+	if !bytes.Equal(expectedSecret.Data["state.json"], secret.Data["state.json"]) {
+		return true, nil
+
+	}
+
+	return false, nil
+}
 
 func (s Secret) Update(ctx context.Context) error {
 	sec, err := s.getSecreteData(ctx)
@@ -51,15 +78,15 @@ func (s Secret) Create(ctx context.Context) error {
 	}
 	return nil
 }
-func(s Secret) Type() string {
+func (s Secret) Type() string {
 	return "Secret"
 }
 
-func(s Secret) Name() string {
+func (s Secret) Name() string {
 	return fmt.Sprintf("%s-%s", s.Wireguard.Name, s.Wireguard.Status.UniqueIdentifier)
 }
 
-func(s Secret) getSecreteData(ctx context.Context) (*corev1.Secret, error) {
+func (s Secret) getSecreteData(ctx context.Context) (*corev1.Secret, error) {
 
 	data := map[string][]byte{}
 
@@ -74,18 +101,18 @@ func(s Secret) getSecreteData(ctx context.Context) (*corev1.Secret, error) {
 	if errors.IsNotFound(err) {
 
 		key, err := wgtypes.GeneratePrivateKey()
-		if err!= nil {
-			return  &corev1.Secret{}, nil
+		if err != nil {
+			return &corev1.Secret{}, nil
 		}
 
 		privateKey = key.String()
 		publicKey = key.PublicKey().String()
 
-	} else if err !=nil {
+	} else if err != nil {
 		privateKey = string(sec.Data["privateKey"])
 		publicKey = string(sec.Data["publicKey"])
 	} else {
-		return  &corev1.Secret{}, err
+		return &corev1.Secret{}, err
 	}
 	state := agent.State{
 		Server:           *s.Wireguard.DeepCopy(),
@@ -93,10 +120,9 @@ func(s Secret) getSecreteData(ctx context.Context) (*corev1.Secret, error) {
 		Peers:            peers.Items,
 	}
 
-
 	b, err := json.Marshal(state)
 	if err != nil {
-		return  &corev1.Secret{}, err
+		return &corev1.Secret{}, err
 	}
 
 	data["state.json"] = b
@@ -115,14 +141,13 @@ func(s Secret) getSecreteData(ctx context.Context) (*corev1.Secret, error) {
 	return sec, nil
 }
 
-
-func (s *Secret) getExistingSecret(ctx context.Context) (*corev1.Secret, error){
+func (s *Secret) getExistingSecret(ctx context.Context) (*corev1.Secret, error) {
 	sec := &corev1.Secret{}
 	err := s.Client.Get(ctx, types.NamespacedName{Name: s.Name(), Namespace: s.Wireguard.Namespace}, sec)
 	return sec, err
 }
 
-func (s *Secret) getPeersInfo(ctx context.Context) (*v1alpha1.WireguardPeerList, error){
+func (s *Secret) getPeersInfo(ctx context.Context) (*v1alpha1.WireguardPeerList, error) {
 	// wireguardpeer
 	peers := &v1alpha1.WireguardPeerList{}
 	// TODO add a label to wireguardpeers and then filter by label here to only get peers of the wg instance we need.

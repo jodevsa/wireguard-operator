@@ -15,14 +15,12 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-
-
 type Deployment struct {
-	Wireguard  *v1alpha1.Wireguard
-	Logger          logr.Logger
-	AgentImage      string
-	ImagePullPolicy          corev1.PullPolicy
-	TargetPort  int32
+	Wireguard                    *v1alpha1.Wireguard
+	Logger                       logr.Logger
+	AgentImage                   string
+	ImagePullPolicy              corev1.PullPolicy
+	TargetPort                   int32
 	MetricsPort                  int32
 	SecretName                   string
 	UseWgUserspaceImplementation bool
@@ -30,15 +28,34 @@ type Deployment struct {
 	Scheme                       *runtime.Scheme
 }
 
-func(r Deployment) Type() string {
+func (r Deployment) Type() string {
 	return "Deployment"
 }
 
-func(r Deployment) Name() string {
+func (r Deployment) Name() string {
 	return fmt.Sprintf("%s-%s", r.Wireguard.Name, r.Wireguard.Status.UniqueIdentifier)
 }
 
-func(r Deployment) Create(ctx context.Context) error {
+func (r Deployment) Converged(ctx context.Context) (bool, error) {
+	return true, nil
+}
+
+func (r Deployment) NeedsUpdate(ctx context.Context) (bool, error) {
+	dep := &appsv1.Deployment{}
+	err := r.Client.Get(ctx, types.NamespacedName{Name: r.Wireguard.Name + "-dep", Namespace: r.Wireguard.Namespace}, dep)
+	if err != nil {
+		r.Logger.Error(err, "Failed to get dep", "dep.Namespace", dep.Namespace, "dep.Name", dep.Name)
+		return true, err
+	}
+	// only update if image needs to be updated
+	if dep.Spec.Template.Spec.Containers[0].Image != r.AgentImage {
+		return true, nil
+	}
+
+	return false, nil
+}
+
+func (r Deployment) Create(ctx context.Context) error {
 	dep := r.deploymentForWireguard()
 	r.Logger.Info("Creating a new dep", "dep.Namespace", dep.Namespace, "dep.Name", dep.Name)
 	err := r.Client.Create(ctx, dep)
@@ -50,7 +67,7 @@ func(r Deployment) Create(ctx context.Context) error {
 	return nil
 }
 
-func(r Deployment) Update(ctx context.Context) error {
+func (r Deployment) Update(ctx context.Context) error {
 	deployment := &appsv1.Deployment{}
 	err := r.Client.Get(ctx, types.NamespacedName{Name: r.Name(), Namespace: r.Wireguard.Namespace}, deployment)
 	if err != nil {
@@ -72,11 +89,9 @@ func(r Deployment) Update(ctx context.Context) error {
 	return nil
 }
 
-
 func labelsForWireguard(name string) map[string]string {
 	return map[string]string{"app": "Wireguard", "instance": name}
 }
-
 
 func (r Deployment) deploymentForWireguard() *appsv1.Deployment {
 	ls := labelsForWireguard(r.Wireguard.Name)

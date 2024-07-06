@@ -10,9 +10,13 @@ import (
 )
 
 type Peers struct {
-	Wireguard  *v1alpha1.Wireguard
-	Logger logr.Logger
-	Client client.Client
+	Wireguard *v1alpha1.Wireguard
+	Logger    logr.Logger
+	Client    client.Client
+}
+
+func (p Peers) Converged(ctx context.Context) (bool, error) {
+	return true, nil
 }
 
 func (p Peers) Name() string {
@@ -21,6 +25,57 @@ func (p Peers) Name() string {
 
 func (p Peers) Create(ctx context.Context) error {
 	return p.Update(ctx)
+}
+
+func (p Peers) NeedsUpdate(ctx context.Context) (bool, error) {
+	peers, err := p.getWireguardPeers(ctx)
+
+	for _, peer := range peers.Items {
+		if peer.Spec.Address == "" {
+			return true, nil
+		}
+
+		cfg := p.getPeerConfig(peer)
+		if peer.Status.Config != cfg || peer.Status.Status != v1alpha1.Ready {
+			return true, nil
+
+		}
+	}
+	if err != nil {
+		return true, nil
+	}
+
+	return false, nil
+}
+func (p Peers) getPeerConfig(peer v1alpha1.WireguardPeer) string {
+	cfg := fmt.Sprintf(`
+echo "
+[Interface]
+PrivateKey = $(kubectl get secret %s-peer --template={{.data.privateKey}} -n %s | base64 -d)
+Address = %s
+DNS = %s`, peer.Name, peer.Namespace, peer.Spec.Address, p.constructDnsConfig())
+
+	if p.Wireguard.Spec.Mtu != "" {
+		cfg = cfg + "\nMTU = " + p.Wireguard.Spec.Mtu
+	}
+
+	return cfg + fmt.Sprintf(`
+
+[Peer]
+PublicKey = %s
+AllowedIPs = 0.0.0.0/0
+Endpoint = %s:%s"`, p.Wireguard.Status.PublicKey, p.Wireguard.Status.Address, p.Wireguard.Status.Port)
+
+}
+
+func (p Peers) constructDnsConfig() string {
+	dnsConfiguration := p.Wireguard.Status.Dns
+
+	if p.Wireguard.Status.DnsSearchDomain != "" {
+		dnsConfiguration = p.Wireguard.Status.Dns + ", " + p.Wireguard.Status.DnsSearchDomain
+	}
+
+	return dnsConfiguration
 }
 
 func (p Peers) Update(ctx context.Context) error {
@@ -48,29 +103,9 @@ func (p Peers) Update(ctx context.Context) error {
 
 			usedIps = append(usedIps, ip)
 		}
-		dnsConfiguration := p.Wireguard.Status.Dns
 
-		if p.Wireguard.Status.DnsSearchDomain != "" {
-			dnsConfiguration = p.Wireguard.Status.Dns + ", " + p.Wireguard.Status.DnsSearchDomain
-		}
+		newConfig := p.getPeerConfig(peer)
 
-		newConfig := fmt.Sprintf(`
-echo "
-[Interface]
-PrivateKey = $(kubectl get secret %s-peer --template={{.data.privateKey}} -n %s | base64 -d)
-Address = %s
-DNS = %s`, peer.Name, peer.Namespace, peer.Spec.Address, dnsConfiguration)
-
-		if p.Wireguard.Spec.Mtu != "" {
-			newConfig = newConfig + "\nMTU = " + p.Wireguard.Spec.Mtu
-		}
-
-		newConfig = newConfig + fmt.Sprintf(`
-
-[Peer]
-PublicKey = %s
-AllowedIPs = 0.0.0.0/0
-Endpoint = %s:%s"`, p.Wireguard.Status.PublicKey, p.Wireguard.Status.Address, p.Wireguard.Status.Port)
 		if peer.Status.Config != newConfig || peer.Status.Status != v1alpha1.Ready {
 			peer.Status.Config = newConfig
 			peer.Status.Status = v1alpha1.Ready
@@ -80,7 +115,6 @@ Endpoint = %s:%s"`, p.Wireguard.Status.PublicKey, p.Wireguard.Status.Address, p.
 			}
 		}
 	}
-
 
 	return nil
 }
@@ -105,9 +139,6 @@ func getAvaialbleIp(cidr string, usedIps []string) (string, error) {
 
 	return "", fmt.Errorf("no available ip found in %s", cidr)
 }
-
-
-
 
 func (r *Peers) getUsedIps(peers *v1alpha1.WireguardPeerList) []string {
 	usedIps := []string{"10.8.0.0", "10.8.0.1"}

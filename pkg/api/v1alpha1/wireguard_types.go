@@ -67,9 +67,9 @@ type WireguardStatus struct {
 	// A string field that represents the current status of Wireguard. This could include values like ready, pending, or error.
 	Status string `json:"status,omitempty"`
 	// A string field that provides additional information about the status of Wireguard. This could include error messages or other information that helps to diagnose issues with the wg instance.
-	Message   string    `json:"message,omitempty"`
-	Resources       []Resource `json:"resources,omitempty"`
-	UniqueIdentifier string    `json:"UniqueIdentifier,omitempty"`
+	Message          string     `json:"message,omitempty"`
+	Resources        []Resource `json:"resources,omitempty"`
+	UniqueIdentifier string     `json:"UniqueIdentifier,omitempty"`
 }
 type Resource struct {
 	Name   string `json:"name,omitempty"`
@@ -81,6 +81,7 @@ type DeploymentResource struct {
 	Status string `json:"status,omitempty"`
 	Image  string `json:"image,omitempty"`
 }
+
 //+kubebuilder:object:root=true
 //+kubebuilder:subresource:status
 

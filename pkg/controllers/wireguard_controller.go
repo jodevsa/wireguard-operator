@@ -61,7 +61,6 @@ func (r *WireguardReconciler) ConfigmapForWireguard(m *v1alpha1.Wireguard) *core
 	return dep
 }
 
-
 func (r *WireguardReconciler) getNodeIps(ctx context.Context, req ctrl.Request) ([]string, error) {
 	nodes := &corev1.NodeList{}
 	if err := r.List(ctx, nodes); err != nil {
@@ -91,10 +90,6 @@ func (r *WireguardReconciler) getNodeIps(ctx context.Context, req ctrl.Request) 
 	return ips, nil
 }
 
-
-
-
-
 //+kubebuilder:rbac:groups=vpn.wireguard-operator.io,resources=wireguards,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=vpn.wireguard-operator.io,resources=wireguards/status,verbs=get;update;patch
 //+kubebuilder:rbac:groups=vpn.wireguard-operator.io,resources=wireguards/finalizers,verbs=update
@@ -117,13 +112,10 @@ func (r *WireguardReconciler) getNodeIps(ctx context.Context, req ctrl.Request) 
 // For more details, check Reconcile and its Result here:
 // - https://pkg.go.dev/sigs.k8s.io/controller-runtime@v0.10.0/pkg/reconcile
 
-
-
 func (r *WireguardReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	log := ctrllog.FromContext(ctx)
 
-	log.Info("loaded the following wireguard image:" + r.AgentImage)
-
+	log.Info("loaded the following wireguard image:",r.AgentImage)
 	wireguard := &v1alpha1.Wireguard{}
 	log.Info(req.NamespacedName.Name)
 	err := r.Get(ctx, req.NamespacedName, wireguard)
@@ -132,15 +124,15 @@ func (r *WireguardReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 			// Request object not found, could have been deleted after reconcile request.
 			// Owned objects are automatically garbage collected. For additional cleanup logic use finalizers.
 			// Return and don't requeue
-			log.Info("wireguard resource not found. Ignoring since object must be deleted")
+			log.Info("wireguard resource not found. Ignoring as the resource must have be deleted")
 			return ctrl.Result{}, nil
 		}
 		// Error reading the object - requeue the request.
-		log.Error(err, "Failed to get wireguard")
+		log.Error(err, "Failed to get wireguard resource")
 		return ctrl.Result{}, err
 	}
 
-	log.Info("processing " + wireguard.Name)
+	log.Info("reconciling " + wireguard.Name)
 
 	if wireguard.Status.Status == "" {
 		wireguard.Status.Status = v1alpha1.Pending
@@ -157,34 +149,34 @@ func (r *WireguardReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 	secret := resources.Secret{
 		Wireguard: wireguard,
 		Logger:    log,
-		Client: r.Client,
-		Scheme: r.Scheme,
+		Client:    r.Client,
+		Scheme:    r.Scheme,
 	}
 
 	deployment := resources.Deployment{
-		Wireguard: wireguard,
-		Logger:    log,
-		AgentImage: r.AgentImage,
+		Wireguard:       wireguard,
+		Logger:          log,
+		AgentImage:      r.AgentImage,
 		ImagePullPolicy: r.AgentImagePullPolicy,
-		TargetPort: port,
-		MetricsPort: metricsPort,
-		Client: r.Client,
-		SecretName: secret.Name(),
-		Scheme: r.Scheme,
+		TargetPort:      port,
+		MetricsPort:     metricsPort,
+		Client:          r.Client,
+		SecretName:      secret.Name(),
+		Scheme:          r.Scheme,
 	}
 
 	service := resources.Service{
-		Wireguard: wireguard,
-		Logger:    log,
+		Wireguard:  wireguard,
+		Logger:     log,
 		TargetPort: port,
-		Client: r.Client,
-		Scheme: r.Scheme,
+		Client:     r.Client,
+		Scheme:     r.Scheme,
 	}
 
 	peers := resources.Peers{
 		Wireguard: wireguard,
 		Logger:    log,
-		Client: r.Client,
+		Client:    r.Client,
 	}
 	resourcesList := []resources.Resource{
 		secret,
@@ -194,39 +186,79 @@ func (r *WireguardReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 	}
 
 	for _, res := range resourcesList {
-		found := false
+		log.Info("reconciling resource " + res.Name())
+
+		resourceStatus := v1alpha1.Resource{}
 		for _, registeredResource := range wireguard.Status.Resources {
 			if registeredResource.Name == res.Name() {
-				found = true
+				resourceStatus = registeredResource
 				break
 			}
 		}
-		if !found {
+
+		if resourceStatus.Name == "" {
+			log.Info("creating resource " + res.Name())
 			err = res.Create(ctx)
+			if err != nil {
+				return ctrl.Result{}, err
+			}
+
+			wireguard.Status.Resources = append(
+				wireguard.Status.Resources, v1alpha1.Resource{
+					Name:   res.Name(),
+					Status: v1alpha1.Pending,
+				},
+			)
+			err = r.Status().Update(ctx, wireguard)
+
 			if err != nil {
 				return ctrl.Result{}, err
 			}
 
 			return ctrl.Result{}, nil
 		}
-		err = res.Update(ctx)
+
+		needsUpdate, err := res.NeedsUpdate(ctx)
 
 		if err != nil {
 			return ctrl.Result{}, err
-
 		}
-		return ctrl.Result{}, nil
 
+		if needsUpdate {
+			log.Info("resource " + res.Name())
+			err = res.Update(ctx)
+			if err != nil {
+				return ctrl.Result{}, err
+			}
+			return ctrl.Result{}, nil
+		}
+
+		status := v1alpha1.Pending
+
+		converged, err := res.Converged(ctx)
+		if err != nil {
+			return ctrl.Result{}, err
+		}
+
+		if converged {
+			status = v1alpha1.Ready
+		}
+
+		if status != resourceStatus.Status {
+			resourceStatus.Status = status
+			err = r.Status().Update(ctx, wireguard)
+			return ctrl.Result{}, err
+		}
 	}
 
-	log.Info("Updated related peers", "wireguard.Namespace", wireguard.Namespace, "wireguard.Name", wireguard.Name)
+	if wireguard.Status.Status != v1alpha1.Ready {
+		wireguard.Status.Status = v1alpha1.Ready
+		wireguard.Status.Message = "VPN is active!"
+		err = r.Status().Update(ctx, wireguard)
 
-	wireguard.Status.Status = v1alpha1.Ready
-	wireguard.Status.Message = "VPN is active!"
-	err = r.Status().Update(ctx, wireguard)
-
-	if err != nil {
-		return ctrl.Result{}, err
+		if err != nil {
+			return ctrl.Result{}, err
+		}
 	}
 
 	return ctrl.Result{}, nil
