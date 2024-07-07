@@ -160,17 +160,8 @@ func (r *Peers) getUsedIps(peers *v1alpha1.WireguardPeerList) []string {
 
 func (r *Peers) getWireguardPeers(ctx context.Context) (*v1alpha1.WireguardPeerList, error) {
 	peers := &v1alpha1.WireguardPeerList{}
-	if err := r.Client.List(ctx, peers, client.InNamespace(r.Wireguard.Namespace)); err != nil {
+	if err := r.Client.List(ctx, peers, client.InNamespace(r.Wireguard.Namespace), client.MatchingLabels{"app": "wireguard", "instance": r.Wireguard.Name}); err != nil {
 		return nil, err
 	}
-
-	relatedPeers := &v1alpha1.WireguardPeerList{}
-
-	for _, peer := range peers.Items {
-		if peer.Spec.WireguardRef == r.Wireguard.Name {
-			relatedPeers.Items = append(relatedPeers.Items, peer)
-		}
-	}
-
-	return relatedPeers, nil
+	return peers, nil
 }

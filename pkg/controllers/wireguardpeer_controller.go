@@ -188,6 +188,11 @@ func (r *WireguardPeerReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 		log.Info("Waiting for owner reference to be set " + wireguard.Name + " " + newPeer.Name)
 		ctrl.SetControllerReference(wireguard, newPeer, r.Scheme)
 
+		if newPeer.Labels == nil {
+			newPeer.Labels = map[string]string{}
+		}
+		newPeer.Labels["app"] = "wireguard"
+		newPeer.Labels["instance"] = wireguard.Name
 		if err != nil {
 			log.Error(err, "Failed to update peer with controller reference")
 			return ctrl.Result{}, err
