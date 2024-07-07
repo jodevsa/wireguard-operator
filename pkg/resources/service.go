@@ -151,7 +151,7 @@ func (s *Service) getNodeIps(ctx context.Context) ([]string, error) {
 }
 
 func (s Service) serviceForWireguard() *corev1.Service {
-	labels := createLabelForInsntance(s.Name())
+	labels := createLabelForInsntance(s.Wireguard.Name)
 	svc := &corev1.Service{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:        s.Name(),
