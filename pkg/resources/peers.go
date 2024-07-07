@@ -27,6 +27,10 @@ func (p Peers) Name() string {
 	return "peers"
 }
 
+func (p Peers) Exists(ctx context.Context) (bool, error) {
+	return true, nil
+}
+
 func (p Peers) Create(ctx context.Context) error {
 	return p.Update(ctx)
 }

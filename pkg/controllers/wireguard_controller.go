@@ -153,19 +153,6 @@ func (r *WireguardReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 
 	log.Info("reconciling " + wireguard.Name)
 
-	if wireguard.Status.Status == "" {
-		wireguard.Status.UniqueIdentifier = randomString(5)
-		wireguard.Status.Status = v1alpha1.Pending
-		wireguard.Status.Message = "Fetching Wireguard status"
-		err = r.Status().Update(ctx, wireguard)
-
-		if err != nil {
-			return ctrl.Result{}, err
-		}
-
-		return ctrl.Result{}, nil
-	}
-
 	secret := resources.Secret{
 		Wireguard: wireguard,
 		Logger:    log,
@@ -174,15 +161,16 @@ func (r *WireguardReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 	}
 
 	deployment := resources.Deployment{
-		Wireguard:       wireguard,
-		Logger:          log,
-		AgentImage:      r.AgentImage,
-		ImagePullPolicy: r.AgentImagePullPolicy,
-		TargetPort:      port,
-		MetricsPort:     metricsPort,
-		Client:          r.Client,
-		SecretName:      secret.Name(),
-		Scheme:          r.Scheme,
+		Wireguard:             wireguard,
+		Logger:                log,
+		AgentImage:            r.AgentImage,
+		ImagePullPolicy:       r.AgentImagePullPolicy,
+		TargetPort:            port,
+		MetricsPort:           metricsPort,
+		Client:                r.Client,
+		SecretName:            secret.Name(),
+		SecretResourceVersion: secret.GetResourceVersion(ctx),
+		Scheme:                r.Scheme,
 	}
 
 	service := resources.Service{
@@ -205,8 +193,32 @@ func (r *WireguardReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 		peers,
 	}
 
+	if wireguard.Status.Status == "" {
+		wireguard.Status.UniqueIdentifier = randomString(5)
+
+		for _, res := range resourcesList {
+			wireguard.Status.Resources = append(
+				wireguard.Status.Resources, v1alpha1.Resource{
+					Name:   res.Name(),
+					Type:   res.Type(),
+					Status: v1alpha1.Pending,
+				},
+			)
+		}
+
+		wireguard.Status.Status = v1alpha1.Pending
+		wireguard.Status.Message = "Fetching Wireguard status"
+		err = r.Status().Update(ctx, wireguard)
+
+		if err != nil {
+			return ctrl.Result{}, err
+		}
+
+		return ctrl.Result{}, nil
+	}
+
 	for _, res := range resourcesList {
-		log.Info("reconciling resource " + res.Name())
+		log.Info(fmt.Sprintf("reconciling WG resource %s", res.Name()))
 
 		resourceStatus := &v1alpha1.Resource{}
 		for i, _ := range wireguard.Status.Resources {
@@ -216,28 +228,13 @@ func (r *WireguardReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 				break
 			}
 		}
-
-		if resourceStatus.Name == "" {
-			log.Info("creating resource " + res.Name())
-			err = res.Create(ctx)
-			if err != nil {
-				return ctrl.Result{}, err
-			}
-
-			wireguard.Status.Resources = append(
-				wireguard.Status.Resources, v1alpha1.Resource{
-					Name:   res.Name(),
-					Type:   res.Type(),
-					Status: v1alpha1.Pending,
-				},
-			)
-			err = r.Status().Update(ctx, wireguard)
-
-			if err != nil {
-				return ctrl.Result{}, err
-			}
-
-			return ctrl.Result{}, nil
+		resourceExists, err := res.Exists(ctx)
+		if err != nil {
+			return ctrl.Result{}, err
+		}
+		if !resourceExists {
+			log.Info(fmt.Sprintf("creating resource '%s' with type '%s'", res.Name(), res.Type()))
+			return ctrl.Result{}, res.Create(ctx)
 		}
 		log.Info(fmt.Sprintf("checking if resource %s with type %s needs an update", res.Name(), res.Type()))
 		needsUpdate, err := res.NeedsUpdate(ctx)
@@ -270,12 +267,13 @@ func (r *WireguardReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 			status = v1alpha1.Ready
 		} else {
 			log.Info(fmt.Sprintf("resource %s with type %s has not converged yet", res.Name(), res.Type()))
-			return ctrl.Result{Requeue: false}, err
+			return ctrl.Result{Requeue: true}, err
 		}
 
 		if status != resourceStatus.Status {
 			resourceStatus.Status = status
 			err = r.Status().Update(ctx, wireguard)
+			log.Info(fmt.Sprintf("Updating resource status...%v", resourceStatus))
 			return ctrl.Result{Requeue: true}, err
 		}
 	}
@@ -285,7 +283,7 @@ func (r *WireguardReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 	if err != nil {
 		return ctrl.Result{}, err
 	}
-	log.Info(fmt.Sprintf("updating public key %s", publicKey))
+
 	if wireguard.Status.PublicKey != publicKey {
 		wireguard.Status.Status = v1alpha1.Pending
 		wireguard.Status.PublicKey = publicKey
@@ -306,7 +304,6 @@ func (r *WireguardReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 		return ctrl.Result{Requeue: true}, err
 	}
 
-
 	if wireguard.Status.Status != v1alpha1.Ready {
 
 		dnsAddress := "1.1.1.1"
@@ -324,7 +321,6 @@ func (r *WireguardReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 		}
 		return ctrl.Result{Requeue: true}, nil
 	}
-
 
 	return ctrl.Result{}, nil
 

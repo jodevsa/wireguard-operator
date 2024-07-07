@@ -6,6 +6,7 @@ import (
 	"github.com/go-logr/logr"
 	"github.com/jodevsa/wireguard-operator/pkg/api/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
@@ -50,6 +51,17 @@ func (s Service) Converged(ctx context.Context) (bool, error) {
 		if len(svc.Spec.Ports) == 0 {
 			return false, nil
 		}
+	}
+	return true, nil
+}
+
+func (s Service) Exists(ctx context.Context) (bool, error) {
+	err := s.Client.Get(ctx, types.NamespacedName{Name: s.Name(), Namespace: s.Wireguard.Namespace}, &corev1.Service{})
+	if err != nil {
+		if errors.IsNotFound(err) {
+			return false, nil
+		}
+		return false, err
 	}
 	return true, nil
 }
@@ -139,7 +151,7 @@ func (s *Service) getNodeIps(ctx context.Context) ([]string, error) {
 }
 
 func (s Service) serviceForWireguard() *corev1.Service {
-	labels := labelsForWireguard(s.Name())
+	labels := createLabelForInsntance(s.Name())
 	svc := &corev1.Service{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:        s.Name(),

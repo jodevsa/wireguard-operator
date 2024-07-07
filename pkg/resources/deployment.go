@@ -8,6 +8,7 @@ import (
 	"github.com/jodevsa/wireguard-operator/pkg/api/v1alpha1"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
@@ -23,6 +24,7 @@ type Deployment struct {
 	TargetPort                   int32
 	MetricsPort                  int32
 	SecretName                   string
+	SecretResourceVersion        string
 	UseWgUserspaceImplementation bool
 	Client                       client.Client
 	Scheme                       *runtime.Scheme
@@ -37,7 +39,18 @@ func (d Deployment) Name() string {
 }
 
 func (d Deployment) Converged(ctx context.Context) (bool, error) {
-	return true, nil
+	dep := &appsv1.Deployment{}
+	err := d.Client.Get(ctx, types.NamespacedName{Name: d.Name(), Namespace: d.Wireguard.Namespace}, dep)
+	if err != nil {
+		return false, err
+	}
+
+	if dep.Status.ReadyReplicas == *dep.Spec.Replicas {
+		return true, nil
+	}
+
+	return false, nil
+
 }
 
 func (d Deployment) NeedsUpdate(ctx context.Context) (bool, error) {
@@ -48,11 +61,25 @@ func (d Deployment) NeedsUpdate(ctx context.Context) (bool, error) {
 		return true, err
 	}
 	// only update if image needs to be updated
-	if dep.Spec.Template.Spec.Containers[0].Image != d.AgentImage {
+	if dep.Spec.Template.Spec.Containers[0].Image != d.AgentImage || dep.Annotations["secretResourceVersion"] != d.SecretResourceVersion {
 		return true, nil
 	}
 
 	return false, nil
+}
+
+func (d Deployment) Exists(ctx context.Context) (bool, error) {
+	dep := &appsv1.Deployment{}
+	err := d.Client.Get(ctx, types.NamespacedName{Name: d.Name(), Namespace: d.Wireguard.Namespace}, dep)
+	if err != nil {
+		if errors.IsNotFound(err) {
+			return false, nil
+		}
+		d.Logger.Error(err, "Failed to get dep", "dep.Namespace", dep.Namespace, "dep.Name", dep.Name)
+		return true, err
+	}
+
+	return true, nil
 }
 
 func (d Deployment) Create(ctx context.Context) error {
@@ -86,15 +113,32 @@ func (d Deployment) Update(ctx context.Context) error {
 
 	}
 
+	pods := &corev1.PodList{}
+	if err := d.Client.List(ctx, pods, client.MatchingLabels{"app": "wireguard", "instance": d.Wireguard.Name}); err != nil {
+		d.Logger.Error(err, "Failed to fetch list of pods")
+		return err
+	}
+	for _, pod := range pods.Items {
+		if pod.Annotations == nil {
+			pod.Annotations = make(map[string]string)
+		}
+		// this is needed to force k8s to push the new secret to the pod
+		pod.Annotations["secretResourceVersion"] = d.SecretResourceVersion
+		if err := d.Client.Update(ctx, &pod); err != nil {
+			d.Logger.Error(err, "Failed to update pod")
+			return err
+		}
+	}
+
 	return nil
 }
 
-func labelsForWireguard(name string) map[string]string {
-	return map[string]string{"app": "Wireguard", "instance": name}
+func createLabelForInsntance(name string) map[string]string {
+	return map[string]string{"app": "wireguard", "instance": name}
 }
 
 func (d Deployment) deploymentForWireguard() *appsv1.Deployment {
-	ls := labelsForWireguard(d.Wireguard.Name)
+	ls := createLabelForInsntance(d.Wireguard.Name)
 	replicas := int32(1)
 
 	dep := &appsv1.Deployment{
@@ -102,6 +146,9 @@ func (d Deployment) deploymentForWireguard() *appsv1.Deployment {
 			Name:      d.Name(),
 			Namespace: d.Wireguard.Namespace,
 			Labels:    ls,
+			Annotations: map[string]string{
+				"secretResourceVersion": d.SecretResourceVersion,
+			},
 		},
 		Spec: appsv1.DeploymentSpec{
 			Replicas: &replicas,

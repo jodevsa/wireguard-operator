@@ -25,6 +25,20 @@ type Secret struct {
 	Scheme    *runtime.Scheme
 }
 
+func (s Secret) Exists(ctx context.Context) (bool, error) {
+
+	secret := &corev1.Secret{}
+	err := s.Client.Get(ctx, types.NamespacedName{Name: s.Name(), Namespace: s.Wireguard.Namespace}, secret)
+	if err != nil {
+		if errors.IsNotFound(err) {
+			return false, nil
+		}
+		return false, err
+	}
+
+	return true, nil
+}
+
 func (s Secret) Converged(ctx context.Context) (bool, error) {
 	return true, nil
 }
@@ -87,13 +101,19 @@ func (s Secret) Name() string {
 	return fmt.Sprintf("%s-%s", s.Wireguard.Name, s.Wireguard.Status.UniqueIdentifier)
 }
 
+func (s Secret) GetResourceVersion(ctx context.Context) string {
+	sec, err := s.getExistingSecret(ctx)
+	if err != nil {
+		return "1"
+	}
+	return sec.ResourceVersion
+}
+
 func (s Secret) GetPublicKey(ctx context.Context) (string, error) {
 	sec, err := s.getSecreteData(ctx)
 	if err != nil {
 		return "", err
 	}
-
-	s.Logger.Info(fmt.Sprintf("sec %s", string(sec.Data["publicKey"])))
 
 	return string(sec.Data["publicKey"]), nil
 }
@@ -107,10 +127,6 @@ func (s Secret) getSecreteData(ctx context.Context) (*corev1.Secret, error) {
 	}
 
 	sec, err := s.getExistingSecret(ctx)
-	if err != nil {
-		return &corev1.Secret{}, err
-	}
-
 	publicKey := ""
 	privateKey := ""
 
@@ -150,7 +166,7 @@ func (s Secret) getSecreteData(ctx context.Context) (*corev1.Secret, error) {
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      s.Name(),
 			Namespace: s.Wireguard.Namespace,
-			Labels:    labelsForWireguard(s.Wireguard.Name),
+			Labels:    createLabelForInsntance(s.Wireguard.Name),
 		},
 		Data: data,
 	}
