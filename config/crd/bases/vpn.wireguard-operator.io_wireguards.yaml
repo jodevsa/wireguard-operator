@@ -180,6 +180,10 @@ spec:
                 description: A string field that specifies the maximum transmission
                   unit (MTU) size for Wireguard packets for all peers.
                 type: string
+              nodeSelector:
+                additionalProperties:
+                  type: string
+                type: object
               port:
                 description: A field that specifies the value to use for a nodePort
                   ServiceType

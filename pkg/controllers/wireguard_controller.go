@@ -704,6 +704,7 @@ func (r *WireguardReconciler) deploymentForWireguard(m *v1alpha1.Wireguard) *app
 					Labels: ls,
 				},
 				Spec: corev1.PodSpec{
+					NodeSelector: m.Spec.NodeSelector,
 					SecurityContext: &corev1.PodSecurityContext{
 						SeccompProfile: &corev1.SeccompProfile{
 							Type: corev1.SeccompProfileType("RuntimeDefault"),
