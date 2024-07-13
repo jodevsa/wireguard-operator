@@ -54,8 +54,9 @@ type WireguardSpec struct {
 	// A boolean field that specifies whether to use the userspace implementation of Wireguard instead of the kernel one.
 	UseWgUserspaceImplementation bool `json:"useWgUserspaceImplementation,omitempty"`
 
-	Agent  WireguardPodSpec `json:"agent,omitempty"`
-	Metric WireguardPodSpec `json:"metric,omitempty"`
+	NodeSelector map[string]string `json:"nodeSelector,omitempty"`
+	Agent        WireguardPodSpec  `json:"agent,omitempty"`
+	Metric       WireguardPodSpec  `json:"metric,omitempty"`
 }
 
 // WireguardPodSpec defines spec for respective containers created for Wireguard
