@@ -1,3 +1,10 @@
+# [2.3.0](https://github.com/jodevsa/wireguard-operator/compare/v2.2.0...v2.3.0) (2024-07-13)
+
+
+### Features
+
+* add node selector ([#194](https://github.com/jodevsa/wireguard-operator/issues/194)) ([7db3b17](https://github.com/jodevsa/wireguard-operator/commit/7db3b1745869613550f7f5d3054d94c5816acb6f))
+
 # [2.2.0](https://github.com/jodevsa/wireguard-operator/compare/v2.1.0...v2.2.0) (2024-07-05)
 
 
