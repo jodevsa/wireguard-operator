@@ -42,7 +42,7 @@ type WireguardPeerSpec struct {
 	// The DNS configuration for the peer.
 	Dns string `json:"dns,omitempty"`
 	// The private key of the peer
-	PrivateKey PrivateKey `json:"privateKeyRef,omitempty"`
+	PrivateKey PrivateKey `json:"PrivateKeyRef,omitempty"`
 	// The key used by the peer to authenticate with the wg server.
 	PublicKey string `json:"publicKey,omitempty"`
 	// The name of the Wireguard instance in k8s that the peer belongs to. The wg instance should be in the same namespace as the peer.
