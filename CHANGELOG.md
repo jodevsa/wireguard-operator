@@ -1,3 +1,15 @@
+## [2.3.1](https://github.com/jodevsa/wireguard-operator/compare/v2.3.0...v2.3.1) (2024-07-14)
+
+
+### Bug Fixes
+
+* privateKeyRef case ([#199](https://github.com/jodevsa/wireguard-operator/issues/199)) ([f880152](https://github.com/jodevsa/wireguard-operator/commit/f8801526e559365f85d7359846bc738239817643))
+
+
+### Reverts
+
+* Revert "fix manifest case ([#197](https://github.com/jodevsa/wireguard-operator/issues/197))" ([#198](https://github.com/jodevsa/wireguard-operator/issues/198)) ([88dd510](https://github.com/jodevsa/wireguard-operator/commit/88dd510f94b8d6ec9b14897adba8eaa5c13e6b5f))
+
 # [2.3.0](https://github.com/jodevsa/wireguard-operator/compare/v2.2.0...v2.3.0) (2024-07-13)
 
 
