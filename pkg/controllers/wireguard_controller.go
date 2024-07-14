@@ -425,6 +425,10 @@ func (r *WireguardReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 
 	}
 
+	if serviceType == corev1.ServiceTypeClusterIP {
+		// TODO get or create UDPRoutes
+	}
+
 	if wireguard.Status.Address != address || port != wireguard.Status.Port || dnsAddress != wireguard.Status.Dns {
 		updateWireguard := wireguard.DeepCopy()
 		updateWireguard.Status.Address = address
@@ -628,6 +632,10 @@ func (r *WireguardReconciler) serviceForWireguard(m *v1alpha1.Wireguard, service
 			}},
 			Type: serviceType,
 		},
+	}
+
+	if m.Spec.GatewaySupport {
+		dep.Spec.Type = corev1.ServiceTypeClusterIP
 	}
 
 	ctrl.SetControllerReference(m, dep, r.Scheme)
