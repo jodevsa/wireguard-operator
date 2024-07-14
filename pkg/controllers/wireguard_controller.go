@@ -196,9 +196,9 @@ func (r *WireguardReconciler) updateWireguardPeers(ctx context.Context, req ctrl
 		newConfig := fmt.Sprintf(`
 echo "
 [Interface]
-PrivateKey = $(kubectl get secret %s-peer --template={{.data.privateKey}} -n %s | base64 -d)
+PrivateKey = $(kubectl get secret %s --template={{.data.%s}} -n %s | base64 -d)
 Address = %s
-DNS = %s`, peer.Name, peer.Namespace, peer.Spec.Address, dnsConfiguration)
+DNS = %s`, peer.Spec.PrivateKey.SecretKeyRef.Name, peer.Spec.PrivateKey.SecretKeyRef.Key, peer.Namespace, peer.Spec.Address, dnsConfiguration)
 
 		if serverMtu != "" {
 			newConfig = newConfig + "\nMTU = " + serverMtu
