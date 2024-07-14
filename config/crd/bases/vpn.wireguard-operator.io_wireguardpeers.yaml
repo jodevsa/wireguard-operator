@@ -39,6 +39,33 @@ spec:
           spec:
             description: The desired state of the peer.
             properties:
+              PrivateKeyRef:
+                description: The private key of the peer
+                properties:
+                  secretKeyRef:
+                    description: SecretKeySelector selects a key of a Secret.
+                    properties:
+                      key:
+                        description: The key of the secret to select from.  Must be
+                          a valid secret key.
+                        type: string
+                      name:
+                        description: |-
+                          Name of the referent.
+                          More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
+                          TODO: Add other useful fields. apiVersion, kind, uid?
+                        type: string
+                      optional:
+                        description: Specify whether the Secret or its key must be
+                          defined
+                        type: boolean
+                    required:
+                    - key
+                    type: object
+                    x-kubernetes-map-type: atomic
+                required:
+                - secretKeyRef
+                type: object
               address:
                 description: |-
                   INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
@@ -100,33 +127,6 @@ spec:
                       type: object
                   type: object
                 type: array
-              privateKeyRef:
-                description: The private key of the peer
-                properties:
-                  secretKeyRef:
-                    description: SecretKeySelector selects a key of a Secret.
-                    properties:
-                      key:
-                        description: The key of the secret to select from.  Must be
-                          a valid secret key.
-                        type: string
-                      name:
-                        description: |-
-                          Name of the referent.
-                          More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
-                          TODO: Add other useful fields. apiVersion, kind, uid?
-                        type: string
-                      optional:
-                        description: Specify whether the Secret or its key must be
-                          defined
-                        type: boolean
-                    required:
-                    - key
-                    type: object
-                    x-kubernetes-map-type: atomic
-                required:
-                - secretKeyRef
-                type: object
               publicKey:
                 description: The key used by the peer to authenticate with the wg
                   server.
