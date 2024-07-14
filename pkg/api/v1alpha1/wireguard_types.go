@@ -43,12 +43,17 @@ type WireguardSpec struct {
 	Address string `json:"address,omitempty"`
 	// A string field that specifies the DNS server(s) to be used by the peers.
 	Dns string `json:"dns,omitempty"`
-	// A field that specifies the type of Kubernetes service that should be used for the Wireguard VPN. This could be NodePort or LoadBalancer, depending on the needs of the deployment.
+	// A field that specifies the type of Kubernetes service that should be used for the Wireguard VPN. This could be NodePort or LoadBalancer, depending on the needs of the deployment. Will be ignored if gatewaySupport: true
 	ServiceType corev1.ServiceType `json:"serviceType,omitempty"`
-	// A field that specifies the value to use for a nodePort ServiceType
+	// A field that specifies the value to use for a nodePort ServiceType. Will be ignored if gatewaySupport: true
 	NodePort int32 `json:"port,omitempty"`
 	// A map of key value strings for service annotations
 	ServiceAnnotations map[string]string `json:"serviceAnnotations,omitempty"`
+	// Enable support for Gateway API. A ClusterIP service and UDPRoutes will be generated, for integration with existing gateway.
+	GatewaySupport bool `json:"gatewaySupport,omitempty"`
+	// GatewayClass for existing gateway
+	GatewayClass string `json:"gatewayClass,omitempty"`
+
 	// A boolean field that specifies whether IP forwarding should be enabled on the Wireguard VPN pod at startup. This can be useful to enable if the peers are having problems with sending traffic to the internet.
 	EnableIpForwardOnPodInit bool `json:"enableIpForwardOnPodInit,omitempty"`
 	// A boolean field that specifies whether to use the userspace implementation of Wireguard instead of the kernel one.

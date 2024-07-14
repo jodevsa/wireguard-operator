@@ -115,6 +115,13 @@ spec:
                   be useful to enable if the peers are having problems with sending
                   traffic to the internet.
                 type: boolean
+              gatewayClass:
+                description: GatewayClass for existing gateway
+                type: string
+              gatewaySupport:
+                description: Enable support for Gateway API. A ClusterIP service and
+                  UDPRoutes will be generated, for integration with existing gateway.
+                type: boolean
               metric:
                 description: WireguardPodSpec defines spec for respective containers
                   created for Wireguard
@@ -185,8 +192,8 @@ spec:
                   type: string
                 type: object
               port:
-                description: A field that specifies the value to use for a nodePort
-                  ServiceType
+                description: 'A field that specifies the value to use for a nodePort
+                  ServiceType. Will be ignored if gatewaySupport: true'
                 format: int32
                 type: integer
               serviceAnnotations:
@@ -195,9 +202,10 @@ spec:
                 description: A map of key value strings for service annotations
                 type: object
               serviceType:
-                description: A field that specifies the type of Kubernetes service
+                description: 'A field that specifies the type of Kubernetes service
                   that should be used for the Wireguard VPN. This could be NodePort
-                  or LoadBalancer, depending on the needs of the deployment.
+                  or LoadBalancer, depending on the needs of the deployment. Will
+                  be ignored if gatewaySupport: true'
                 type: string
               useWgUserspaceImplementation:
                 description: A boolean field that specifies whether to use the userspace
