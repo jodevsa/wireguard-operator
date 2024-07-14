@@ -1,3 +1,10 @@
+## [2.3.2](https://github.com/jodevsa/wireguard-operator/compare/v2.3.1...v2.3.2) (2024-07-14)
+
+
+### Bug Fixes
+
+* avoid hardcoding private key in config ([#200](https://github.com/jodevsa/wireguard-operator/issues/200)) ([018ae37](https://github.com/jodevsa/wireguard-operator/commit/018ae37687fd8221f8a0e15f7a651bfd83eaf48e))
+
 ## [2.3.1](https://github.com/jodevsa/wireguard-operator/compare/v2.3.0...v2.3.1) (2024-07-14)
 
 
