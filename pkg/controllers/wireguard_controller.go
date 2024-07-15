@@ -439,6 +439,17 @@ func (r *WireguardReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 
 	}
 
+	if serviceType == corev1.ServiceTypeClusterIP {
+		if len(svcFound.Spec.Ports) == 0 {
+			err = r.updateStatus(ctx, req, wireguard, v1alpha1.WgStatusReport{Status: v1alpha1.Pending, Message: "Waiting for service with type ClusterIP to be ready"})
+			if err != nil {
+				return ctrl.Result{}, err
+			}
+
+			return ctrl.Result{}, nil
+		}
+	}
+
 	if wireguard.Status.Address != address || port != wireguard.Status.Port || dnsAddress != wireguard.Status.Dns {
 		updateWireguard := wireguard.DeepCopy()
 		updateWireguard.Status.Address = address

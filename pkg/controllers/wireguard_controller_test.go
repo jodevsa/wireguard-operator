@@ -8,14 +8,14 @@ import (
 	"time"
 
 	"github.com/jodevsa/wireguard-operator/pkg/api/v1alpha1"
-	"sigs.k8s.io/controller-runtime/pkg/client"
-
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/apimachinery/pkg/util/intstr"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 // test helpers
@@ -62,6 +62,20 @@ func reconcileServiceWithTypeLoadBalancer(svcKey client.ObjectKey, hostname stri
 	}
 
 	svc.Status.LoadBalancer.Ingress = []corev1.LoadBalancerIngress{{Hostname: hostname}}
+	return k8sClient.Status().Update(context.Background(), svc)
+}
+
+func reconcileServiceWithClusterIP(svcKey client.ObjectKey, port int32) error {
+	svc := &corev1.Service{}
+	k8sClient.Get(context.Background(), svcKey, svc)
+	if svc.Spec.Type != corev1.ServiceTypeClusterIP {
+		return fmt.Errorf("ReconcileServiceWithClusterIP only reconsiles ClusterIP services")
+	}
+
+	svc.Spec.Ports = []corev1.ServicePort{{
+		Port:       port,
+		TargetPort: intstr.FromInt32(port),
+	}}
 	return k8sClient.Status().Update(context.Background(), svc)
 }
 
