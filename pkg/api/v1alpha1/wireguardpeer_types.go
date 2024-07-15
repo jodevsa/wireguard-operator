@@ -37,6 +37,8 @@ type WireguardPeerSpec struct {
 	// Important: Run "make" to regenerate code after modifying this file
 	// The address of the peer.
 	Address string `json:"address,omitempty"`
+	// The AllowedIPs of the peer.
+	AllowedIPs string `json:"allowedIPs,omitempty"`
 	// Set to true to temporarily disable the peer.
 	Disabled bool `json:"disabled,omitempty"`
 	// The DNS configuration for the peer.

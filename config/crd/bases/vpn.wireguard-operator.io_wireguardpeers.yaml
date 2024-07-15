@@ -45,6 +45,9 @@ spec:
                   Important: Run "make" to regenerate code after modifying this file
                   The address of the peer.
                 type: string
+              allowedIPs:
+                description: The AllowedIPs of the peer.
+                type: string
               disabled:
                 description: Set to true to temporarily disable the peer.
                 type: boolean

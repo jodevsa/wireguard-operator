@@ -3,11 +3,12 @@ package controllers
 import (
 	"context"
 	"fmt"
-	"github.com/jodevsa/wireguard-operator/pkg/api/v1alpha1"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/jodevsa/wireguard-operator/pkg/api/v1alpha1"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -371,8 +372,8 @@ DNS = %s, %s.svc.cluster.local
 
 [Peer]
 PublicKey = %s
-AllowedIPs = 0.0.0.0/0
-Endpoint = %s:%s"`, peerKey.Name, peer.Spec.Address, dnsServiceIp, peer.Namespace, wgPublicKey, expectedAddress, expectedNodePort),
+AllowedIPs = %s
+Endpoint = %s:%s"`, peerKey.Name, peer.Spec.AllowedIPs, peer.Spec.Address, dnsServiceIp, peer.Namespace, wgPublicKey, expectedAddress, expectedNodePort),
 				Status:  "ready",
 				Message: "Peer configured",
 			}))
@@ -500,8 +501,8 @@ DNS = %s, %s.svc.cluster.local
 
 [Peer]
 PublicKey = %s
-AllowedIPs = 0.0.0.0/0
-Endpoint = %s:%s"`, peerKey.Name, peer.Spec.Address, dnsServiceIp, peer.Namespace, wgPublicKey, expectedExternalHostName, wg.Status.Port),
+AllowedIPs = %s
+Endpoint = %s:%s"`, peerKey.Name, peer.Spec.AllowedIPs, peer.Spec.Address, dnsServiceIp, peer.Namespace, wgPublicKey, expectedExternalHostName, wg.Status.Port),
 				Status:  "ready",
 				Message: "Peer configured",
 			}))
@@ -515,7 +516,7 @@ Endpoint = %s:%s"`, peerKey.Name, peer.Spec.Address, dnsServiceIp, peer.Namespac
 		for _, useWgUserspace := range []bool{true, false} {
 			testTextPrefix := "uses"
 			if !useWgUserspace {
-				testTextPrefix="does not use"
+				testTextPrefix = "does not use"
 			}
 
 			It(fmt.Sprintf("%s userspace implementation of wireguard if spec.useWgUserspaceImplementation is set to %t", testTextPrefix, useWgUserspace), func() {
