@@ -1,3 +1,10 @@
+# [2.5.0](https://github.com/jodevsa/wireguard-operator/compare/v2.4.0...v2.5.0) (2024-07-15)
+
+
+### Features
+
+* add golint support ([71150ea](https://github.com/jodevsa/wireguard-operator/commit/71150ea483dbf9f605d75fff86bc4dd91de92414))
+
 # [2.4.0](https://github.com/jodevsa/wireguard-operator/compare/v2.3.2...v2.4.0) (2024-07-15)
 
 
