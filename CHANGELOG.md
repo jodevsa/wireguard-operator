@@ -1,3 +1,10 @@
+# [2.4.0](https://github.com/jodevsa/wireguard-operator/compare/v2.3.2...v2.4.0) (2024-07-15)
+
+
+### Features
+
+* allow setting AllowedIps through WireguardPeer ([#191](https://github.com/jodevsa/wireguard-operator/issues/191)) ([e2d4d9d](https://github.com/jodevsa/wireguard-operator/commit/e2d4d9dc580517ee84048901b057e17b0a94cd73))
+
 ## [2.3.2](https://github.com/jodevsa/wireguard-operator/compare/v2.3.1...v2.3.2) (2024-07-14)
 
 
