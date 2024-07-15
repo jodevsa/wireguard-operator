@@ -43,18 +43,20 @@ func createNode(address string) error {
 func reconcileServiceWithTypeNodePort(svcKey client.ObjectKey, nodePort string, port int32) error {
 	// update NodePort service port
 	svc := &corev1.Service{}
-	k8sClient.Get(context.Background(), svcKey, svc)
+	Expect(k8sClient.Get(context.Background(), svcKey, svc)).Should(Succeed())
 	if svc.Spec.Type != corev1.ServiceTypeNodePort {
 		return fmt.Errorf("ReconcileServiceWithTypeNodePort only reconsiles NodePort services")
 	}
 
-	nodePortInteger, _ := strconv.ParseInt(nodePort, 10, 32)
+	nodePortInteger, err := strconv.ParseInt(nodePort, 10, 32)
+	Expect(err).ToNot(HaveOccurred())
+
 	svc.Spec.Ports = []corev1.ServicePort{{NodePort: int32(nodePortInteger), Port: port}}
 	return k8sClient.Update(context.Background(), svc)
 }
 func reconcileServiceWithTypeLoadBalancer(svcKey client.ObjectKey, hostname string) error {
 	svc := &corev1.Service{}
-	k8sClient.Get(context.Background(), svcKey, svc)
+	Expect(k8sClient.Get(context.Background(), svcKey, svc)).Should(Succeed())
 	if svc.Spec.Type != corev1.ServiceTypeLoadBalancer {
 		return fmt.Errorf("ReconcileServiceWithTypeLoadBalancer only reconsiles LoadBalancer services")
 	}
@@ -84,43 +86,43 @@ var _ = Describe("wireguard controller", func() {
 
 		// delete all wg resources
 		wgList := &v1alpha1.WireguardList{}
-		k8sClient.List(context.Background(), wgList, listOpts...)
+		Expect(k8sClient.List(context.Background(), wgList, listOpts...)).Should(Succeed())
 		for _, wg := range wgList.Items {
-			k8sClient.Delete(context.Background(), &wg)
+			Expect(k8sClient.Delete(context.Background(), &wg)).Should(Succeed())
 		}
 		// delete all wg-peer resources
 		peerList := &v1alpha1.WireguardPeerList{}
-		k8sClient.List(context.Background(), peerList, listOpts...)
+		Expect(k8sClient.List(context.Background(), peerList, listOpts...)).Should(Succeed())
 		for _, peer := range peerList.Items {
-			k8sClient.Delete(context.Background(), &peer)
+			Expect(k8sClient.Delete(context.Background(), &peer)).Should(Succeed())
 		}
 
 		// delete all wg-peer services
 		svcList := &corev1.ServiceList{}
-		k8sClient.List(context.Background(), svcList, listOpts...)
+		Expect(k8sClient.List(context.Background(), svcList, listOpts...)).Should(Succeed())
 		for _, svc := range svcList.Items {
-			k8sClient.Delete(context.Background(), &svc)
+			Expect(k8sClient.Delete(context.Background(), &svc)).Should(Succeed())
 		}
 
 		// delete all nodes
 		nodeList := &corev1.NodeList{}
-		k8sClient.List(context.Background(), nodeList, listOpts...)
+		Expect(k8sClient.List(context.Background(), nodeList, listOpts...)).Should(Succeed())
 		for _, node := range nodeList.Items {
-			k8sClient.Delete(context.Background(), &node)
+			Expect(k8sClient.Delete(context.Background(), &node)).Should(Succeed())
 		}
 
 		// delete all secrets
 		secretList := &corev1.SecretList{}
-		k8sClient.List(context.Background(), secretList, listOpts...)
+		Expect(k8sClient.List(context.Background(), secretList, listOpts...)).Should(Succeed())
 		for _, secret := range secretList.Items {
-			k8sClient.Delete(context.Background(), &secret)
+			Expect(k8sClient.Delete(context.Background(), &secret)).Should(Succeed())
 		}
 
 		// delete all configmaps
 		cList := &corev1.ConfigMapList{}
-		k8sClient.List(context.Background(), cList, listOpts...)
+		Expect(k8sClient.List(context.Background(), cList, listOpts...)).Should(Succeed())
 		for _, c := range cList.Items {
-			k8sClient.Delete(context.Background(), &c)
+			Expect(k8sClient.Delete(context.Background(), &c)).Should(Succeed())
 		}
 
 		// create kube-dns service
@@ -180,7 +182,7 @@ var _ = Describe("wireguard controller", func() {
 			// match labels
 			Eventually(func() map[string]string {
 				svc := &corev1.Service{}
-				k8sClient.Get(context.Background(), serviceKey, svc)
+				Expect(k8sClient.Get(context.Background(), serviceKey, svc)).Should(Succeed())
 				return svc.Spec.Selector
 			}, Timeout, Interval).Should(BeEquivalentTo(expectedLabels))
 
@@ -188,7 +190,7 @@ var _ = Describe("wireguard controller", func() {
 
 			Eventually(func() string {
 				wgPeer := &v1alpha1.WireguardPeer{}
-				k8sClient.Get(context.Background(), wgPeerKey, wgPeer)
+				Expect(k8sClient.Get(context.Background(), wgPeerKey, wgPeer)).Should(Succeed())
 				for _, line := range strings.Split(wgPeer.Status.Config, "\n") {
 					if strings.Contains(line, "Endpoint") {
 						return line
@@ -239,7 +241,7 @@ var _ = Describe("wireguard controller", func() {
 			// match labels
 			Eventually(func() map[string]string {
 				svc := &corev1.Service{}
-				k8sClient.Get(context.Background(), serviceKey, svc)
+				Expect(k8sClient.Get(context.Background(), serviceKey, svc)).Should(Succeed())
 				return svc.Spec.Selector
 			}, Timeout, Interval).Should(BeEquivalentTo(expectedLabels))
 
@@ -247,7 +249,7 @@ var _ = Describe("wireguard controller", func() {
 
 			Eventually(func() string {
 				wgPeer := &v1alpha1.WireguardPeer{}
-				k8sClient.Get(context.Background(), wgPeerKey, wgPeer)
+				Expect(k8sClient.Get(context.Background(), wgPeerKey, wgPeer)).Should(Succeed())
 				for _, line := range strings.Split(wgPeer.Status.Config, "\n") {
 					if strings.Contains(line, "DNS") {
 						return line
@@ -289,14 +291,14 @@ var _ = Describe("wireguard controller", func() {
 			// match labels
 			Eventually(func() map[string]string {
 				svc := &corev1.Service{}
-				k8sClient.Get(context.Background(), serviceKey, svc)
+				Expect(k8sClient.Get(context.Background(), serviceKey, svc)).Should(Succeed())
 				return svc.Spec.Selector
 			}, Timeout, Interval).Should(BeEquivalentTo(expectedLabels))
 
 			// match service type
 			Eventually(func() corev1.ServiceType {
 				svc := &corev1.Service{}
-				k8sClient.Get(context.Background(), serviceKey, svc)
+				Expect(k8sClient.Get(context.Background(), serviceKey, svc)).Should(Succeed())
 				return svc.Spec.Type
 			}, Timeout, Interval).Should(Equal(corev1.ServiceTypeNodePort))
 
@@ -406,20 +408,20 @@ Endpoint = %s:%s"`, peerKey.Name, peer.Spec.AllowedIPs, peer.Spec.Address, dnsSe
 			// match labels
 			Eventually(func() map[string]string {
 				svc := &corev1.Service{}
-				k8sClient.Get(context.Background(), serviceKey, svc)
+				Expect(k8sClient.Get(context.Background(), serviceKey, svc)).Should(Succeed())
 				return svc.Spec.Selector
 			}, Timeout, Interval).Should(BeEquivalentTo(expectedLabels))
 
 			// match service type
 			Eventually(func() corev1.ServiceType {
 				svc := &corev1.Service{}
-				k8sClient.Get(context.Background(), serviceKey, svc)
+				Expect(k8sClient.Get(context.Background(), serviceKey, svc)).Should(Succeed())
 				return svc.Spec.Type
 			}, Timeout, Interval).Should(Equal(corev1.ServiceTypeLoadBalancer))
 
 			Eventually(func() v1alpha1.WireguardStatus {
 				wg := &v1alpha1.Wireguard{}
-				k8sClient.Get(context.Background(), wgKey, wg)
+				Expect(k8sClient.Get(context.Background(), wgKey, wg)).Should(Succeed())
 				return wg.Status
 			}, Timeout, Interval).Should(Equal(v1alpha1.WireguardStatus{
 				Address: "",
@@ -547,7 +549,7 @@ Endpoint = %s:%s"`, peerKey.Name, peer.Spec.AllowedIPs, peer.Spec.Address, dnsSe
 
 				Eventually(func() []string {
 					dep := &appsv1.Deployment{}
-					k8sClient.Get(context.Background(), depKey, dep)
+					Expect(k8sClient.Get(context.Background(), depKey, dep)).Should(Succeed())
 					fmt.Println(dep)
 					for _, c := range dep.Spec.Template.Spec.Containers {
 						if c.Name == "agent" {

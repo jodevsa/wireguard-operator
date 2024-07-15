@@ -5,11 +5,11 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
-	"github.com/go-logr/logr"
 	"os"
 	"path/filepath"
 
 	"github.com/fsnotify/fsnotify"
+	"github.com/go-logr/logr"
 	"github.com/jodevsa/wireguard-operator/pkg/api/v1alpha1"
 )
 
