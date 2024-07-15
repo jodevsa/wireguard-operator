@@ -529,6 +529,143 @@ Endpoint = %s:%s"`, peerKey.Name, peer.Spec.AllowedIPs, peer.Spec.Address, dnsSe
 
 		})
 
+		It("Should create a WG with ServiceType ClusterIP and WG peer successfully", func() {
+			expectedAddress := "test-address"
+
+			wgKey := types.NamespacedName{
+				Name:      wgName,
+				Namespace: wgNamespace,
+			}
+			created := &v1alpha1.Wireguard{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      wgKey.Name,
+					Namespace: wgKey.Namespace,
+				},
+				Spec: v1alpha1.WireguardSpec{
+					ServiceType: corev1.ServiceTypeClusterIP,
+					Address:     expectedAddress,
+				},
+			}
+			expectedLabels := map[string]string{"app": "wireguard", "instance": wgKey.Name}
+
+			Expect(k8sClient.Create(context.Background(), created)).Should(Succeed())
+
+			// service created
+			serviceName := wgKey.Name + "-svc"
+			serviceKey := types.NamespacedName{
+				Namespace: wgKey.Namespace,
+				Name:      serviceName,
+			}
+
+			// match labels
+			Eventually(func() map[string]string {
+				svc := &corev1.Service{}
+				k8sClient.Get(context.Background(), serviceKey, svc)
+				return svc.Spec.Selector
+			}, Timeout, Interval).Should(BeEquivalentTo(expectedLabels))
+
+			// match service type
+			Eventually(func() corev1.ServiceType {
+				svc := &corev1.Service{}
+				k8sClient.Get(context.Background(), serviceKey, svc)
+				return svc.Spec.Type
+			}, Timeout, Interval).Should(Equal(corev1.ServiceTypeClusterIP))
+
+			Eventually(func() v1alpha1.WireguardStatus {
+				wg := &v1alpha1.Wireguard{}
+				k8sClient.Get(context.Background(), wgKey, wg)
+				return wg.Status
+			}, Timeout, Interval).Should(Equal(v1alpha1.WireguardStatus{
+				Address: "",
+				Status:  "pending",
+				Message: "Waiting for service to be ready",
+			}))
+
+			Expect(reconcileServiceWithClusterIP(serviceKey, 51820)).Should(Succeed())
+
+			// check that wireguard resource got the right status after the service is ready
+			wg := &v1alpha1.Wireguard{}
+			Eventually(func() v1alpha1.WireguardStatus {
+				Expect(k8sClient.Get(context.Background(), wgKey, wg)).Should(Succeed())
+				return wg.Status
+			}, Timeout, Interval).Should(Equal(v1alpha1.WireguardStatus{
+				Address: expectedAddress,
+				Port:    "51820",
+				Status:  "ready",
+				Dns:     dnsServiceIp,
+				Message: "VPN is active!",
+			}))
+
+			Eventually(func() string {
+				deploymentKey := types.NamespacedName{
+					Name:      wgName + "-dep",
+					Namespace: wgNamespace,
+				}
+				deployment := &appsv1.Deployment{}
+				Expect(k8sClient.Get(context.Background(), deploymentKey, deployment)).Should(Succeed())
+				Expect(len(deployment.Spec.Template.Spec.Containers)).Should(Equal(2))
+				Expect(deployment.Spec.Template.Spec.Containers[0].Image).Should(Equal(deployment.Spec.Template.Spec.Containers[1].Image))
+				return deployment.Spec.Template.Spec.Containers[0].Image
+			}, Timeout, Interval).Should(Equal(wgTestImage))
+
+			// create peer
+			peerKey := types.NamespacedName{
+				Name:      wgKey.Name + "peer",
+				Namespace: wgKey.Namespace,
+			}
+			peer := &v1alpha1.WireguardPeer{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      peerKey.Name,
+					Namespace: peerKey.Namespace,
+				},
+				Spec: v1alpha1.WireguardPeerSpec{
+					WireguardRef: wgKey.Name,
+				},
+			}
+			Expect(k8sClient.Create(context.Background(), peer)).Should(Succeed())
+
+			//get peer secret
+			wgSecretKeyName := types.NamespacedName{
+				Name:      wgKey.Name,
+				Namespace: wgKey.Namespace,
+			}
+			wgSecret := &corev1.Secret{}
+			Eventually(func() error {
+				return k8sClient.Get(context.Background(), wgSecretKeyName, wgSecret)
+			}, Timeout, Interval).Should(Succeed())
+			wgPublicKey := string(wgSecret.Data["publicKey"])
+
+			Eventually(func() string {
+				Expect(k8sClient.Get(context.Background(), peerKey, peer)).Should(Succeed())
+				print(peer.Status.Message)
+				return peer.Spec.Address
+			}, Timeout, Interval).Should(Equal("10.8.0.2"))
+
+			Eventually(func() v1alpha1.WireguardPeerStatus {
+				Expect(k8sClient.Get(context.Background(), peerKey, peer)).Should(Succeed())
+				return peer.Status
+			}, Timeout, Interval).Should(Equal(v1alpha1.WireguardPeerStatus{
+				Config: fmt.Sprintf(`
+			echo "
+			[Interface]
+			PrivateKey = $(kubectl get secret %s-peer --template={{.data.privateKey}} -n default | base64 -d)
+			Address = %s
+			DNS = %s, %s.svc.cluster.local
+
+			[Peer]
+			PublicKey = %s
+			AllowedIPs = 0.0.0.0/0
+			Endpoint = %s:%s"`, peerKey.Name, peer.Spec.Address, dnsServiceIp, peer.Namespace, wgPublicKey, expectedAddress, wg.Status.Port),
+				Status:  "ready",
+				Message: "Peer configured",
+			}))
+
+			Eventually(func() error {
+				return k8sClient.Get(context.Background(), wgSecretKeyName, wgSecret)
+			}, Timeout, Interval).Should(Succeed())
+
+		})
+
 		for _, useWgUserspace := range []bool{true, false} {
 			testTextPrefix := "uses"
 			if !useWgUserspace {
