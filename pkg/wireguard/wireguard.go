@@ -7,7 +7,6 @@ import (
 	"syscall"
 
 	"github.com/go-logr/logr"
-
 	"github.com/jodevsa/wireguard-operator/pkg/agent"
 	"github.com/jodevsa/wireguard-operator/pkg/api/v1alpha1"
 	"github.com/vishvananda/netlink"
@@ -33,17 +32,17 @@ func syncRoute(_ agent.State, iface string) error {
 			return nil
 		}
 	}
-	route := netlink.Route{
+
+	if err := netlink.RouteAdd(&netlink.Route{
 		LinkIndex: link.Attrs().Index,
-		Dst:       &getIP("10.8.0.0/24")[0],
-		Gw:        net.ParseIP("10.8.0.1"),
+		Dst: &net.IPNet{
+			IP:   net.IP("10.8.0.0"),
+			Mask: net.IPMask("10.8.0.0/24"),
+		},
+		Gw: net.ParseIP("10.8.0.1"),
+	}); err != nil {
+		return fmt.Errorf("netlink route add: %w", err)
 	}
-
-	err = netlink.RouteAdd(&route)
-	if err != nil {
-		return err
-	}
-
 	return nil
 }
 
@@ -159,7 +158,10 @@ func SyncLink(_ agent.State, iface string, wgUserspaceImplementationFallback str
 	}
 
 	if err := netlink.AddrAdd(link, &netlink.Addr{
-		IPNet: &getIP("10.8.0.1/32")[0],
+		IPNet: &net.IPNet{
+			IP:   net.IP("10.8.0.1"),
+			Mask: net.IPMask("10.8.0.1/32"),
+		},
 	}); err != nil {
 		return fmt.Errorf("netlink addr add: %w", err)
 	}
@@ -171,7 +173,11 @@ func SyncLink(_ agent.State, iface string, wgUserspaceImplementationFallback str
 }
 
 func (wg *Wireguard) syncWireguard(state agent.State, iface string, listenPort int) error {
-	c, _ := wgctrl.New()
+	c, err := wgctrl.New()
+	if err != nil {
+		return fmt.Errorf("new wgctrl client: %w", err)
+	}
+
 	cfg, err := CreateWireguardConfiguration(state, iface, listenPort)
 	if err != nil {
 		return err
@@ -233,12 +239,6 @@ func (wg *Wireguard) Sync(state agent.State) error {
 	return nil
 }
 
-func getIP(ip string) []net.IPNet {
-	_, ipnet, _ := net.ParseCIDR(ip)
-
-	return []net.IPNet{*ipnet}
-}
-
 func createPeersConfiguration(state agent.State, iface string) ([]wgtypes.PeerConfig, error) {
 	var peersState = make(map[string]v1alpha1.WireguardPeer)
 	for _, peer := range state.Peers {
@@ -246,13 +246,11 @@ func createPeersConfiguration(state agent.State, iface string) ([]wgtypes.PeerCo
 	}
 
 	c, err := wgctrl.New()
-
 	if err != nil {
 		return []wgtypes.PeerConfig{}, err
 	}
 
 	device, err := c.Device(iface)
-
 	if err != nil {
 		return []wgtypes.PeerConfig{}, err
 	}
@@ -284,10 +282,15 @@ func createPeersConfiguration(state agent.State, iface string) ([]wgtypes.PeerCo
 				}
 				peerConfigurationByPublicKey[p.PublicKey.String()] = p
 			} else if peer.AllowedIPs[0].IP.String() != peerState.Spec.Address {
+				_, n, err := net.ParseCIDR(peerState.Spec.Address + "/32")
+				if err != nil {
+					return nil, fmt.Errorf("parse cidr: %w", err)
+				}
+
 				// update peer
 				p := wgtypes.PeerConfig{
 					UpdateOnly:        true,
-					AllowedIPs:        getIP(peerState.Spec.Address + "/32"),
+					AllowedIPs:        []net.IPNet{*n},
 					PublicKey:         peer.PublicKey,
 					ReplaceAllowedIPs: true,
 				}
@@ -318,9 +321,14 @@ func createPeersConfiguration(state agent.State, iface string) ([]wgtypes.PeerCo
 			continue
 		}
 
+		_, n, err := net.ParseCIDR(peer.Spec.Address + "/32")
+		if err != nil {
+			return nil, fmt.Errorf("parse cidr: %w", err)
+		}
+
 		// create peer
 		p := wgtypes.PeerConfig{
-			AllowedIPs: getIP(peer.Spec.Address + "/32"),
+			AllowedIPs: []net.IPNet{*n},
 			PublicKey:  key,
 		}
 		peerConfigurationByPublicKey[p.PublicKey.String()] = p

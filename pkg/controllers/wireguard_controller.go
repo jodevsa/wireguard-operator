@@ -58,18 +58,18 @@ func labelsForWireguard(name string) map[string]string {
 	return map[string]string{"app": "wireguard", "instance": name}
 }
 
-func (r *WireguardReconciler) ConfigmapForWireguard(m *v1alpha1.Wireguard, hostname string) *corev1.ConfigMap {
-	ls := labelsForWireguard(m.Name)
+func (r *WireguardReconciler) ConfigmapForWireguard(m *v1alpha1.Wireguard, hostname string) (*corev1.ConfigMap, error) {
 	dep := &corev1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      m.Name + "-config",
 			Namespace: m.Namespace,
-			Labels:    ls,
+			Labels:    labelsForWireguard(m.Name),
 		},
 	}
-
-	ctrl.SetControllerReference(m, dep, r.Scheme)
-	return dep
+	if err := ctrl.SetControllerReference(m, dep, r.Scheme); err != nil {
+		return nil, fmt.Errorf("set controller reference: %w", err)
+	}
+	return dep, nil
 }
 
 func (r *WireguardReconciler) getWireguardPeers(ctx context.Context, req ctrl.Request) (*v1alpha1.WireguardPeerList, error) {
@@ -311,7 +311,11 @@ func (r *WireguardReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 	err = r.Get(ctx, types.NamespacedName{Name: wireguard.Name + "-metrics-svc", Namespace: wireguard.Namespace}, svcFound)
 	if err != nil && errors.IsNotFound(err) {
 
-		svc := r.serviceForWireguardMetrics(wireguard)
+		svc, err := r.serviceForWireguardMetrics(wireguard)
+		if err != nil {
+			return ctrl.Result{}, fmt.Errorf("service for wireguard metrics: %w", err)
+		}
+
 		log.Info("Creating a new service", "service.Namespace", svc.Namespace, "service.Name", svc.Name)
 		err = r.Create(ctx, svc)
 		if err != nil {
@@ -357,7 +361,11 @@ func (r *WireguardReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 
 	err = r.Get(ctx, types.NamespacedName{Name: wireguard.Name + "-svc", Namespace: wireguard.Namespace}, svcFound)
 	if err != nil && errors.IsNotFound(err) {
-		svc := r.serviceForWireguard(wireguard, serviceType)
+		svc, err := r.serviceForWireguard(wireguard, serviceType)
+		if err != nil {
+			return ctrl.Result{}, fmt.Errorf("service for wireguard: %w", err)
+		}
+
 		log.Info("Creating a new service", "service.Namespace", svc.Namespace, "service.Name", svc.Name)
 		err = r.Create(ctx, svc)
 		if err != nil {
@@ -468,10 +476,15 @@ func (r *WireguardReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 
 		if !bytes.Equal(b, secret.Data["state.json"]) {
 			log.Info("Updating secret with new config")
+
 			publicKey := string(secret.Data["publicKey"])
 
-			err := r.Update(ctx, r.secretForWireguard(wireguard, b, privateKey, publicKey))
+			secret, err := r.secretForWireguard(wireguard, b, privateKey, publicKey)
 			if err != nil {
+				return ctrl.Result{}, fmt.Errorf("secret for wireguard: %w", err)
+			}
+
+			if err := r.Update(ctx, secret); err != nil {
 				log.Error(err, "Failed to update secret with new config")
 				return ctrl.Result{}, err
 			}
@@ -523,7 +536,12 @@ func (r *WireguardReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 			return ctrl.Result{}, err
 		}
 
-		secret := r.secretForWireguard(wireguard, b, privateKey, publicKey)
+		bytes.Equal(b, secret.Data["state"])
+
+		secret, err := r.secretForWireguard(wireguard, b, privateKey, publicKey)
+		if err != nil {
+			return ctrl.Result{}, fmt.Errorf("secret for wireguard: %w", err)
+		}
 
 		log.Info("Creating a new secret", "secret.Namespace", secret.Namespace, "secret.Name", secret.Name)
 
@@ -531,6 +549,26 @@ func (r *WireguardReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 			log.Error(err, "Failed to create new secret", "secret.Namespace", secret.Namespace, "secret.Name", secret.Name)
 			return ctrl.Result{}, err
 		}
+
+		clientKey, err := wgtypes.GeneratePrivateKey()
+
+		if err != nil {
+			log.Error(err, "Failed to generate private key")
+			return ctrl.Result{}, err
+		}
+
+		clientSecret, err := r.secretForClient(wireguard, clientKey.String(), clientKey.PublicKey().String())
+		if err != nil {
+			return ctrl.Result{}, fmt.Errorf("secret for client: %w", err)
+		}
+
+		log.Info("Creating a new secret", "secret.Namespace", clientSecret.Namespace, "secret.Name", clientSecret.Name)
+		err = r.Create(ctx, clientSecret)
+		if err != nil {
+			log.Error(err, "Failed to create new secret", "secret.Namespace", clientSecret.Namespace, "secret.Name", clientSecret.Name)
+			return ctrl.Result{}, err
+		}
+
 		return ctrl.Result{}, err
 	} else if err != nil {
 		log.Error(err, "Failed to get secret")
@@ -542,10 +580,14 @@ func (r *WireguardReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 	configFound := &corev1.ConfigMap{}
 	err = r.Get(ctx, types.NamespacedName{Name: wireguard.Name + "-config", Namespace: wireguard.Namespace}, configFound)
 	if err != nil && errors.IsNotFound(err) {
-		config := r.ConfigmapForWireguard(wireguard, address)
-		log.Info("Creating a new config", "config.Namespace", config.Namespace, "config.Name", config.Name)
-		err = r.Create(ctx, config)
+		config, err := r.ConfigmapForWireguard(wireguard, address)
 		if err != nil {
+			return ctrl.Result{}, fmt.Errorf("config map for wireguard: %w", err)
+		}
+
+		log.Info("Creating a new config", "config.Namespace", config.Namespace, "config.Name", config.Name)
+
+		if err := r.Create(ctx, config); err != nil {
 			log.Error(err, "Failed to create new dep", "dep.Namespace", config.Namespace, "dep.Name", config.Name)
 			return ctrl.Result{}, err
 		}
@@ -563,7 +605,11 @@ func (r *WireguardReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 	deploymentFound := &appsv1.Deployment{}
 	err = r.Get(ctx, types.NamespacedName{Name: wireguard.Name + "-dep", Namespace: wireguard.Namespace}, deploymentFound)
 	if err != nil && errors.IsNotFound(err) {
-		dep := r.deploymentForWireguard(wireguard)
+		dep, err := r.deploymentForWireguard(wireguard)
+		if err != nil {
+			return ctrl.Result{}, fmt.Errorf("deployment for wireguard: %w", err)
+		}
+
 		log.Info("Creating a new dep", "dep.Namespace", dep.Namespace, "dep.Name", dep.Name)
 		err = r.Create(ctx, dep)
 		if err != nil {
@@ -578,9 +624,12 @@ func (r *WireguardReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 	}
 
 	if deploymentFound.Spec.Template.Spec.Containers[0].Image != r.AgentImage {
-		dep := r.deploymentForWireguard(wireguard)
-		err = r.Update(ctx, dep)
+		dep, err := r.deploymentForWireguard(wireguard)
 		if err != nil {
+			return ctrl.Result{}, fmt.Errorf("deployment for wireguard: %w", err)
+		}
+
+		if err := r.Update(ctx, dep); err != nil {
 			log.Error(err, "unable to update deployment image", "dep.Namespace", dep.Namespace, "dep.Name", dep.Name)
 			return ctrl.Result{}, err
 		}
@@ -613,10 +662,10 @@ func (r *WireguardReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		Complete(r)
 }
 
-func (r *WireguardReconciler) serviceForWireguard(m *v1alpha1.Wireguard, serviceType corev1.ServiceType) *corev1.Service {
+func (r *WireguardReconciler) serviceForWireguard(m *v1alpha1.Wireguard, serviceType corev1.ServiceType) (*corev1.Service, error) {
 	labels := labelsForWireguard(m.Name)
 
-	dep := &corev1.Service{
+	svc := &corev1.Service{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:        m.Name + "-svc",
 			Namespace:   m.Namespace,
@@ -636,14 +685,16 @@ func (r *WireguardReconciler) serviceForWireguard(m *v1alpha1.Wireguard, service
 		},
 	}
 
-	ctrl.SetControllerReference(m, dep, r.Scheme)
-	return dep
+	if err := ctrl.SetControllerReference(m, svc, r.Scheme); err != nil {
+		return nil, fmt.Errorf("set controller reference: %w", err)
+	}
+	return svc, nil
 }
 
-func (r *WireguardReconciler) serviceForWireguardMetrics(m *v1alpha1.Wireguard) *corev1.Service {
+func (r *WireguardReconciler) serviceForWireguardMetrics(m *v1alpha1.Wireguard) (*corev1.Service, error) {
 	labels := labelsForWireguard(m.Name)
 
-	dep := &corev1.Service{
+	svc := &corev1.Service{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      m.Name + "-metrics-svc",
 			Namespace: m.Namespace,
@@ -661,29 +712,48 @@ func (r *WireguardReconciler) serviceForWireguardMetrics(m *v1alpha1.Wireguard) 
 		},
 	}
 
-	ctrl.SetControllerReference(m, dep, r.Scheme)
-	return dep
+	if err := ctrl.SetControllerReference(m, svc, r.Scheme); err != nil {
+		return nil, fmt.Errorf("set controller reference: %w", err)
+	}
+	return svc, nil
 }
 
-func (r *WireguardReconciler) secretForWireguard(m *v1alpha1.Wireguard, state []byte, privateKey string, publicKey string) *corev1.Secret {
-
-	ls := labelsForWireguard(m.Name)
-	dep := &corev1.Secret{
+func (r *WireguardReconciler) secretForWireguard(m *v1alpha1.Wireguard, state []byte, privateKey string, publicKey string) (*corev1.Secret, error) {
+	secret := &corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      m.Name,
 			Namespace: m.Namespace,
-			Labels:    ls,
+			Labels:    labelsForWireguard(m.Name),
 		},
 		Data: map[string][]byte{"state.json": state, "privateKey": []byte(privateKey), "publicKey": []byte(publicKey)},
 	}
 
-	ctrl.SetControllerReference(m, dep, r.Scheme)
+	if err := ctrl.SetControllerReference(m, secret, r.Scheme); err != nil {
+		return nil, fmt.Errorf("set controller reference: %w", err)
+	}
 
-	return dep
+	return secret, nil
 
 }
 
-func (r *WireguardReconciler) deploymentForWireguard(m *v1alpha1.Wireguard) *appsv1.Deployment {
+func (r *WireguardReconciler) secretForClient(m *v1alpha1.Wireguard, privateKey string, publicKey string) (*corev1.Secret, error) {
+	secret := &corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      m.Name + "-client",
+			Namespace: m.Namespace,
+			Labels:    labelsForWireguard(m.Name),
+		},
+		Data: map[string][]byte{"privateKey": []byte(privateKey), "publicKey": []byte(publicKey)},
+	}
+
+	if err := ctrl.SetControllerReference(m, secret, r.Scheme); err != nil {
+		return nil, fmt.Errorf("set controller reference: %w", err)
+	}
+	return secret, nil
+
+}
+
+func (r *WireguardReconciler) deploymentForWireguard(m *v1alpha1.Wireguard) (*appsv1.Deployment, error) {
 	ls := labelsForWireguard(m.Name)
 	replicas := int32(1)
 
@@ -826,6 +896,8 @@ func (r *WireguardReconciler) deploymentForWireguard(m *v1alpha1.Wireguard) *app
 		}
 	}
 
-	ctrl.SetControllerReference(m, dep, r.Scheme)
-	return dep
+	if err := ctrl.SetControllerReference(m, dep, r.Scheme); err != nil {
+		return dep, fmt.Errorf("set controller reference: %w", err)
+	}
+	return dep, nil
 }
