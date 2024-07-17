@@ -684,8 +684,7 @@ func (r *WireguardReconciler) serviceForWireguard(m *v1alpha1.Wireguard, service
 			Labels:      labels,
 		},
 		Spec: corev1.ServiceSpec{
-			LoadBalancerIP: m.Spec.Address,
-			Selector:       labels,
+			Selector: labels,
 			Ports: []corev1.ServicePort{{
 				Protocol:   corev1.ProtocolUDP,
 				NodePort:   m.Spec.NodePort,
@@ -694,6 +693,10 @@ func (r *WireguardReconciler) serviceForWireguard(m *v1alpha1.Wireguard, service
 			}},
 			Type: serviceType,
 		},
+	}
+
+	if svc.Spec.Type == corev1.ServiceTypeLoadBalancer {
+		svc.Spec.LoadBalancerIP = m.Spec.Address
 	}
 
 	if err := ctrl.SetControllerReference(m, svc, r.Scheme); err != nil {
