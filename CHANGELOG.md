@@ -1,3 +1,10 @@
+# [2.6.0](https://github.com/jodevsa/wireguard-operator/compare/v2.5.0...v2.6.0) (2024-07-17)
+
+
+### Features
+
+* support ClusterIP service ([#201](https://github.com/jodevsa/wireguard-operator/issues/201)) ([a82d2bb](https://github.com/jodevsa/wireguard-operator/commit/a82d2bbeb26e5297d935d83556ba18f596878af8))
+
 # [2.5.0](https://github.com/jodevsa/wireguard-operator/compare/v2.4.0...v2.5.0) (2024-07-15)
 
 
