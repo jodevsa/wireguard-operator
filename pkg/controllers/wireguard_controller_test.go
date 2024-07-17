@@ -67,7 +67,8 @@ func reconcileServiceWithTypeLoadBalancer(svcKey client.ObjectKey, hostname stri
 
 func reconcileServiceWithClusterIP(svcKey client.ObjectKey, port int32) error {
 	svc := &corev1.Service{}
-	k8sClient.Get(context.Background(), svcKey, svc)
+	Expect(k8sClient.Get(context.Background(), svcKey, svc)).Should(Succeed())
+
 	if svc.Spec.Type != corev1.ServiceTypeClusterIP {
 		return fmt.Errorf("ReconcileServiceWithClusterIP only reconsiles ClusterIP services")
 	}
@@ -560,6 +561,7 @@ Endpoint = %s:%s"`, peerKey.Name, peer.Spec.AllowedIPs, peer.Spec.Address, dnsSe
 			// match labels
 			Eventually(func() map[string]string {
 				svc := &corev1.Service{}
+				//nolint:errcheck
 				k8sClient.Get(context.Background(), serviceKey, svc)
 				return svc.Spec.Selector
 			}, Timeout, Interval).Should(BeEquivalentTo(expectedLabels))
@@ -567,12 +569,14 @@ Endpoint = %s:%s"`, peerKey.Name, peer.Spec.AllowedIPs, peer.Spec.Address, dnsSe
 			// match service type
 			Eventually(func() corev1.ServiceType {
 				svc := &corev1.Service{}
+				//nolint:errcheck
 				k8sClient.Get(context.Background(), serviceKey, svc)
 				return svc.Spec.Type
 			}, Timeout, Interval).Should(Equal(corev1.ServiceTypeClusterIP))
 
 			Eventually(func() v1alpha1.WireguardStatus {
 				wg := &v1alpha1.Wireguard{}
+				//nolint:errcheck
 				k8sClient.Get(context.Background(), wgKey, wg)
 				return wg.Status
 			}, Timeout, Interval).Should(Equal(v1alpha1.WireguardStatus{
