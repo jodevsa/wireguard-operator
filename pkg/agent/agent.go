@@ -5,9 +5,10 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
-	"github.com/go-logr/logr"
 	"os"
 	"path/filepath"
+
+	"github.com/go-logr/logr"
 
 	"github.com/fsnotify/fsnotify"
 	"github.com/jodevsa/wireguard-operator/pkg/api/v1alpha1"
@@ -19,7 +20,7 @@ type State struct {
 	Peers            []v1alpha1.WireguardPeer
 }
 
-func isStateValid(state State) error {
+func IsStateValid(state State) error {
 
 	if state.ServerPrivateKey == "" {
 		return fmt.Errorf("server private key is not defined")
@@ -66,7 +67,7 @@ func OnStateChange(path string, logger logr.Logger, onFileChange func(State)) (f
 	state, hash, err := GetDesiredState(path)
 
 	if err == nil {
-		err := isStateValid(state)
+		err := IsStateValid(state)
 
 		if err != nil {
 			logger.Error(err, "State is not valid")
@@ -100,7 +101,7 @@ func OnStateChange(path string, logger logr.Logger, onFileChange func(State)) (f
 					logger.V(9).Info("State content changed", "oldHash", hash, "newHash", newHash)
 					hash = newHash
 
-					err = isStateValid(state)
+					err = IsStateValid(state)
 
 					if err != nil {
 						logger.Error(err, "State is not valid")

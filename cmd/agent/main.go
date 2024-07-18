@@ -100,9 +100,35 @@ func main() {
 
 	defer close()
 
+	httpLog := log.WithName("http")
+
 	http.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
-		log.Info("Answered readiness probe")
-		//TODO create internal wireguard peer here to make sure wireguard is actually listening
+		state, _, err := agent.GetDesiredState(configFilePath)
+
+		if err != nil {
+			httpLog.Error(err, "agent is not ready as it cannot get server state")
+			w.WriteHeader(http.StatusServiceUnavailable)
+			return
+		}
+
+		err = agent.IsStateValid(state)
+
+		if err != nil {
+			httpLog.Error(err, "agent is not ready as server state not valid")
+			w.WriteHeader(http.StatusServiceUnavailable)
+			return
+		}
+
+		err = wg.Sync(state)
+
+		if err != nil {
+			httpLog.Error(err, "agent is not ready as it cannot sync wireguard")
+			w.WriteHeader(http.StatusServiceUnavailable)
+			return
+		}
+
+		httpLog.Info("agent is ready")
+
 		w.WriteHeader(http.StatusOK)
 	})
 	http.ListenAndServe(":8080", nil)
