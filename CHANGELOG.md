@@ -1,3 +1,10 @@
+# [2.7.0](https://github.com/jodevsa/wireguard-operator/compare/v2.6.2...v2.7.0) (2024-07-18)
+
+
+### Features
+
+* add liveness and readiness probe ([#205](https://github.com/jodevsa/wireguard-operator/issues/205)) ([3f57376](https://github.com/jodevsa/wireguard-operator/commit/3f573760194e52b5afe232e8efb9e08cee75329e))
+
 ## [2.6.2](https://github.com/jodevsa/wireguard-operator/compare/v2.6.1...v2.6.2) (2024-07-18)
 
 
