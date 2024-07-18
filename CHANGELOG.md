@@ -1,3 +1,10 @@
+## [2.6.2](https://github.com/jodevsa/wireguard-operator/compare/v2.6.1...v2.6.2) (2024-07-18)
+
+
+### Bug Fixes
+
+* revert golint setup as it introduce bug on netlink add ([c779a46](https://github.com/jodevsa/wireguard-operator/commit/c779a46689c38bf0e0e44df35f564e04ec352e9e))
+
 # [2.4.0](https://github.com/jodevsa/wireguard-operator/compare/v2.3.2...v2.4.0) (2024-07-15)
 
 
