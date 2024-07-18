@@ -3,12 +3,14 @@ package main
 import (
 	"flag"
 	"fmt"
+	"log"
+	"net/http"
+	"os"
+
 	"github.com/go-logr/stdr"
 	"github.com/jodevsa/wireguard-operator/internal/iptables"
 	"github.com/jodevsa/wireguard-operator/pkg/agent"
 	"github.com/jodevsa/wireguard-operator/pkg/wireguard"
-	"log"
-	"os"
 )
 
 func main() {
@@ -98,6 +100,9 @@ func main() {
 
 	defer close()
 
-	// Block main goroutine forever.
-	<-make(chan struct{})
+	http.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
+		log.Info("Answered readiness probe")
+		w.WriteHeader(http.StatusOK)
+	})
+	http.ListenAndServe(":8080", nil)
 }
