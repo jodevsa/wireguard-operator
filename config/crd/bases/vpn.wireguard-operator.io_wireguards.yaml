@@ -196,8 +196,8 @@ spec:
                 type: object
               serviceType:
                 description: A field that specifies the type of Kubernetes service
-                  that should be used for the Wireguard VPN. This could be NodePort
-                  or LoadBalancer, depending on the needs of the deployment.
+                  that should be used for the Wireguard VPN. This could be ClusterIP,
+                  NodePort or LoadBalancer, depending on the needs of the deployment.
                 type: string
               useWgUserspaceImplementation:
                 description: A boolean field that specifies whether to use the userspace
