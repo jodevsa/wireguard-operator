@@ -102,6 +102,7 @@ func main() {
 
 	http.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
 		log.Info("Answered readiness probe")
+		//TODO create internal wireguard peer here to make sure wireguard is actually listening
 		w.WriteHeader(http.StatusOK)
 	})
 	http.ListenAndServe(":8080", nil)
