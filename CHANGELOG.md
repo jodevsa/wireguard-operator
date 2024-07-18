@@ -1,24 +1,3 @@
-## [2.6.1](https://github.com/jodevsa/wireguard-operator/compare/v2.6.0...v2.6.1) (2024-07-17)
-
-
-### Bug Fixes
-
-* only add address as loadbalancerIP if svc type is LoadBalancer ([#203](https://github.com/jodevsa/wireguard-operator/issues/203)) ([56a609d](https://github.com/jodevsa/wireguard-operator/commit/56a609df561dd4d47509a6d6f406e4785a715890))
-
-# [2.6.0](https://github.com/jodevsa/wireguard-operator/compare/v2.5.0...v2.6.0) (2024-07-17)
-
-
-### Features
-
-* support ClusterIP service ([#201](https://github.com/jodevsa/wireguard-operator/issues/201)) ([a82d2bb](https://github.com/jodevsa/wireguard-operator/commit/a82d2bbeb26e5297d935d83556ba18f596878af8))
-
-# [2.5.0](https://github.com/jodevsa/wireguard-operator/compare/v2.4.0...v2.5.0) (2024-07-15)
-
-
-### Features
-
-* add golint support ([71150ea](https://github.com/jodevsa/wireguard-operator/commit/71150ea483dbf9f605d75fff86bc4dd91de92414))
-
 # [2.4.0](https://github.com/jodevsa/wireguard-operator/compare/v2.3.2...v2.4.0) (2024-07-15)
 
 

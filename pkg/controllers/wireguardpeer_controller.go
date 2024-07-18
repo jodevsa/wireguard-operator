@@ -19,7 +19,6 @@ package controllers
 import (
 	"context"
 	"fmt"
-
 	"github.com/jodevsa/wireguard-operator/pkg/api/v1alpha1"
 
 	wgtypes "golang.zx2c4.com/wireguard/wgctrl/wgtypes"
@@ -52,20 +51,20 @@ func (r *WireguardPeerReconciler) updateStatus(ctx context.Context, peer *v1alph
 	return nil
 }
 
-func (r *WireguardPeerReconciler) secretForPeer(m *v1alpha1.WireguardPeer, privateKey string, publicKey string) (*corev1.Secret, error) {
-	secret := &corev1.Secret{
+func (r *WireguardPeerReconciler) secretForPeer(m *v1alpha1.WireguardPeer, privateKey string, publicKey string) *corev1.Secret {
+	ls := labelsForWireguard(m.Name)
+	dep := &corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      m.Name + "-peer",
 			Namespace: m.Namespace,
-			Labels:    labelsForWireguard(m.Name),
+			Labels:    ls,
 		},
 		Data: map[string][]byte{"privateKey": []byte(privateKey), "publicKey": []byte(publicKey)},
 	}
+	// Set Nodered instance as the owner and controller
+	ctrl.SetControllerReference(m, dep, r.Scheme)
 
-	if err := ctrl.SetControllerReference(m, secret, r.Scheme); err != nil {
-		return nil, fmt.Errorf("set controller reference: %w", err)
-	}
-	return secret, nil
+	return dep
 
 }
 
@@ -121,10 +120,7 @@ func (r *WireguardPeerReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 		privateKey := key.String()
 		publicKey := key.PublicKey().String()
 
-		secret, err := r.secretForPeer(peer, privateKey, publicKey)
-		if err != nil {
-			return ctrl.Result{}, fmt.Errorf("secret for peer: %w", err)
-		}
+		secret := r.secretForPeer(peer, privateKey, publicKey)
 
 		log.Info("Creating a new secret", "secret.Namespace", secret.Namespace, "secret.Name", secret.Name)
 		err = r.Create(ctx, secret)
@@ -179,25 +175,19 @@ func (r *WireguardPeerReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 		return ctrl.Result{}, nil
 	}
 
-	var wireguardSecret corev1.Secret
-	if err := r.Get(ctx, types.NamespacedName{
-		Name:      newPeer.Spec.WireguardRef,
-		Namespace: newPeer.Namespace,
-	}, &wireguardSecret); err != nil {
-		return ctrl.Result{}, fmt.Errorf("get: %w", err)
-	}
+	wireguardSecret := &corev1.Secret{}
+	err = r.Get(ctx, types.NamespacedName{Name: newPeer.Spec.WireguardRef, Namespace: newPeer.Namespace}, wireguardSecret)
 
 	if len(newPeer.OwnerReferences) == 0 {
 		log.Info("Waiting for owner reference to be set " + wireguard.Name + " " + newPeer.Name)
+		ctrl.SetControllerReference(wireguard, newPeer, r.Scheme)
 
-		if err := ctrl.SetControllerReference(wireguard, newPeer, r.Scheme); err != nil {
+		if err != nil {
 			log.Error(err, "Failed to update peer with controller reference")
 			return ctrl.Result{}, err
 		}
 
-		if err := r.Update(ctx, newPeer); err != nil {
-			return ctrl.Result{}, fmt.Errorf("update: %w", err)
-		}
+		r.Update(ctx, newPeer)
 
 		return ctrl.Result{Requeue: true}, nil
 	}
