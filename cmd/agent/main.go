@@ -3,12 +3,14 @@ package main
 import (
 	"flag"
 	"fmt"
+	"log"
+	"net/http"
+	"os"
+
 	"github.com/go-logr/stdr"
 	"github.com/jodevsa/wireguard-operator/internal/iptables"
 	"github.com/jodevsa/wireguard-operator/pkg/agent"
 	"github.com/jodevsa/wireguard-operator/pkg/wireguard"
-	"log"
-	"os"
 )
 
 func main() {
@@ -98,6 +100,36 @@ func main() {
 
 	defer close()
 
-	// Block main goroutine forever.
-	<-make(chan struct{})
+	httpLog := log.WithName("http")
+
+	http.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
+		state, _, err := agent.GetDesiredState(configFilePath)
+
+		if err != nil {
+			httpLog.Error(err, "agent is not ready as it cannot get server state")
+			w.WriteHeader(http.StatusServiceUnavailable)
+			return
+		}
+
+		err = agent.IsStateValid(state)
+
+		if err != nil {
+			httpLog.Error(err, "agent is not ready as server state not valid")
+			w.WriteHeader(http.StatusServiceUnavailable)
+			return
+		}
+
+		err = wg.Sync(state)
+
+		if err != nil {
+			httpLog.Error(err, "agent is not ready as it cannot sync wireguard")
+			w.WriteHeader(http.StatusServiceUnavailable)
+			return
+		}
+
+		httpLog.Info("agent is ready")
+
+		w.WriteHeader(http.StatusOK)
+	})
+	http.ListenAndServe(":8080", nil)
 }

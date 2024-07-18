@@ -44,6 +44,7 @@ import (
 // WireguardReconciler reconciles a Wireguard object
 
 const port = 51820
+const httpPort = 8080
 
 const metricsPort = 9586
 
@@ -795,12 +796,34 @@ func (r *WireguardReconciler) deploymentForWireguard(m *v1alpha1.Wireguard) *app
 									ContainerPort: port,
 									Name:          "wireguard",
 									Protocol:      corev1.ProtocolUDP,
-								}},
+								},
+								{
+									ContainerPort: port,
+									Name:          "http",
+									Protocol:      corev1.ProtocolTCP,
+								},
+							},
 							EnvFrom: []corev1.EnvFromSource{{
 								ConfigMapRef: &corev1.ConfigMapEnvSource{
 									LocalObjectReference: corev1.LocalObjectReference{Name: m.Name + "-config"},
 								},
 							}},
+							ReadinessProbe: &corev1.Probe{
+								ProbeHandler: corev1.ProbeHandler{
+									HTTPGet: &corev1.HTTPGetAction{
+										Port: intstr.FromInt(httpPort),
+										Path: "/health",
+									},
+								},
+							},
+							LivenessProbe: &corev1.Probe{
+								PeriodSeconds: 5,
+								ProbeHandler: corev1.ProbeHandler{
+									TCPSocket: &corev1.TCPSocketAction{
+										Port: intstr.FromInt(httpPort),
+									},
+								},
+							},
 							VolumeMounts: []corev1.VolumeMount{
 								{
 									Name:      "socket",
