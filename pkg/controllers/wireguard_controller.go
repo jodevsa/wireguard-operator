@@ -817,6 +817,7 @@ func (r *WireguardReconciler) deploymentForWireguard(m *v1alpha1.Wireguard) *app
 								},
 							},
 							LivenessProbe: &corev1.Probe{
+								PeriodSeconds: 5,
 								ProbeHandler: corev1.ProbeHandler{
 									TCPSocket: &corev1.TCPSocketAction{
 										Port: intstr.FromInt(httpPort),
