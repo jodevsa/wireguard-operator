@@ -64,7 +64,7 @@ jobs:
         run : |
           make generate-release-file AGENT_IMAGE="$AGENT_IMAGE" MANAGER_IMAGE="$MANAGER_IMAGE"
       - name: upload release
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: release.yaml
           path: ${{ github.workspace }}/release.yaml
