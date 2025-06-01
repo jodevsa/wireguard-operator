@@ -115,6 +115,10 @@ spec:
                   be useful to enable if the peers are having problems with sending
                   traffic to the internet.
                 type: boolean
+              hostNetwork:
+                description: A boolean field that specifies whether the Wireguard
+                  VPN pod should run in the host network namespace.
+                type: boolean
               metric:
                 description: WireguardPodSpec defines spec for respective containers
                   created for Wireguard

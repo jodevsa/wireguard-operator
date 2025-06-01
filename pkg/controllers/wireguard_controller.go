@@ -863,6 +863,11 @@ func (r *WireguardReconciler) deploymentForWireguard(m *v1alpha1.Wireguard) *app
 		}
 	}
 
+	if m.Spec.HostNetwork {
+		dep.Spec.Template.Spec.HostNetwork = true
+		dep.Spec.Template.Spec.DNSPolicy = corev1.DNSClusterFirstWithHostNet
+	}
+
 	ctrl.SetControllerReference(m, dep, r.Scheme)
 	return dep
 }
