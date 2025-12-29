@@ -164,8 +164,6 @@ func (r *WireguardPeerReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 	}
 
 	if wireguard.Status.Status != v1alpha1.Ready {
-		log.Info("Waiting for wireguard to be ready")
-
 		err = r.updateStatus(ctx, newPeer, v1alpha1.Error, fmt.Sprintf("Waiting for %s to be ready", wireguard.Name))
 
 		if err != nil {
@@ -175,19 +173,22 @@ func (r *WireguardPeerReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 		return ctrl.Result{}, nil
 	}
 
-	wireguardSecret := &corev1.Secret{}
-	err = r.Get(ctx, types.NamespacedName{Name: newPeer.Spec.WireguardRef, Namespace: newPeer.Namespace}, wireguardSecret)
-
 	if len(newPeer.OwnerReferences) == 0 {
 		log.Info("Waiting for owner reference to be set " + wireguard.Name + " " + newPeer.Name)
 		ctrl.SetControllerReference(wireguard, newPeer, r.Scheme)
 
+		if newPeer.Labels == nil {
+			newPeer.Labels = map[string]string{}
+		}
+		newPeer.Labels["app"] = "wireguard"
+		newPeer.Labels["instance"] = wireguard.Name
+
+		err = r.Update(ctx, newPeer)
+
 		if err != nil {
-			log.Error(err, "Failed to update peer with controller reference")
+			log.Error(err, "Failed to update peer with controller reference and labels")
 			return ctrl.Result{}, err
 		}
-
-		r.Update(ctx, newPeer)
 
 		return ctrl.Result{Requeue: true}, nil
 	}

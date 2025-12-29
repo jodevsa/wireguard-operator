@@ -121,7 +121,7 @@ build-manager: generate fmt vet ## Build manager binary.
 	go build -o bin/manager ./cmd/manager/main.go
 
 run: manifests generate fmt vet ## Run a controller from your host.
-	go run ./cmd/manager/main.go
+	go run ./cmd/manager/main.go --agent-image "ghcr.io/jodevsa/wireguard-operator/agent:dev-last-today-131"
 
 
 

@@ -207,11 +207,15 @@ spec:
           status:
             description: WireguardStatus defines the observed state of Wireguard
             properties:
+              UniqueIdentifier:
+                type: string
               address:
                 description: A string field that specifies the address for the Wireguard
                   VPN server that is currently being used.
                 type: string
               dns:
+                type: string
+              dnssearchdomain:
                 type: string
               message:
                 description: A string field that provides additional information about
@@ -222,6 +226,19 @@ spec:
                 description: A string field that specifies the port for the Wireguard
                   VPN server that is currently being used.
                 type: string
+              publickey:
+                type: string
+              resources:
+                items:
+                  properties:
+                    name:
+                      type: string
+                    status:
+                      type: string
+                    type:
+                      type: string
+                  type: object
+                type: array
               status:
                 description: A string field that represents the current status of
                   Wireguard. This could include values like ready, pending, or error.
