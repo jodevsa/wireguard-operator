@@ -2,7 +2,7 @@ module github.com/jodevsa/wireguard-operator
 
 go 1.21
 
-toolchain go1.22.2
+toolchain go1.25.1
 
 require (
 	github.com/fsnotify/fsnotify v1.7.0
