@@ -22,6 +22,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"strconv"
+	"text/template"
 	"time"
 
 	"github.com/jodevsa/wireguard-operator/pkg/agent"
@@ -38,6 +39,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/intstr"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	ctrllog "sigs.k8s.io/controller-runtime/pkg/log"
 )
 
@@ -163,8 +165,7 @@ func (r *WireguardReconciler) getUsedIps(peers *v1alpha1.WireguardPeerList) []st
 	return usedIps
 }
 
-func (r *WireguardReconciler) updateWireguardPeers(ctx context.Context, req ctrl.Request, wireguard *v1alpha1.Wireguard, serverAddress string, dns string, dnsSearchDomain string, serverPublicKey string, serverMtu string) error {
-
+func (r *WireguardReconciler) updateWireguardPeers(ctx context.Context, req ctrl.Request) error {
 	peers, err := r.getWireguardPeers(ctx, req)
 	if err != nil {
 		return err
@@ -188,37 +189,8 @@ func (r *WireguardReconciler) updateWireguardPeers(ctx context.Context, req ctrl
 
 			usedIps = append(usedIps, ip)
 		}
-		dnsConfiguration := dns
 
-		if dnsSearchDomain != "" {
-			dnsConfiguration = dns + ", " + dnsSearchDomain
-		}
-
-		allowIps := peer.Spec.AllowedIPs
-
-		if allowIps == "" {
-			allowIps = "0.0.0.0/0"
-		}
-
-		newConfig := fmt.Sprintf(`
-echo "
-[Interface]
-PrivateKey = $(kubectl get secret %s --template={{.data.%s}} -n %s | base64 -d)
-Address = %s
-DNS = %s`, peer.Spec.PrivateKey.SecretKeyRef.Name, peer.Spec.PrivateKey.SecretKeyRef.Key, peer.Namespace, peer.Spec.Address, dnsConfiguration)
-
-		if serverMtu != "" {
-			newConfig = newConfig + "\nMTU = " + serverMtu
-		}
-
-		newConfig = newConfig + fmt.Sprintf(`
-
-[Peer]
-PublicKey = %s
-AllowedIPs = %s
-Endpoint = %s:%s"`, serverPublicKey, allowIps, serverAddress, wireguard.Status.Port)
-		if peer.Status.Config != newConfig || peer.Status.Status != v1alpha1.Ready {
-			peer.Status.Config = newConfig
+		if peer.Status.Status != v1alpha1.Ready {
 			peer.Status.Status = v1alpha1.Ready
 			peer.Status.Message = "Peer configured"
 			if err := r.Status().Update(ctx, &peer); err != nil {
@@ -228,6 +200,98 @@ Endpoint = %s:%s"`, serverPublicKey, allowIps, serverAddress, wireguard.Status.P
 	}
 
 	return nil
+}
+
+var peerConfigTemplate = `
+[Interface]
+PrivateKey = {{ .WireguardPrivateKey }}
+Address = {{ .Address }}
+DNS = {{ .DNS }}{{ if .SearchDomain }}, {{ .SearchDomain }}{{ end }}
+{{ if .MTU }}MTU = {{ .MTU }}{{ end }}
+
+[Peer]
+PublicKey = {{ .PeerPublicKey }}
+AllowedIPs = {{ if .AllowedIPs }}{{ .AllowedIPs }}{{ else }} 0.0.0.0/0 {{ end }}
+EndPoint = {{ .WireguardAddress }}:{{ .WireguardPort }}
+`
+
+type peerConfigValues struct {
+	WireguardPrivateKey string
+	Address             string
+	DNS                 string
+	SearchDomain        string
+	MTU                 string
+	PeerPublicKey       string
+	AllowedIPs          string
+	WireguardAddress    string
+	WireguardPort       string
+}
+
+func (r *WireguardReconciler) reconcilePeerConfSecret(ctx context.Context, req ctrl.Request, wireguard *v1alpha1.Wireguard, serverAddress string, dns string, dnsSearchDomain string, serverPublicKey string) error {
+	peers, err := r.getWireguardPeers(ctx, req)
+	if err != nil {
+		return err
+	}
+
+	peerConfSecretName := fmt.Sprintf("%s-peer-configs", wireguard.Name)
+	labels := labelsForWireguard(wireguard.Name)
+	desiredSecret := &corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      peerConfSecretName,
+			Namespace: wireguard.Namespace,
+			Labels:    labels,
+		},
+		Data: map[string][]byte{},
+	}
+
+	if err := controllerutil.SetControllerReference(wireguard, desiredSecret, r.Scheme); err != nil {
+		return fmt.Errorf("Failed to set Controller reference on desired secret: %v", err)
+	}
+
+	for _, peer := range peers.Items {
+		var privateKeySecret corev1.Secret
+		if err := r.Get(ctx, types.NamespacedName{Name: peer.Spec.PrivateKey.SecretKeyRef.Name, Namespace: peer.Namespace}, &privateKeySecret); err != nil {
+			return fmt.Errorf("Unable to retrieve private key for peer: %v", err)
+		}
+		privKey := privateKeySecret.Data[peer.Spec.PrivateKey.SecretKeyRef.Key]
+
+		templateVals := peerConfigValues{
+			WireguardPrivateKey: string(privKey),
+			Address:             peer.Spec.Address,
+			DNS:                 dns,
+			SearchDomain:        dnsSearchDomain,
+			MTU:                 wireguard.Spec.Mtu,
+			PeerPublicKey:       serverPublicKey,
+			AllowedIPs:          peer.Spec.AllowedIPs,
+			WireguardAddress:    serverAddress,
+			WireguardPort:       wireguard.Status.Port,
+		}
+
+		tmpl, err := template.New(peer.Name).Parse(peerConfigTemplate)
+		if err != nil {
+			return fmt.Errorf("Failed to parse peer config template: %v", err)
+		}
+		var renderedConfig bytes.Buffer
+		err = tmpl.Execute(&renderedConfig, templateVals)
+		if err != nil {
+			return fmt.Errorf("Failed to render peer config template: %v", err)
+		}
+
+		desiredSecret.Data[peer.Name] = renderedConfig.Bytes()
+	}
+
+	existingSecret := &corev1.Secret{}
+	if err := r.Get(ctx, types.NamespacedName{Name: peerConfSecretName, Namespace: wireguard.Namespace}, existingSecret); err != nil {
+		if !errors.IsNotFound(err) {
+			return err
+		}
+		return r.Create(ctx, desiredSecret)
+	}
+
+	patch := client.MergeFrom(existingSecret.DeepCopy())
+	existingSecret.Data = desiredSecret.Data
+	existingSecret.ObjectMeta.Labels = desiredSecret.Labels
+	return r.Patch(ctx, existingSecret, patch)
 }
 
 //+kubebuilder:rbac:groups=vpn.wireguard-operator.io,resources=wireguards,verbs=get;list;watch;create;update;patch;delete
@@ -598,7 +662,11 @@ func (r *WireguardReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 		}
 	}
 
-	if err := r.updateWireguardPeers(ctx, req, wireguard, address, dnsAddress, dnsSearchDomain, string(secret.Data["publicKey"]), wireguard.Spec.Mtu); err != nil {
+	if err := r.updateWireguardPeers(ctx, req); err != nil {
+		return ctrl.Result{}, err
+	}
+
+	if err := r.reconcilePeerConfSecret(ctx, req, wireguard, address, dnsAddress, dnsSearchDomain, string(secret.Data["publicKey"])); err != nil {
 		return ctrl.Result{}, err
 	}
 

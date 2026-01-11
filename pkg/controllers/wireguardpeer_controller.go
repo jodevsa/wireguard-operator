@@ -59,7 +59,10 @@ func (r *WireguardPeerReconciler) secretForPeer(m *v1alpha1.WireguardPeer, priva
 			Namespace: m.Namespace,
 			Labels:    ls,
 		},
-		Data: map[string][]byte{"privateKey": []byte(privateKey), "publicKey": []byte(publicKey)},
+		Data: map[string][]byte{
+			"privateKey": []byte(privateKey),
+			"publicKey":  []byte(publicKey),
+		},
 	}
 	// Set Nodered instance as the owner and controller
 	ctrl.SetControllerReference(m, dep, r.Scheme)
@@ -192,13 +195,21 @@ func (r *WireguardPeerReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 		return ctrl.Result{Requeue: true}, nil
 	}
 
-	if newPeer.Status.Config == "" {
-		err = r.updateStatus(ctx, newPeer, v1alpha1.Pending, "Waiting config to be updated")
-
-		if err != nil {
+	peerConfigSecret := &corev1.Secret{}
+	peerConfigKey := types.NamespacedName{
+		Name:      fmt.Sprintf("%s-peer-configs", newPeer.Spec.WireguardRef),
+		Namespace: newPeer.Namespace,
+	}
+	err = r.Get(ctx, peerConfigKey, peerConfigSecret)
+	if err != nil {
+		if err := r.updateStatus(ctx, newPeer, v1alpha1.Pending, "Waiting for wireguard secrets"); err != nil {
 			return ctrl.Result{}, err
 		}
-
+	}
+	if _, ok := peerConfigSecret.Data[newPeer.Name]; !ok {
+		if err := r.updateStatus(ctx, newPeer, v1alpha1.Pending, "Waiting for config secret to be created"); err != nil {
+			return ctrl.Result{}, err
+		}
 	}
 
 	return ctrl.Result{}, nil
