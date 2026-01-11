@@ -3,7 +3,7 @@ ARG WIREGUARD_AGENT_SRC=/usr/local/src/wireguard-agent
 ARG PROMETHEUS_WIREGUARD_EXPORTER_SRC=/usr/local/src/prometheus-wireguard-exporter
 
 # step 1: Build Agent
-FROM --platform=${BUILDPLATFORM} golang:1.22 AS golang-builder
+FROM --platform=${BUILDPLATFORM} golang:1.25 AS golang-builder
 ARG WIREGUARD_AGENT_SRC
 WORKDIR $WIREGUARD_AGENT_SRC
 # Copy the Go Modules manifests
