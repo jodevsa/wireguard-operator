@@ -9,7 +9,7 @@ require (
 	github.com/go-logr/logr v1.4.1
 	github.com/go-logr/stdr v1.2.2
 	github.com/korylprince/ipnetgen v1.0.1
-	github.com/onsi/ginkgo v1.16.5
+	github.com/onsi/ginkgo/v2 v2.25.3
 	github.com/onsi/ginkgo/v2 v2.17.2
 	github.com/onsi/gomega v1.33.0
 	github.com/vishvananda/netlink v1.1.0
