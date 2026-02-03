@@ -26,7 +26,7 @@ func (it *Iptables) Sync(state agent.State) error {
 	dns := state.Server.Status.Dns
 	peers := state.Peers
 
-	cfg := GenerateIptableRulesFromPeers(wgHostName, dns, peers)
+	cfg := GenerateIPTableRulesFromPeers(wgHostName, dns, peers)
 
 	err := ApplyRules(cfg)
 
@@ -37,7 +37,7 @@ func (it *Iptables) Sync(state agent.State) error {
 	return nil
 }
 
-func GenerateIptableRulesFromNetworkPolicies(policies v1alpha1.EgressNetworkPolicies, peerIp string, kubeDnsIp string, wgServerIp string) string {
+func GenerateIPTableRulesFromNetworkPolicies(policies v1alpha1.EgressNetworkPolicies, peerIp string, kubeDnsIp string, wgServerIp string) string {
 	peerChain := strings.ReplaceAll(peerIp, ".", "-")
 
 	rules := []string{
@@ -61,7 +61,7 @@ func GenerateIptableRulesFromNetworkPolicies(policies v1alpha1.EgressNetworkPoli
 	}
 
 	for _, policy := range policies {
-		rules = append(rules, EgressNetworkPolicyToIpTableRules(policy, peerChain)...)
+		rules = append(rules, EgressNetworkPolicyToIPTableRules(policy, peerChain)...)
 	}
 
 	// if policies are defined impose an implicit deny all
@@ -75,11 +75,8 @@ func GenerateIptableRulesFromNetworkPolicies(policies v1alpha1.EgressNetworkPoli
 	return strings.Join(rules, "\n")
 }
 
-func GenerateIptableRulesFromPeers(wgHostName string, dns string, peers []v1alpha1.WireguardPeer) string {
-	var rules []string
-
-	var natTableRules = `
-*nat
+func GenerateIPTableRulesFromPeers(wgHostName string, dns string, peers []v1alpha1.WireguardPeer) string {
+	const natTableRules = `*nat
 :PREROUTING ACCEPT [0:0]
 :INPUT ACCEPT [0:0]
 :OUTPUT ACCEPT [0:0]
@@ -87,68 +84,58 @@ func GenerateIptableRulesFromPeers(wgHostName string, dns string, peers []v1alph
 -A POSTROUTING -s 10.8.0.0/24 -o eth0 -j MASQUERADE
 COMMIT`
 
+	var rules []string
 	for _, peer := range peers {
-
-		//tc(peer.Spec.DownloadSpeed, peer.Spec.UploadSpeed)
-		rules = append(rules, GenerateIptableRulesFromNetworkPolicies(peer.Spec.EgressNetworkPolicies, peer.Spec.Address, dns, wgHostName))
+		rules = append(rules, GenerateIPTableRulesFromNetworkPolicies(peer.Spec.EgressNetworkPolicies, peer.Spec.Address, dns, wgHostName))
 	}
 
-	var filterTableRules = fmt.Sprintf(`
-*filter
+	filterTableRules := fmt.Sprintf(`*filter
 :INPUT ACCEPT [0:0]
 :FORWARD ACCEPT [0:0]
 :OUTPUT ACCEPT [0:0]
 %s
-COMMIT
-`, strings.Join(rules, "\n"))
+COMMIT`, strings.Join(rules, "\n"))
 
 	return fmt.Sprintf("%s\n%s", natTableRules, filterTableRules)
 }
 
-func EgressNetworkPolicyToIpTableRules(policy v1alpha1.EgressNetworkPolicy, peerChain string) []string {
-
-	var rules []string
-
+func EgressNetworkPolicyToIPTableRules(policy v1alpha1.EgressNetworkPolicy, peerChain string) []string {
 	if policy.Protocol == "" && policy.To.Port != 0 {
-		policy.Protocol = "TCP"
-		rules = append(rules, EgressNetworkPolicyToIpTableRules(policy, peerChain)[0])
-		policy.Protocol = "UDP"
-		rules = append(rules, EgressNetworkPolicyToIpTableRules(policy, peerChain)[0])
-		return rules
-	}
+		tcpPolicy := policy
+		tcpPolicy.Protocol = "TCP"
 
-	// customer rules
-	var rulePeerChain = "-A " + peerChain
-	var ruleAction = string("-j " + v1alpha1.EgressNetworkPolicyActionDeny)
-	var ruleProtocol = ""
-	var ruleDestIp = ""
-	var ruleDestPort = ""
+		udpPolicy := policy
+		udpPolicy.Protocol = "UDP"
+
+		return []string{
+			EgressNetworkPolicyToIPTableRule(tcpPolicy, peerChain),
+			EgressNetworkPolicyToIPTableRule(udpPolicy, peerChain),
+		}
+	}
+	return []string{EgressNetworkPolicyToIPTableRule(policy, peerChain)}
+}
+
+func EgressNetworkPolicyToIPTableRule(policy v1alpha1.EgressNetworkPolicy, peerChain string) string {
+	opts := []string{fmt.Sprintf("-A %s", peerChain)}
 
 	if policy.To.Ip != "" {
-		ruleDestIp = "-d " + policy.To.Ip
+		opts = append(opts, fmt.Sprintf("-d %s", policy.To.Ip))
 	}
 
 	if policy.Protocol != "" {
-		ruleProtocol = "-p " + strings.ToUpper(string(policy.Protocol))
+		opts = append(opts, fmt.Sprintf("-p %s", strings.ToUpper(string(policy.Protocol))))
 	}
 
 	if policy.To.Port != 0 {
-		ruleDestPort = "--dport " + fmt.Sprint(policy.To.Port)
+		opts = append(opts, fmt.Sprintf("--dport %d", policy.To.Port))
 	}
 
+	action := v1alpha1.EgressNetworkPolicyActionDeny
 	if policy.Action != "" {
-		ruleAction = "-j " + strings.ToUpper(string(policy.Action))
+		action = policy.Action
 	}
 
-	var options = []string{rulePeerChain, ruleDestIp, ruleProtocol, ruleDestPort, ruleAction}
-	var filteredOptions []string
-	for _, option := range options {
-		if len(option) != 0 {
-			filteredOptions = append(filteredOptions, option)
-		}
-	}
-	rules = append(rules, strings.Join(filteredOptions, " "))
+	opts = append(opts, fmt.Sprintf("-j %s", strings.ToUpper(string(action))))
 
-	return rules
-
+	return strings.Join(opts, " ")
 }
